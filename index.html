@@ -233,7 +233,45 @@
   }
 
   /* ── RÉSULTAT ── */
-  .result-card { position: sticky; top: 28px; }
+  .right-col {
+    position: sticky;
+    top: 28px;
+    align-self: start;
+    max-height: calc(100vh - 110px);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .right-col .result-card {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .right-col .result-card .card-body {
+    overflow-y: auto;
+    scrollbar-width: thin;
+    min-height: 0;
+  }
+  .right-col .resume-card {
+    flex: 0 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    margin-top: 0;
+  }
+  .right-col .resume-card .card-body {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .right-col .resume-content {
+    overflow-y: auto;
+    scrollbar-width: thin;
+    flex: 1 1 auto;
+    min-height: 40px;
+    max-height: 260px;
+  }
 
   .result-fournisseur {
     font-size: 10px;
@@ -667,7 +705,7 @@
           </div>
 
           <!-- RÉSULTAT -->
-          <div>
+          <div class="right-col">
             <div class="result-card card">
               <div class="card-header">
                 <span class="card-title">Résultat</span>
@@ -10480,164 +10518,306 @@ updatePDModeButtons();
 // RÉSUMÉ SOUMISSION — Sans prix, pour copier-coller
 // ══════════════════════════════════════════════════════
 
-function buildResumeText() {
-  const rb = document.getElementById('result-body');
-  if (!rb) return null;
-  if (rb.querySelector('.empty-state')) return null;
+// ── Helper : lire le texte d'un <select> par son id ──
+function selText(id) {
+  const el = document.getElementById(id);
+  if (!el) return null;
+  if (!isVisible(el)) return null; // ignorer les champs cachés (valeurs résiduelles)
+  const opt = el.options[el.selectedIndex];
+  if (!opt || !opt.value || opt.value === '') return null;
+  const t = opt.text.trim();
+  if (t.startsWith('—') || t.startsWith('−') || t.startsWith('- ')) return null;
+  // Nettoyer les mentions de prix " — PDSF +$..." ou " — $..."
+  return t.replace(/\s*[—–-]+\s*(PDSF\s*\+?\$[\d.,]+|\$[\d.,]+)(\s*\(.*?\))?/g, '').trim();
+}
 
+function buildResumeText() {
+  // Le résumé s'affiche dès qu'un fournisseur est choisi et que des sélections existent,
+  // même si le prix n'est pas encore calculé
+  if (!state.fournisseur) return null;
+
+  const f   = state.fournisseur;
+  const opt = state.options;
   const lines = [];
 
-  // ── Lire les champs visibles dans la zone formulaire (étapes 1 à 3) ──
-  // On scanne les cards de la colonne gauche (formulaire)
-  const formArea = document.querySelector('#panel-calc .calc-grid > div:first-child');
-  if (!formArea) return null;
+  // Nettoyer tout motif de prix dans une valeur
+  const cleanPrice = (t) => String(t)
+    .replace(/\s*×\s*\d+\s*=\s*\$[\d.,]+/g, '')   // "× 2 = $12"
+    .replace(/\s*[—–-]*\s*(PDSF\s*)?\+?\$[\d.,]+(\/\w+)?/g, '') // "$80/vg", "+$12", "— PDSF +$19"
+    .replace(/\s*\/ch\b/g, '')                       // "/ch"
+    .replace(/\s{2,}/g, ' ')
+    .trim();
 
-  // Badges spéciaux : tissu SOL-R, Normandie
-  const solrBadge = document.getElementById('solr-selected');
-  const normBadge = document.getElementById('norm-selected');
-
-  // Parcourir chaque élément de formulaire visible
-  formArea.querySelectorAll('select, input[type="text"], input[type="number"]').forEach(el => {
-    // Ignorer si caché (parent caché ou display:none)
-    if (!isVisible(el)) return;
-
-    // Ignorer les champs de dimension (largeur, hauteur, fractions)
-    const id = el.id || '';
-    if (['inp-larg','inp-haut','frac-larg','frac-haut'].includes(id)) return;
-
-    // Ignorer le fournisseur et les champs de recherche (barre de filtre)
-    if (id === 'sel-fournisseur' || id === 'solr-search' || id === 'norm-search') return;
-
-    // Ignorer les champs numérique d'accessoires dans options-container (quantités)
-    if (el.type === 'number') return;
-
-    let label = '';
-    let value = '';
-
-    if (el.tagName === 'SELECT') {
-      const opt = el.options[el.selectedIndex];
-      if (!opt || !opt.value || opt.value === '') return; // rien de sélectionné
-      // Exclure les options placeholder
-      if (opt.text.startsWith('—') || opt.text.startsWith('−')) return;
-      value = opt.text.trim();
-    } else {
-      // input text
-      value = el.value.trim();
-      if (!value) return;
+  const add = (label, value) => {
+    if (value && value !== '' && !String(value).startsWith('—')) {
+      const v = cleanPrice(value);
+      if (v) lines.push(`${label} : ${v}`);
     }
+  };
 
-    // Trouver le label associé
-    // 1. <label for="id"> dans le même parent
-    if (id) {
-      const lbl = formArea.querySelector(`label[for="${id}"]`);
-      if (lbl) label = lbl.textContent.replace(/REQUIS/i,'').trim();
-    }
-    // 2. <label> précédent dans le même conteneur
-    if (!label) {
-      let prev = el.previousElementSibling;
-      while (prev) {
-        if (prev.tagName === 'LABEL') { label = prev.textContent.replace(/REQUIS/i,'').trim(); break; }
-        prev = prev.previousElementSibling;
-      }
-    }
-    // 3. Chercher dans le parent immédiat
-    if (!label) {
-      const parentLabel = el.closest('.form-row, div')?.querySelector('label');
-      if (parentLabel) label = parentLabel.textContent.replace(/REQUIS/i,'').trim();
-    }
-    // 4. Chercher dans section-divider parent (pour les options dynamiques)
-    if (!label) {
-      const section = el.closest('.card-body > div, [class*="section"]');
-      if (section) {
-        const divider = section.querySelector('.section-divider');
-        if (!divider) {
-          // remonter dans le DOM pour trouver le section-divider précédent
-          let sib = el.closest('div')?.previousElementSibling;
-          while (sib) {
-            if (sib.classList?.contains('section-divider')) { label = sib.textContent.trim(); break; }
-            const sd = sib.querySelector?.('.section-divider');
-            if (sd) { label = sd.textContent.trim(); break; }
-            sib = sib.previousElementSibling;
-          }
-        } else {
-          label = divider.textContent.trim();
-        }
+  const addRaw = (value) => {
+    const v = cleanPrice(value);
+    if (v && !v.startsWith('—')) lines.push(v);
+  };
+
+  // ══════════════════════════════════════════════════
+  // TYPE DE PRODUIT (commun à tous)
+  // ══════════════════════════════════════════════════
+  const typeLabel = selText('sel-type');
+  if (typeLabel) add('Type de produit', typeLabel);
+
+  // ══════════════════════════════════════════════════
+  // VP STORES
+  // ══════════════════════════════════════════════════
+  if (f === 'vp') {
+    add('Modèle', selText('sel-modele'));
+    add('Couleur', selText('sel-couleur'));
+    add('Entête',  selText('opt-entete'));
+    add("Couleur de l'aluminium", selText('opt-couleur-alu'));
+    add('Barre de charge',  selText('opt-barre'));
+    add('Base',            selText('opt-base'));
+    add('Enroulement',     selText('opt-enroulement'));
+
+    // Coulisses (checkbox)
+    const coulissesEl = document.getElementById('opt-coulisses');
+    if (coulissesEl && isVisible(coulissesEl) && coulissesEl.checked) lines.push("✓ Coulisses d'obscurité latérales");
+
+    // Mécanisme — nettoyer les (max X pi²)
+    const mecEl = document.getElementById('opt-mecanisme');
+    if (mecEl && isVisible(mecEl)) {
+      const mecOpt = mecEl.options[mecEl.selectedIndex];
+      if (mecOpt && mecOpt.value) {
+        const mecTxt = mecOpt.text.trim().replace(/\s*\(max[\s\d]+pi[²2]\)/, '').replace(/⚠.*$/, '').trim();
+        add('Mécanisme', mecTxt);
       }
     }
 
-    if (label) {
-      lines.push(`${label} : ${value}`);
-    } else {
-      lines.push(value);
-    }
-  });
+    add('Côté contrôle', selText('opt-cote'));
+    add('Canal du store', selText('opt-canal'));
+    add('Multiple toiles', selText('opt-multiple'));
 
-  // Ajouter badge tissu SOL-R si visible
-  if (solrBadge && solrBadge.style.display !== 'none' && solrBadge.textContent.trim()) {
-    lines.unshift(`Tissu : ${solrBadge.textContent.trim()}`);
-  }
-  // Ajouter badge tissu Normandie si visible
-  if (normBadge && normBadge.style.display !== 'none' && normBadge.textContent.trim()) {
-    lines.unshift(`Tissu : ${normBadge.textContent.trim()}`);
+    // Articles motorisation cochés
+    const optContainer = document.getElementById('options-container');
+    if (optContainer) {
+      optContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        if (!cb.id?.startsWith('moto-') || !cb.checked || !isVisible(cb)) return;
+        const lbl = optContainer.querySelector(`label[for="${cb.id}"]`) || cb.closest('label');
+        if (lbl) lines.push(`✓ ${cleanPrice(lbl.textContent)}`);
+      });
+    }
   }
 
-  // Ajouter les options dynamiques (étape 3 — options-container)
-  const optContainer = document.getElementById('options-container');
-  if (optContainer) {
-    optContainer.querySelectorAll('select, input[type="text"]').forEach(el => {
-      if (!isVisible(el)) return;
-      const id = el.id || '';
-      if (id === 'norm-tissu2-search') return; // champ de recherche
+  // ══════════════════════════════════════════════════
+  // SBM CANADA
+  // ══════════════════════════════════════════════════
+  else if (f === 'sbm') {
+    add('Modèle', selText('sel-modele'));
+    add('Couleur', selText('sel-couleur'));
+    add('Entête',  selText('sbm-entete'));
+    add("Couleur de l'aluminium", selText('sbm-couleur-alu'));
+    add('Barre de charge', selText('sbm-barre'));
+    add('Base',            selText('sbm-base'));
 
-      let label = '';
-      let value = '';
+    // Coulisses SBM (checkbox)
+    const sbmCoul = document.getElementById('sbm-coulisses-cb');
+    if (sbmCoul && isVisible(sbmCoul) && sbmCoul.checked) lines.push("✓ Coulisses d'obscurité latérales");
 
-      if (el.tagName === 'SELECT') {
-        const opt = el.options[el.selectedIndex];
-        if (!opt || !opt.value || opt.value === '') return;
-        if (opt.text.startsWith('—') || opt.text.startsWith('−')) return;
-        value = opt.text.trim();
-      } else {
-        value = el.value.trim();
-        if (!value) return;
-      }
+    // Mécanisme SBM
+    const sbmMecEl = document.getElementById('sbm-mecanisme');
+    if (sbmMecEl && isVisible(sbmMecEl)) {
+      const o = sbmMecEl.options[sbmMecEl.selectedIndex];
+      if (o && o.value) add('Mécanisme', o.text.trim().replace(/\s*[—–]\s*PDSF.*$/,'').trim());
+    }
 
-      // Chercher section-divider précédent dans le DOM
-      let node = el.closest('div');
-      let found = false;
-      while (node && node !== optContainer) {
-        let sib = node.previousElementSibling;
-        while (sib) {
-          if (sib.classList?.contains('section-divider')) { label = sib.textContent.trim(); found = true; break; }
-          const sd = sib.querySelector?.('.section-divider');
-          if (sd) { label = sd.textContent.trim(); found = true; break; }
-          sib = sib.previousElementSibling;
+    add('Côté contrôle', selText('sbm-cote'));
+    add('Canal du store', selText('sbm-canal'));
+    add('Enroulement',   selText('sbm-enroulement'));
+
+    // Accessoires SBM motorisation cochés
+    const optContainer = document.getElementById('options-container');
+    if (optContainer) {
+      optContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        if (!cb.checked || !isVisible(cb)) return;
+        const lbl = optContainer.querySelector(`label[for="${cb.id}"]`) || cb.closest('label');
+        if (lbl && cb.id !== 'sbm-coulisses-cb') lines.push(`✓ ${cleanPrice(lbl.textContent)}`);
+      });
+    }
+  }
+
+  // ══════════════════════════════════════════════════
+  // SOL-R
+  // ══════════════════════════════════════════════════
+  else if (f === 'solr') {
+    // Tissu — badge sélectionné
+    const solrBadge = document.getElementById('solr-selected');
+    if (solrBadge && solrBadge.style.display !== 'none' && isVisible(solrBadge)) {
+      add('Tissu', solrBadge.textContent.replace(/\s+/g, ' ').trim());
+    }
+    add('Entête', selText('solr-entete'));
+
+    // Tissu 2 (système double) — badge ou select
+    const tissu2Badge = document.getElementById('solr-selected2');
+    if (tissu2Badge && tissu2Badge.style.display !== 'none' && isVisible(tissu2Badge) && tissu2Badge.textContent.trim()) {
+      add('Tissu arrière (toile 2)', tissu2Badge.textContent.replace(/\s+/g, ' ').trim());
+    }
+
+    // Mécanisme SOL-R
+    const solrMecEl = document.getElementById('solr-mecanisme');
+    if (solrMecEl && isVisible(solrMecEl)) {
+      const o = solrMecEl.options[solrMecEl.selectedIndex];
+      if (o && o.value) add('Mécanisme', o.text.replace(/\s*[—–]\s*(PDSF.*?|\$[\d.,]+)(\s*\(.*?\))?$/,'').trim());
+    }
+
+    add('Côté contrôle', selText('solr-cote'));
+    add('Canal du store', selText('solr-canal'));
+
+    // Coulisses SOL-R (checkbox)
+    const solrCoul = document.getElementById('solr-coulisses-cb');
+    if (solrCoul && isVisible(solrCoul) && solrCoul.checked) lines.push("✓ Coulisses d'obscurité latérales");
+
+    // Accessoires SOL-R cochés
+    const optContainer = document.getElementById('options-container');
+    if (optContainer) {
+      optContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        if (!cb.checked || !isVisible(cb)) return;
+        const lbl = optContainer.querySelector(`label[for="${cb.id}"]`) || cb.closest('label');
+        if (lbl) lines.push(`✓ ${cleanPrice(lbl.textContent)}`);
+      });
+    }
+  }
+
+  // ══════════════════════════════════════════════════
+  // DRAPERIE NORMANDIE
+  // ══════════════════════════════════════════════════
+  else if (f === 'norm') {
+    const normBadge = document.getElementById('norm-selected');
+    if (normBadge && normBadge.style.display !== 'none' && isVisible(normBadge)) {
+      add('Tissu principal', normBadge.textContent.replace(/\s+/g, ' ').trim());
+    }
+    add('Modèle', selText('sel-modele'));
+
+    // Doublure
+    const doublureEl = document.getElementById('norm-doublure');
+    if (doublureEl && isVisible(doublureEl)) {
+      const o = doublureEl.options[doublureEl.selectedIndex];
+      if (o && o.value && !o.text.startsWith('—')) add('Doublure', o.text.replace(/\s*\+?\$[\d.,]+\s*/g,'').trim());
+    }
+
+    // Motorisation — lire les selects visibles dans options-container avec leur label
+    const optContainer = document.getElementById('options-container');
+    if (optContainer) {
+      // Selects (mécanisme, montage, télécommande, etc.)
+      optContainer.querySelectorAll('select').forEach(sel => {
+        if (!isVisible(sel)) return;
+        const o = sel.options[sel.selectedIndex];
+        if (!o || !o.value || o.text.startsWith('—') || o.text.startsWith('−')) return;
+        // Trouver label
+        let lbl = '';
+        const forLbl = sel.id ? optContainer.querySelector(`label[for="${sel.id}"]`) : null;
+        if (forLbl) { lbl = forLbl.textContent.trim(); }
+        else {
+          // label précédent dans le parent
+          let prev = sel.previousElementSibling;
+          while (prev) { if (prev.tagName === 'LABEL') { lbl = prev.textContent.trim(); break; } prev = prev.previousElementSibling; }
         }
-        if (found) break;
-        // chercher dans le parent wrap
-        const parentWrap = node.parentElement;
-        if (parentWrap) {
-          const sd = parentWrap.querySelector(':scope > .section-divider, :scope > div > .section-divider');
-          if (sd) { label = sd.textContent.trim(); found = true; break; }
+        const val = o.text.replace(/\s*[—–]\s*\$[\d.,]+/g,'').trim();
+        if (lbl) add(lbl, val); else addRaw(val);
+      });
+
+      // Checkboxes cochées
+      optContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        if (!cb.checked || !isVisible(cb)) return;
+        const lbl = optContainer.querySelector(`label[for="${cb.id}"]`) || cb.closest('label');
+        if (lbl) lines.push(`✓ ${cleanPrice(lbl.textContent)}`);
+      });
+    }
+
+    // Rail
+    const railEl = document.getElementById('norm-rail-sys');
+    if (railEl && isVisible(railEl)) {
+      const o = railEl.options[railEl.selectedIndex];
+      if (o && o.value) add('Rail', o.text.trim());
+    }
+  }
+
+  // ══════════════════════════════════════════════════
+  // PERSIENNE DESIGN
+  // ══════════════════════════════════════════════════
+  else if (f === 'pd') {
+    add('Modèle', selText('sel-modele'));
+    if (state.tissuNom)    add('Nom du tissu',    state.tissuNom);
+    if (state.tissuCouleur) add('Couleur du tissu', state.tissuCouleur);
+
+    // Options PD dans options-container
+    const optContainer = document.getElementById('options-container');
+    if (optContainer) {
+      optContainer.querySelectorAll('select').forEach(sel => {
+        if (!isVisible(sel)) return;
+        const o = sel.options[sel.selectedIndex];
+        if (!o || !o.value || o.text.startsWith('—') || o.text.startsWith('−')) return;
+        // Section divider le plus proche
+        let div = null;
+        let node = sel.parentElement;
+        while (node && node !== optContainer) {
+          const sd = node.querySelector(':scope > .section-divider');
+          if (sd) { div = sd; break; }
+          const prevSib = node.previousElementSibling;
+          if (prevSib?.classList?.contains('section-divider')) { div = prevSib; break; }
+          node = node.parentElement;
         }
-        node = node.parentElement;
-      }
+        const lbl = div ? div.textContent.trim() : '';
+        const val = o.text.replace(/\s*[—–]\s*\$[\d.,]+/g,'').trim();
+        if (lbl) add(lbl, val); else addRaw(val);
+      });
 
-      if (label) {
-        lines.push(`${label} : ${value}`);
-      } else {
-        lines.push(value);
-      }
-    });
+      optContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        if (!cb.checked || !isVisible(cb)) return;
+        const lbl = optContainer.querySelector(`label[for="${cb.id}"]`) || cb.closest('label');
+        if (lbl) lines.push(`✓ ${cleanPrice(lbl.textContent)}`);
+      });
 
-    // Cases à cocher cochées
-    optContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-      if (!isVisible(cb) || !cb.checked) return;
-      let label = '';
-      const lbl = cb.id ? optContainer.querySelector(`label[for="${cb.id}"]`) : null;
-      if (lbl) label = lbl.textContent.trim();
-      if (label) lines.push(`✓ ${label}`);
-    });
+      optContainer.querySelectorAll('input[type="text"]').forEach(inp => {
+        if (!inp.value.trim() || !isVisible(inp)) return;
+        let prev = inp.previousElementSibling;
+        let lbl = '';
+        while (prev) { if (prev.tagName === 'LABEL') { lbl = prev.textContent.trim(); break; } prev = prev.previousElementSibling; }
+        if (lbl) add(lbl, inp.value.trim()); else addRaw(inp.value.trim());
+      });
+    }
+  }
+
+  // ══════════════════════════════════════════════════
+  // VEROTEX
+  // ══════════════════════════════════════════════════
+  else if (f === 'vtx') {
+    add('Tissu', selText('vtx-tissu'));
+    add('Couleur (RS)', selText('vtx-couleur'));
+    add('Modèle', selText('sel-modele'));
+
+    const optContainer = document.getElementById('options-container');
+    if (optContainer) {
+      optContainer.querySelectorAll('select').forEach(sel => {
+        if (!isVisible(sel)) return;
+        const o = sel.options[sel.selectedIndex];
+        if (!o || !o.value || o.text.startsWith('—') || o.text.startsWith('−')) return;
+        let node = sel.parentElement;
+        let lbl = '';
+        while (node && node !== optContainer) {
+          const sd = node.querySelector(':scope > .section-divider');
+          if (sd) { lbl = sd.textContent.trim(); break; }
+          const prev = node.previousElementSibling;
+          if (prev?.classList?.contains('section-divider')) { lbl = prev.textContent.trim(); break; }
+          node = node.parentElement;
+        }
+        const val = o.text.replace(/\s*[—–]\s*\$[\d.,]+/g,'').trim();
+        if (lbl) add(lbl, val); else addRaw(val);
+      });
+      optContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        if (!cb.checked || !isVisible(cb)) return;
+        const lbl = optContainer.querySelector(`label[for="${cb.id}"]`) || cb.closest('label');
+        if (lbl) lines.push(`✓ ${cleanPrice(lbl.textContent)}`);
+      });
+    }
   }
 
   if (lines.length === 0) return null;
@@ -10711,6 +10891,22 @@ function copyResume() {
   if (!target) return;
   const observer = new MutationObserver(() => updateResume());
   observer.observe(target, { childList: true, subtree: true, characterData: true });
+})();
+
+// Mettre à jour le résumé à CHAQUE interaction dans le formulaire
+// (change = selects/checkboxes, input = champs texte, click = listes de tissus)
+(function() {
+  const panel = document.getElementById('panel-calc');
+  if (!panel) return;
+  let pending = null;
+  const refresh = () => {
+    // micro-délai pour laisser les handlers de l'app mettre à jour state/DOM d'abord
+    clearTimeout(pending);
+    pending = setTimeout(updateResume, 50);
+  };
+  panel.addEventListener('change', refresh, true);
+  panel.addEventListener('input',  refresh, true);
+  panel.addEventListener('click',  refresh, true);
 })();
 </script>
 </body>
