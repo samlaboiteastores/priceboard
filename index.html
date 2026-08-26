@@ -9534,6 +9534,39 @@ function calculatePriceNorm() {
                  : 'Simple (1 panneau)';
   const retourLabel = retourVal > 0 ? ` · Retour ${retourVal}" × 2 côtés (+${retourVal*2}" à la largeur)` : '';
 
+  // ── Descriptif ORDER-COMPLETE pour la ligne de devis (rideau Normandie) ──
+  try {
+    const _teteLbl = ({'2':'2"','3.5-4':'3½" ou 4"','5-6':'5" ou 6"','8':'8"'})[tete] || (tete + '"');
+    const _railObj = NORM_RAILS[opt.normRailSys];
+    const _railLbl = _railObj ? (_railObj.label + ' ' + (opt.normRailCouleur || 'Blanc')).trim() : '';
+    const _install = (opt.normRailAcc && opt.normRailAcc['support-mural-type']) ? 'Support mural' : 'Support plafond';
+    const _parts = [
+      'Tissu : ' + tissu.nom.replace(/\s*\(\d+\)$/, ''),
+      'Confection : ' + finition.label,
+      'Tête : ' + _teteLbl,
+      'Bas : ' + bas + '"',
+      'Retour : ' + (retourVal > 0 ? retourVal + '"' : 'Aucun'),
+      'Panneaux : ' + divLabel,
+      'Baguettes : ' + bagInch + ' incluses',
+      'Installation : ' + _install
+    ];
+    if (_railLbl) _parts.push('Rail : ' + _railLbl);
+    _parts.push('Doublure : ' + (doublure ? 'Oui' : 'Non'));
+    // Ajouts cochés (anneaux, extras, accessoires) dans options-container
+    const _oc = document.getElementById('options-container');
+    if (_oc) {
+      _oc.querySelectorAll('input[type="checkbox"]:checked').forEach(function(cb){
+        if (!isVisible(cb)) return;
+        const _l = _oc.querySelector('label[for="' + cb.id + '"]') || cb.closest('label');
+        if (_l) {
+          const _t = _l.textContent.replace(/\s*[—–-]?\s*\$[\d.,]+.*$/, '').replace(/\s+/g, ' ').trim();
+          if (_t) _parts.push('+ ' + _t);
+        }
+      });
+    }
+    state.lastResult.desc = _parts.join(' | ');
+  } catch (e) {}
+
   const motoRow = pdsfMoto > 0 ? `
     <div class="price-row">
       <span class="price-label" style="color:var(--blue);">⚡ Motorisation (${Math.round(pct*100)}% × ${multiSomfy}×)</span>
@@ -10828,6 +10861,12 @@ function buildResumeText() {
 // (format "pipe" : Titre : valeur | Titre : valeur | …). Titres du Price Board,
 // structure lisible et légère pour le client.
 function buildDevisDescription() {
+  // Rideau Normandie : descriptif dédié ORDER-COMPLETE bâti au moment du calcul
+  // (confection + installation plafond/mural + ajouts cochés). Les stores et
+  // autres retombent sur le résumé générique (déjà complet, options-container).
+  if (typeof state !== 'undefined' && state.lastResult && state.lastResult.desc) {
+    return state.lastResult.desc;
+  }
   var l = _buildResumeLines();
   return l ? l.join(' | ') : null;
 }
