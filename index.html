@@ -1044,7 +1044,7 @@
 </div>
 
 <!-- PANEL SERVICES -->
-<div id="panel-services" class="panel" style="position:fixed;inset:0;background:var(--bg);z-index:10;display:none;flex-direction:column;">
+<div id="panel-services" class="panel" style="position:fixed;top:0;right:0;bottom:0;left:220px;background:var(--bg);z-index:10;display:none;flex-direction:column;">
   <div class="topbar">
     <span class="topbar-title">Services — Les Installations Supérieures</span>
   </div>
@@ -10474,6 +10474,9 @@ function calculateSvc() {
   const cp = document.getElementById('svc-codepostal')?.value?.trim() || '';
   const kmInfo = svcState.kmAller ? `${svcState.kmAller} km (${cp})` : 'distance non calculée';
 
+  state.svcLast = { vente: totalVente, cout: total,
+    desc: 'Service (Les Installations Supérieures) : ' + bd.map(function(b){ return b.label; }).join(' | ') };
+
   document.getElementById('svc-result-body').innerHTML = total === 0 ? `
     <div class="empty-state"><div class="icon">🔧</div><p>Remplis les informations pour voir le total</p></div>
   ` : `
@@ -10504,6 +10507,7 @@ function calculateSvc() {
         <span>Total coûtant</span><span>${fmtCAD(total)}</span>
       </div>
     </div>
+    ${window.LBAS_ORDER_ID ? '<button class="resume-copy-btn" id="svc-devis-add-btn" onclick="addServiceToDevis()" style="margin-top:12px;border-color:#02787d;color:#f6f9eb;background:#02787d;font-weight:600">➕ &nbsp;Ajouter au devis</button>' : ''}
   `;
 }
 
@@ -10945,6 +10949,7 @@ function copyResume() {
     catch (e) { return null; }
   }
   var LBAS_ORDER_ID = getOrderId();
+  window.LBAS_ORDER_ID = LBAS_ORDER_ID;
 
   var addBtn = document.getElementById('devis-add-btn');
   if (addBtn && LBAS_ORDER_ID) addBtn.style.display = 'block';
@@ -10989,6 +10994,38 @@ function copyResume() {
     try {
       window.parent.postMessage(payload, '*');
       var b = document.getElementById('devis-add-btn');
+      if (b) {
+        var old = b.innerHTML;
+        b.innerHTML = '✓ &nbsp;Ajouté au devis';
+        b.classList.add('copied');
+        setTimeout(function(){ b.innerHTML = old; b.classList.remove('copied'); }, 1800);
+      }
+    } catch (e) {
+      alert("Impossible d'envoyer au devis : " + e);
+    }
+  };
+
+  window.addServiceToDevis = function() {
+    if (!LBAS_ORDER_ID) { alert("Ouvre le Price Board depuis un devis pour utiliser ce bouton."); return; }
+    if (typeof state === 'undefined' || !state.svcLast || !(state.svcLast.vente > 0)) {
+      alert("Configure un service avant d'ajouter au devis."); return;
+    }
+    var payload = {
+      source: 'lbas-priceboard',
+      type: 'lbas_add_line',
+      order_id: LBAS_ORDER_ID,
+      description: state.svcLast.desc || 'Service',
+      price: Math.round((state.svcLast.vente + Number.EPSILON) * 100) / 100,
+      qty: 1,
+      kind: 'service',
+      supplier_code: '',
+      cost: (state.svcLast.cout > 0) ? Math.round((state.svcLast.cout + Number.EPSILON) * 100) / 100 : 0,
+      releve: '',
+      supplier_ref: 'priceboard'
+    };
+    try {
+      window.parent.postMessage(payload, '*');
+      var b = document.getElementById('svc-devis-add-btn');
       if (b) {
         var old = b.innerHTML;
         b.innerHTML = '✓ &nbsp;Ajouté au devis';
