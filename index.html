@@ -3758,27 +3758,7 @@ function calculatePrice() {
     }
   }
 
-  // Mécanisme
-  if (state.options.mecanisme && optsData.mecanisme) {
-    const mecaOpt = optsData.mecanisme.find(o => o.val === state.options.mecanisme);
-    if (mecaOpt && mecaOpt.extra > 0) {
-      extraPdsf += mecaOpt.extra;
-      breakdown.push({ label: mecaOpt.label, pdsf: mecaOpt.extra });
-    }
-
-    // Articles additionnels motorisation cochés
-    const moteurType = getMoteurType(state.options.mecanisme);
-    if (moteurType && MOTO_EXTRAS[moteurType]) {
-      MOTO_EXTRAS[moteurType].items.forEach(item => {
-        if (state.options['moto_' + item.key]) {
-          extraPdsf += item.extra;
-          breakdown.push({ label: item.label, pdsf: item.extra });
-        }
-      });
-    }
-  }
-
-  // Mécanisme — séparer Somfy vs reste
+  // Mécanisme — séparer Somfy vs reste (bloc unique ; l'ancien doublon a été retiré)
   let pdsfSomfy = 0; // PDSF motorisation Somfy → multi 1.5x
   let extraPdsfStore = 0; // autres extras → multi normal
 
