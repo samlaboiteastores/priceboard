@@ -10541,7 +10541,7 @@ function selText(id) {
   return t.replace(/\s*[—–-]+\s*(PDSF\s*\+?\$[\d.,]+|\$[\d.,]+)(\s*\(.*?\))?/g, '').trim();
 }
 
-function buildResumeText() {
+function _buildResumeLines() {
   // Le résumé s'affiche dès qu'un fournisseur est choisi et que des sélections existent,
   // même si le prix n'est pas encore calculé
   if (!state.fournisseur) return null;
@@ -10831,7 +10831,21 @@ function buildResumeText() {
   }
 
   if (lines.length === 0) return null;
-  return lines.join('\n');
+  return lines;
+}
+
+// Résumé multi-ligne (affichage écran + "Copier pour soumission")
+function buildResumeText() {
+  var l = _buildResumeLines();
+  return l ? l.join('\n') : null;
+}
+
+// Descriptif compact pour la LIGNE DE DEVIS : même contenu, une seule ligne
+// (format "pipe" : Titre : valeur | Titre : valeur | …). Titres du Price Board,
+// structure lisible et légère pour le client.
+function buildDevisDescription() {
+  var l = _buildResumeLines();
+  return l ? l.join(' | ') : null;
 }
 
 function isVisible(el) {
@@ -10950,7 +10964,7 @@ function copyResume() {
     if (typeof state === 'undefined' || !state.lastResult || !(state.lastResult.vente > 0)) {
       alert("Configure un produit et un prix avant d'ajouter au devis."); return;
     }
-    var description = (typeof buildResumeText === 'function' ? buildResumeText() : '') || (state.modele || 'Produit');
+    var description = (typeof buildDevisDescription === 'function' ? buildDevisDescription() : '') || (state.modele || 'Produit');
     var price = Math.round((state.lastResult.vente + Number.EPSILON) * 100) / 100;
     var _f = document.getElementById('sel-fournisseur');
     var supplier_code = _f ? _f.value : '';
