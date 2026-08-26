@@ -10946,6 +10946,13 @@ function copyResume() {
     }
     var description = (typeof buildResumeText === 'function' ? buildResumeText() : '') || (state.modele || 'Produit');
     var price = Math.round((state.lastResult.vente + Number.EPSILON) * 100) / 100;
+    var _f = document.getElementById('sel-fournisseur');
+    var supplier_code = _f ? _f.value : '';
+    var cost = (state.lastResult && state.lastResult.cout > 0)
+      ? Math.round((state.lastResult.cout + Number.EPSILON) * 100) / 100 : 0;
+    var _larg = (typeof state.larg !== 'undefined' && state.larg) ? state.larg : (state.largTip || '');
+    var _haut = (typeof state.haut !== 'undefined' && state.haut) ? state.haut : (state.hautTip || '');
+    var releve = (_larg && _haut) ? (_larg + '" × ' + _haut + '"') : '';
     var payload = {
       source: 'lbas-priceboard',
       type: 'lbas_add_line',
@@ -10953,7 +10960,11 @@ function copyResume() {
       description: description,
       price: price,
       qty: 1,
-      kind: window.lbasProductKind()
+      kind: window.lbasProductKind(),
+      supplier_code: supplier_code,
+      cost: cost,
+      releve: releve,
+      supplier_ref: 'priceboard'
     };
     try {
       window.parent.postMessage(payload, '*');
