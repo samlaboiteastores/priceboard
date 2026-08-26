@@ -3202,6 +3202,21 @@ function onTypeChange() {
 function onModeleChange() {
   state.modele = document.getElementById('sel-modele').value;
   if (!state.modele) return;
+  // LBAS: memoriser mesures + couleur pour comparer vite un autre tissu/modele
+  var _kLarg = document.getElementById('inp-larg').value;
+  var _kHaut = document.getElementById('inp-haut').value;
+  var _kFL = document.getElementById('frac-larg').value;
+  var _kFH = document.getElementById('frac-haut').value;
+  var _kCoul = (document.getElementById('sel-couleur') || {}).value || '';
+  function _lbasRestoreDims() {
+    document.getElementById('inp-larg').value = _kLarg;
+    document.getElementById('inp-haut').value = _kHaut;
+    document.getElementById('frac-larg').value = _kFL || '0';
+    document.getElementById('frac-haut').value = _kFH || '0';
+    var _sc = document.getElementById('sel-couleur');
+    if (_sc && _kCoul) { _sc.value = _kCoul; }
+    onDimChange();
+  }
   var isPD   = state.fournisseur === 'pd';
   var isSBM  = state.fournisseur === 'sbm';
   var isSolr = state.fournisseur === 'solr';
@@ -3212,13 +3227,8 @@ function onModeleChange() {
   if (isSolr) {
     hide('row-couleur'); hide('row-tissu-nom'); hide('row-tissu-couleur');
     show('card-dim');
-    document.getElementById('inp-larg').value = '';
-    document.getElementById('inp-haut').value = '';
-    document.getElementById('frac-larg').value = '0';
-    document.getElementById('frac-haut').value = '0';
-    state.largTip = null; state.hautTip = null; state.options = {};
     hide('card-options');
-    resetResult();
+    _lbasRestoreDims();
     return;
   }
 
@@ -3250,14 +3260,10 @@ function onModeleChange() {
     state.options = {};
   }
   show('card-dim');
-  document.getElementById('inp-larg').value = '';
-  document.getElementById('inp-haut').value = '';
-  document.getElementById('frac-larg').value = '0';
-  document.getElementById('frac-haut').value = '0';
-  state.largTip = null; state.hautTip = null;
   if (isPD) { show('card-options'); state.options={}; renderOptionsPD(); }
   else { hide('card-options'); }
-  resetResult();
+  // LBAS: garder les mesures + recalculer aussitot avec le nouveau tissu
+  _lbasRestoreDims();
 }
 
 function onDimChange() {
