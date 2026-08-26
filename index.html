@@ -6482,13 +6482,9 @@ function onSolrTissuChange(val) {
 
   state.options = {};
   state.tissuCouleur = '';
-  document.getElementById('inp-larg').value = '';
-  document.getElementById('inp-haut').value = '';
-  document.getElementById('frac-larg').value = '0';
-  document.getElementById('frac-haut').value = '0';
   document.getElementById('inp-tissu-couleur').value = '';
-  state.largTip = null; state.hautTip = null;
-  hide('card-options'); resetResult();
+  // LBAS: on GARDE les mesures pour comparer vite un autre tissu -> recalcul
+  hide('card-options'); onDimChange();
   show('card-dim');
   show('row-tissu-couleur');
   document.getElementById('inp-tissu-couleur').oninput = function() {
@@ -7416,17 +7412,12 @@ function onNormTissuChange(nom) {
     badge.style.display = 'block';
   }
 
-  // Montrer les dimensions
+  // Montrer les dimensions — on GARDE les mesures pour comparer vite un autre tissu
   show('card-dim');
-  document.getElementById('inp-larg').value = '';
-  document.getElementById('inp-haut').value = '';
-  document.getElementById('frac-larg').value = '0';
-  document.getElementById('frac-haut').value = '0';
-  document.getElementById('badge-dim').textContent = '—';
   document.getElementById('alert-dim').classList.remove('show');
   document.getElementById('note-dim').classList.remove('show');
   hide('card-options');
-  resetResult();
+  onDimChange();
 }
 
 // ══════════════════════════════════════════════════════
@@ -9680,16 +9671,11 @@ function onVtxTissuChange() {
     + tissu.couleurs.map(c => `<option value="${c}">${c}</option>`).join('');
   show('vtx-couleur-row', true);
 
-  // Afficher dimensions
+  // Afficher dimensions — on GARDE les mesures pour comparer vite un autre tissu
   show('card-dim', true);
-  document.getElementById('inp-larg').value = '';
-  document.getElementById('inp-haut').value = '';
-  document.getElementById('frac-larg').value = '0';
-  document.getElementById('frac-haut').value = '0';
-  document.getElementById('badge-dim').textContent = '—';
   document.getElementById('alert-dim').classList.remove('show');
   hide('card-options');
-  resetResult();
+  onDimChange();
 }
 
 // ══════════════════════════════════════════════════════
