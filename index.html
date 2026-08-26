@@ -12,8 +12,9 @@
     --surface: #1a1a1a;
     --surface2: #222222;
     --border: #2e2e2e;
-    --gold: #c9a84c;
-    --gold-dim: #8a6f2e;
+    --gold: #1ab7b7;
+    --gold-dim: #0e7a7a;
+    --teal: #02787d;
     --text: #e8e4dc;
     --text-dim: #6b6560;
     --text-mid: #9a9390;
@@ -80,7 +81,7 @@
     border-left: 2px solid transparent;
   }
   .nav-item:hover { color: var(--text); background: var(--surface2); }
-  .nav-item.active { color: var(--gold); border-left-color: var(--gold); background: rgba(201,168,76,0.06); }
+  .nav-item.active { color: var(--gold); border-left-color: var(--gold); background: rgba(26,183,183,0.06); }
   .nav-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
 
   .sidebar-footer {
@@ -130,7 +131,7 @@
     color: #0f0f0f;
     font-weight: 500;
   }
-  .btn-gold:hover { background: #d4b05a; border-color: #d4b05a; color: #0f0f0f; }
+  .btn-gold:hover { background: #3fd0d0; border-color: #3fd0d0; color: #0f0f0f; }
 
   /* ── CONTENT ── */
   .content { padding: 28px 32px; flex: 1; }
@@ -170,9 +171,9 @@
     font-size: 10px;
     padding: 2px 8px;
     border-radius: 20px;
-    background: rgba(201,168,76,0.15);
+    background: rgba(26,183,183,0.15);
     color: var(--gold);
-    border: 1px solid rgba(201,168,76,0.3);
+    border: 1px solid rgba(26,183,183,0.3);
   }
   .card-body { padding: 20px; }
 
@@ -412,7 +413,7 @@
     margin-bottom: 16px;
     display: none;
   }
-  .alert.warn { background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.3); color: var(--gold); }
+  .alert.warn { background: rgba(26,183,183,0.1); border: 1px solid rgba(26,183,183,0.3); color: var(--gold); }
   .alert.error { background: rgba(224,92,92,0.1); border: 1px solid rgba(224,92,92,0.3); color: var(--red); }
   .alert.show { display: block; }
 
@@ -579,7 +580,7 @@
                   </div>
 
                   <!-- Badge tissu sélectionné -->
-                  <div id="solr-selected" style="display:none;margin:10px 20px 0;padding:8px 12px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:6px;font-size:12px;font-family:DM Mono,monospace;color:var(--gold);"></div>
+                  <div id="solr-selected" style="display:none;margin:10px 20px 0;padding:8px 12px;background:rgba(26,183,183,0.08);border:1px solid rgba(26,183,183,0.3);border-radius:6px;font-size:12px;font-family:DM Mono,monospace;color:var(--gold);"></div>
 
                 </div>
 
@@ -597,7 +598,7 @@
                   <div id="norm-list"
                     style="max-height:300px;overflow-y:auto;border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
                   </div>
-                  <div id="norm-selected" style="display:none;margin:10px 20px 0;padding:8px 12px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:6px;font-size:12px;font-family:DM Mono,monospace;color:var(--gold);"></div>
+                  <div id="norm-selected" style="display:none;margin:10px 20px 0;padding:8px 12px;background:rgba(26,183,183,0.08);border:1px solid rgba(26,183,183,0.3);border-radius:6px;font-size:12px;font-family:DM Mono,monospace;color:var(--gold);"></div>
                 </div>
 
                 <!-- VEROTEX — sélecteur tissu + options -->
@@ -731,7 +732,7 @@
                 <button class="resume-copy-btn" id="resume-copy-btn" onclick="copyResume()">
                   ⎘ &nbsp;Copier pour soumission
                 </button>
-                <button class="resume-copy-btn" id="devis-add-btn" onclick="addToDevis()" style="display:none;margin-top:8px;border-color:#02787d;color:#02787d;background:rgba(2,120,125,0.06)">
+                <button class="resume-copy-btn" id="devis-add-btn" onclick="addToDevis()" style="display:none;margin-top:8px;border-color:#02787d;color:#f6f9eb;background:#02787d;font-weight:600">
                   ➕ &nbsp;Ajouter au devis
                 </button>
               </div>
@@ -824,7 +825,7 @@
                   <div class="admin-label">Mode livraison</div>
                 </div>
                 <div style="display:flex;gap:8px;align-items:center">
-                  <button id="btn-livraison" onclick="setPDMode('livraison')" style="padding:5px 10px;border-radius:4px;border:1px solid var(--gold);background:rgba(201,168,76,0.2);color:var(--gold);font-family:DM Mono,monospace;font-size:10px;cursor:pointer">Livraison 35%</button>
+                  <button id="btn-livraison" onclick="setPDMode('livraison')" style="padding:5px 10px;border-radius:4px;border:1px solid var(--gold);background:rgba(26,183,183,0.2);color:var(--gold);font-family:DM Mono,monospace;font-size:10px;cursor:pointer">Livraison 35%</button>
                   <button id="btn-pickup" onclick="setPDMode('pickup')" style="padding:5px 10px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--text-dim);font-family:DM Mono,monospace;font-size:10px;cursor:pointer">Pickup 30%</button>
                 </div>
               </div>
@@ -3610,7 +3611,7 @@ function buildOptions() {
 
         if (extrasData.note) {
           const noteEl = document.createElement('div');
-          noteEl.style.cssText = 'font-size:11px;color:var(--gold);margin-bottom:10px;padding:8px 10px;background:rgba(201,168,76,0.08);border-radius:4px;border:1px solid rgba(201,168,76,0.2)';
+          noteEl.style.cssText = 'font-size:11px;color:var(--gold);margin-bottom:10px;padding:8px 10px;background:rgba(26,183,183,0.08);border-radius:4px;border:1px solid rgba(26,183,183,0.2)';
           noteEl.textContent = extrasData.note;
           extrasBody.appendChild(noteEl);
         }
@@ -3872,12 +3873,12 @@ function renderResult({ pdsf, pdsfStore, pdsfSomfy, pdsfTotal, cout, coutStore, 
         <span class="price-label">Ton coût (${settings.vp.pct}%)</span>
         <span class="price-value cout">${fmtCAD(cout)}</span>
       </div>
-      <div class="price-row" style="border-color:var(--gold-dim);background:rgba(201,168,76,0.06)">
+      <div class="price-row" style="border-color:var(--gold-dim);background:rgba(26,183,183,0.06)">
         <span class="price-label" style="color:var(--gold)">Store (×${settings.vp.multi})</span>
         <span class="price-value" style="font-size:17px;color:var(--gold)">${fmtCAD(venteStore)}</span>
       </div>
       ${somfyPrixDetail}
-      <div class="price-row" style="border-color:var(--gold-dim);background:rgba(201,168,76,0.12)">
+      <div class="price-row" style="border-color:var(--gold-dim);background:rgba(26,183,183,0.12)">
         <span class="price-label" style="color:var(--gold);font-weight:500">PRIX VENDANT TOTAL</span>
         <span class="price-value vente">${fmtCAD(vente)}</span>
       </div>
@@ -3932,7 +3933,7 @@ function updatePDModeButtons() {
   const btnL = document.getElementById('btn-livraison');
   const btnP = document.getElementById('btn-pickup');
   if (!btnL || !btnP) return;
-  const activeStyle = 'padding:5px 10px;border-radius:4px;border:1px solid var(--gold);background:rgba(201,168,76,0.2);color:var(--gold);font-family:DM Mono,monospace;font-size:10px;cursor:pointer';
+  const activeStyle = 'padding:5px 10px;border-radius:4px;border:1px solid var(--gold);background:rgba(26,183,183,0.2);color:var(--gold);font-family:DM Mono,monospace;font-size:10px;cursor:pointer';
   const inactiveStyle = 'padding:5px 10px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--text-dim);font-family:DM Mono,monospace;font-size:10px;cursor:pointer';
   btnL.style.cssText = isPickup ? inactiveStyle : activeStyle;
   btnP.style.cssText = isPickup ? activeStyle : inactiveStyle;
@@ -4014,7 +4015,7 @@ function renderOptionsNDA(container) {
   multSel.addEventListener('change', function() { state.options.multiple = multSel.value; rebuildNDA(); });
   const noteX2 = document.createElement('div');
   noteX2.id = 'nda-note-mult';
-  noteX2.style.cssText = 'display:none;font-size:10px;color:var(--gold);margin-top:6px;padding:6px 8px;background:rgba(201,168,76,0.08);border-radius:4px;border:1px solid rgba(201,168,76,0.2)';
+  noteX2.style.cssText = 'display:none;font-size:10px;color:var(--gold);margin-top:6px;padding:6px 8px;background:rgba(26,183,183,0.08);border-radius:4px;border:1px solid rgba(26,183,183,0.2)';
   noteX2.textContent = 'Même groupe, tissu, couleur et dimensions — prix × 2 automatiquement.';
   mb.appendChild(multSel); mb.appendChild(noteX2);
   container.appendChild(mw);
@@ -4248,7 +4249,7 @@ function updatePEPanneaux() {
   const maxPan = modeleData.materiau === 'pvc' ? 24 : 30;
   section.innerHTML = '<div class="section-divider">Panneaux inclus & additionnels</div>'
     + '<div style="padding:0 20px 12px">'
-    + '<div style="padding:8px 12px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.2);border-radius:6px;font-size:11px;color:var(--gold);margin-bottom:10px">'
+    + '<div style="padding:8px 12px;background:rgba(26,183,183,0.08);border:1px solid rgba(26,183,183,0.2);border-radius:6px;font-size:11px;color:var(--gold);margin-bottom:10px">'
     + 'Largeur '+state.largTip+'" — <strong>'+inclus+' panneau'+(inclus>1?'x':'')+' inclus</strong>'
     + '<span style="color:var(--text-dim);font-size:10px;display:block;margin-top:2px">Max '+maxPan+'" / panneau · Panneau additionnel : +280$ PDSF chacun</span></div>'
     + '<label style="display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:7px">Panneaux additionnels</label>'
@@ -4347,7 +4348,7 @@ function calculatePriceNDA(fmtCAD) {
     +'<div class="result-prices">'
     +'<div class="price-row"><span class="price-label">PDSF total</span><span class="price-value pdsf">'+fmtCAD(pdsfTotal)+'</span></div>'
     +'<div class="price-row"><span class="price-label">Ton coût ('+settings.pd.pct+'%)</span><span class="price-value cout">'+fmtCAD(cout)+'</span></div>'
-    +'<div class="price-row" style="border-color:var(--gold-dim);background:rgba(201,168,76,0.12)">'
+    +'<div class="price-row" style="border-color:var(--gold-dim);background:rgba(26,183,183,0.12)">'
     +'<span class="price-label" style="color:var(--gold);font-weight:500">PRIX VENDANT (×'+settings.pd.multi+')</span>'
     +'<span class="price-value vente">'+fmtCAD(vente)+'</span></div></div>'
     +'<div class="margin-bar-wrap"><div class="margin-label"><span>Marge brute</span><span style="color:var(--green)">'+marge+'%</span></div>'
@@ -4420,7 +4421,7 @@ function calculatePricePE(fmtCAD) {
     +'<div class="result-prices">'
     +'<div class="price-row"><span class="price-label">PDSF total</span><span class="price-value pdsf">'+fmtCAD(pdsfTotal)+'</span></div>'
     +'<div class="price-row"><span class="price-label">Ton coût ('+settings.pd.pct+'%)</span><span class="price-value cout">'+fmtCAD(cout)+'</span></div>'
-    +'<div class="price-row" style="border-color:var(--gold-dim);background:rgba(201,168,76,0.12)">'
+    +'<div class="price-row" style="border-color:var(--gold-dim);background:rgba(26,183,183,0.12)">'
     +'<span class="price-label" style="color:var(--gold);font-weight:500">PRIX VENDANT (×'+settings.pd.multi+')</span>'
     +'<span class="price-value vente">'+fmtCAD(vente)+'</span></div></div>'
     +'<div class="margin-bar-wrap"><div class="margin-label"><span>Marge brute</span><span style="color:var(--green)">'+marge+'%</span></div>'
@@ -4504,7 +4505,7 @@ function renderOptionsSH(container) {
   // ── Mécanisme ──
   const { wrap:mw, body:mb } = mkSection('Mécanisme');
   const mecNote = document.createElement('div');
-  mecNote.style.cssText = 'font-size:10px;color:var(--text-dim);padding:6px 8px;background:rgba(201,168,76,0.05);border:1px solid var(--border);border-radius:4px;margin-bottom:10px;line-height:1.5';
+  mecNote.style.cssText = 'font-size:10px;color:var(--text-dim);padding:6px 8px;background:rgba(26,183,183,0.05);border:1px solid var(--border);border-radius:4px;margin-bottom:10px;line-height:1.5';
   mecNote.textContent = 'Bâton de pivotement inclus. Remontée sans cordes incluse (sauf commercial).';
   mb.appendChild(mecNote);
 
@@ -4600,7 +4601,7 @@ function calculatePriceSH(fmtCAD) {
     +'<div class="price-row"><span class="price-label">PDSF total</span><span class="price-value pdsf">'+fmtCAD(pdsfTotal)+'</span></div>'
     +'<div class="price-row"><span class="price-label">Ton coût store ('+settings.pd.pct+'%)</span><span class="price-value cout">'+fmtCAD(coutStore)+'</span></div>'
     +(pdsfSomfy>0?'<div class="price-row"><span class="price-label" style="color:var(--blue)">Coût Somfy ('+settings.pd.pct+'% × '+settings.pd.multiSomfy+')</span><span class="price-value" style="color:var(--blue)">'+fmtCAD(coutSomfy)+'</span></div>':'')
-    +'<div class="price-row" style="border-color:var(--gold-dim);background:rgba(201,168,76,0.12)">'
+    +'<div class="price-row" style="border-color:var(--gold-dim);background:rgba(26,183,183,0.12)">'
     +'<span class="price-label" style="color:var(--gold);font-weight:500">PRIX VENDANT TOTAL</span>'
     +'<span class="price-value vente">'+fmtCAD(vente)+'</span></div></div>'
     +'<div class="margin-bar-wrap"><div class="margin-label"><span>Marge brute</span><span style="color:var(--green)">'+marge+'%</span></div>'
@@ -6009,7 +6010,7 @@ function renderSBMMecanisme(container) {
 
     if (extData.note) {
       const noteEl = document.createElement('div');
-      noteEl.style.cssText = `font-size:11px;color:${titleColor};margin-bottom:10px;padding:8px 10px;background:rgba(${extData.isSomfy?'91,155,213':'201,168,76'},0.08);border-radius:4px;border:1px solid rgba(${extData.isSomfy?'91,155,213':'201,168,76'},0.2)`;
+      noteEl.style.cssText = `font-size:11px;color:${titleColor};margin-bottom:10px;padding:8px 10px;background:rgba(${extData.isSomfy?'91,155,213':'26,183,183'},0.08);border-radius:4px;border:1px solid rgba(${extData.isSomfy?'91,155,213':'26,183,183'},0.2)`;
       noteEl.textContent = extData.note;
       extBody.appendChild(noteEl);
     }
@@ -6247,12 +6248,12 @@ function calculatePriceSBM() {
         <span class="price-label">Ton coût (${settings.sbm.pct}%)</span>
         <span class="price-value cout">${fmtCAD(cout)}</span>
       </div>
-      <div class="price-row" style="border-color:var(--gold-dim);background:rgba(201,168,76,0.06)">
+      <div class="price-row" style="border-color:var(--gold-dim);background:rgba(26,183,183,0.06)">
         <span class="price-label" style="color:var(--gold)">Store (×${multi})</span>
         <span class="price-value" style="font-size:17px;color:var(--gold)">${fmtCAD(venteStore)}</span>
       </div>
       ${somfyDetail}
-      <div class="price-row" style="border-color:var(--gold-dim);background:rgba(201,168,76,0.12)">
+      <div class="price-row" style="border-color:var(--gold-dim);background:rgba(26,183,183,0.12)">
         <span class="price-label" style="color:var(--gold);font-weight:500">PRIX VENDANT TOTAL</span>
         <span class="price-value vente">${fmtCAD(vente)}</span>
       </div>
@@ -6413,7 +6414,7 @@ function solrBuildTissuList(filter) {
           display:flex;align-items:center;justify-content:space-between;
           padding:8px 14px 8px 26px;cursor:pointer;
           border-bottom:1px solid rgba(255,255,255,.03);
-          background:${isSelected ? 'rgba(201,168,76,0.12)' : 'transparent'};
+          background:${isSelected ? 'rgba(26,183,183,0.12)' : 'transparent'};
           transition:background .1s;
         `;
         row.onmouseover = () => { if (!isSelected) row.style.background = 'rgba(255,255,255,.06)'; };
@@ -6693,7 +6694,7 @@ function buildOptionsSolr() {
             byMaitre[maitre].forEach(f => {
               const selected = state.options.solrTissu2 === f.nom;
               const row = document.createElement('div');
-              row.style.cssText = `display:flex;align-items:center;justify-content:space-between;padding:7px 12px 7px 24px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.03);background:${selected ? 'rgba(201,168,76,0.12)' : 'transparent'};`;
+              row.style.cssText = `display:flex;align-items:center;justify-content:space-between;padding:7px 12px 7px 24px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.03);background:${selected ? 'rgba(26,183,183,0.12)' : 'transparent'};`;
               row.onmouseover = () => { if (!selected) row.style.background = 'rgba(255,255,255,.06)'; };
               row.onmouseout  = () => { if (!selected) row.style.background = 'transparent'; };
               const nm = document.createElement('span');
@@ -6743,7 +6744,7 @@ function buildOptionsSolr() {
 
       // Badge tissu 2 sélectionné
       const badge2 = document.createElement('div');
-      badge2.style.cssText = 'display:none;margin-top:8px;padding:8px 12px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:6px;font-size:12px;font-family:Inter,sans-serif;color:var(--gold);';
+      badge2.style.cssText = 'display:none;margin-top:8px;padding:8px 12px;background:rgba(26,183,183,0.08);border:1px solid rgba(26,183,183,0.3);border-radius:6px;font-size:12px;font-family:Inter,sans-serif;color:var(--gold);';
       if (state.options.solrTissu2) {
         const f2 = SOLR_CATALOG.M1.find(f => f.nom === state.options.solrTissu2);
         if (f2) {
@@ -7171,7 +7172,7 @@ function calculatePriceSolr() {
         <span class="price-value cout">${fmtCAD(cout)}</span>
       </div>
       ${somfyRow}
-      <div class="price-row" style="border-color:var(--gold-dim);background:rgba(201,168,76,0.12)">
+      <div class="price-row" style="border-color:var(--gold-dim);background:rgba(26,183,183,0.12)">
         <span class="price-label" style="color:var(--gold);font-weight:500">PRIX VENDANT</span>
         <span class="price-value vente">${fmtCAD(vente)}</span>
       </div>
@@ -7347,7 +7348,7 @@ function normBuildTissuList(filter) {
       display:flex;align-items:center;justify-content:space-between;
       padding:8px 14px 8px 20px;cursor:pointer;
       border-bottom:1px solid rgba(255,255,255,.03);
-      background:${isSelected ? 'rgba(201,168,76,0.12)' : 'transparent'};
+      background:${isSelected ? 'rgba(26,183,183,0.12)' : 'transparent'};
       transition:background .1s;
     `;
     row.onmouseover = () => { if (!isSelected) row.style.background = 'rgba(255,255,255,.06)'; };
@@ -7363,7 +7364,7 @@ function normBuildTissuList(filter) {
 
     // Badge prix
     const bPrix = document.createElement('span');
-    bPrix.style.cssText = 'font-size:10px;padding:2px 5px;border-radius:3px;background:rgba(201,168,76,0.12);color:var(--gold);font-family:DM Mono,monospace;';
+    bPrix.style.cssText = 'font-size:10px;padding:2px 5px;border-radius:3px;background:rgba(26,183,183,0.12);color:var(--gold);font-family:DM Mono,monospace;';
     bPrix.textContent = '$' + tissu.pdsf + '/vg';
     badges.appendChild(bPrix);
 
@@ -7422,7 +7423,7 @@ function onNormTissuChange(nom) {
       <div style="font-size:10px;opacity:.6;margin-bottom:3px;">Simplicity</div>
       <div style="display:flex;align-items:center;gap:8px;">
         <span>${nom.replace(/\s*\(\d+\)$/, '')}</span>
-        <span style="font-size:10px;padding:1px 5px;border-radius:3px;background:rgba(201,168,76,0.12);color:var(--gold);">$${tissu.pdsf}/vg</span>
+        <span style="font-size:10px;padding:1px 5px;border-radius:3px;background:rgba(26,183,183,0.12);color:var(--gold);">$${tissu.pdsf}/vg</span>
         <span style="font-size:10px;padding:1px 5px;border-radius:3px;background:rgba(91,155,213,0.12);color:var(--blue);">${tissu.largeur}"</span>
         ${tissu.filsPlomb ? '<span style="font-size:10px;padding:1px 5px;border-radius:3px;background:rgba(76,175,125,0.12);color:var(--green);">✦ plomb</span>' : ''}
       </div>`;
@@ -7711,7 +7712,7 @@ function buildMotoRailSection(container, larg) {
     if (pieds > 0) {
       const prixMoto = md.moteurPrix + (pieds * md.prixParPied);
       const infoEl = document.createElement('div');
-      infoEl.style.cssText = 'margin:0 20px 10px;padding:8px 12px;font-size:11px;color:var(--gold);background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:6px;';
+      infoEl.style.cssText = 'margin:0 20px 10px;padding:8px 12px;font-size:11px;color:var(--gold);background:rgba(26,183,183,0.08);border:1px solid rgba(26,183,183,0.3);border-radius:6px;';
       infoEl.innerHTML = `Moteur $${md.moteurPrix} + ${pieds.toFixed(2)} pi × $${md.prixParPied}/pi = <strong>$${prixMoto.toFixed(2)}</strong>`;
       container.appendChild(infoEl);
     }
@@ -7957,7 +7958,7 @@ function buildRailSection(container) {
   if (rail.prixBlanc !== null && pieds > 0) {
     const prixPl = estBlanc ? rail.prixBlanc : rail.prixCouleur;
     const infoRail = document.createElement('div');
-    infoRail.style.cssText = 'margin-top:8px;padding:7px 12px;font-size:11px;color:var(--gold);border:1px solid rgba(201,168,76,0.3);border-radius:6px;background:rgba(201,168,76,0.08);';
+    infoRail.style.cssText = 'margin-top:8px;padding:7px 12px;font-size:11px;color:var(--gold);border:1px solid rgba(26,183,183,0.3);border-radius:6px;background:rgba(26,183,183,0.08);';
     infoRail.textContent = `${pieds.toFixed(2)} pi × $${prixPl}/pl = $${(pieds * prixPl).toFixed(2)}`;
     coulBody.appendChild(infoRail);
   } else if ((isIconic || isSoho) && pieds > 0) {
@@ -8163,7 +8164,7 @@ function buildRailSection(container) {
       if (supData && nbSupports > 0) {
         const prixU = estBlanc ? supData.prix.blanc : (supData.prix.couleur || supData.prix.blanc);
         const infoSup = document.createElement('div');
-        infoSup.style.cssText = 'margin-top:8px;padding:7px 12px;font-size:11px;color:var(--gold);border:1px solid rgba(201,168,76,0.3);border-radius:6px;background:rgba(201,168,76,0.08);';
+        infoSup.style.cssText = 'margin-top:8px;padding:7px 12px;font-size:11px;color:var(--gold);border:1px solid rgba(26,183,183,0.3);border-radius:6px;background:rgba(26,183,183,0.08);';
         infoSup.textContent = `${nbSupports} supports × $${prixU} = $${(nbSupports * prixU).toFixed(2)}`;
         supMontBody.appendChild(infoSup);
       }
@@ -8386,7 +8387,7 @@ function buildOptionsNorm() {
       // Badge tissu sélectionné
       if (state.options.normDoublureTissu) {
         const dblBadge = document.createElement('div');
-        dblBadge.style.cssText = 'padding:7px 12px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:6px;font-size:12px;font-family:DM Mono,monospace;color:var(--gold);margin-bottom:8px;cursor:pointer;';
+        dblBadge.style.cssText = 'padding:7px 12px;background:rgba(26,183,183,0.08);border:1px solid rgba(26,183,183,0.3);border-radius:6px;font-size:12px;font-family:DM Mono,monospace;color:var(--gold);margin-bottom:8px;cursor:pointer;';
         dblBadge.textContent = `✓ ${state.options.normDoublureTissu.nom} — $${state.options.normDoublureTissu.pdsf}/vg · ${state.options.normDoublureTissu.largeur}"`;
         dblBadge.onclick = () => {
           state.options.normDoublureTissu = null;
@@ -8471,7 +8472,7 @@ function buildOptionsNorm() {
       : parseFloat(state.options.normRetour || 0);
     if (retValeur > 0) {
       const retInfo = document.createElement('div');
-      retInfo.style.cssText = 'margin-top:6px;font-size:11px;color:var(--gold);padding:6px 10px;background:rgba(201,168,76,0.08);border-radius:4px;';
+      retInfo.style.cssText = 'margin-top:6px;font-size:11px;color:var(--gold);padding:6px 10px;background:rgba(26,183,183,0.08);border-radius:4px;';
       retInfo.textContent = `+${retValeur}" × 2 côtés = +${retValeur * 2}" à la largeur · Crochets métal: +$12 PDSF`;
       retBody.appendChild(retInfo);
     }
@@ -8615,7 +8616,7 @@ function buildOptionsNorm() {
     const bagInfo = document.createElement('div');
     bagInfo.style.cssText = 'margin-top:8px;padding:8px 10px;font-size:11px;border-radius:4px;line-height:1.6;';
     if (bagSize === 'bag-36') {
-      bagInfo.style.cssText += 'background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.2);color:var(--gold);';
+      bagInfo.style.cssText += 'background:rgba(26,183,183,0.08);border:1px solid rgba(26,183,183,0.2);color:var(--gold);';
       bagInfo.innerHTML = '✓ <strong>2 baguettes 36" incluses automatiquement</strong> — 2 × $6 = $12 PDSF<br>'
         + '<span style="font-size:10px;opacity:.8;">Stoppers inclus automatiquement — 2 × $6 = $12 PDSF</span>';
     } else {
@@ -8645,7 +8646,7 @@ function normBuildDoublureList(filter) {
     count++;
     const isSelected = state.options.normDoublureTissu && state.options.normDoublureTissu.nom === tissu.nom;
     const row = document.createElement('div');
-    row.style.cssText = `display:flex;align-items:center;justify-content:space-between;padding:6px 12px 6px 20px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.03);background:${isSelected ? 'rgba(201,168,76,0.12)' : 'transparent'};`;
+    row.style.cssText = `display:flex;align-items:center;justify-content:space-between;padding:6px 12px 6px 20px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.03);background:${isSelected ? 'rgba(26,183,183,0.12)' : 'transparent'};`;
     row.onmouseover = () => { if (!isSelected) row.style.background = 'rgba(255,255,255,.06)'; };
     row.onmouseout  = () => { if (!isSelected) row.style.background = 'transparent'; };
 
@@ -8657,7 +8658,7 @@ function normBuildDoublureList(filter) {
     const badges = document.createElement('span');
     badges.style.cssText = 'display:flex;gap:4px;align-items:center;';
     const bPrix = document.createElement('span');
-    bPrix.style.cssText = 'font-size:10px;padding:2px 5px;border-radius:3px;background:rgba(201,168,76,0.12);color:var(--gold);';
+    bPrix.style.cssText = 'font-size:10px;padding:2px 5px;border-radius:3px;background:rgba(26,183,183,0.12);color:var(--gold);';
     bPrix.textContent = `$${tissu.pdsf}/vg`;
     const bLarg = document.createElement('span');
     bLarg.style.cssText = 'font-size:10px;padding:2px 5px;border-radius:3px;background:rgba(91,155,213,0.12);color:var(--blue);';
@@ -8706,7 +8707,7 @@ function normBuildTissu2List(filter) {
     const badges = document.createElement('span');
     badges.style.cssText = 'display:flex;gap:4px;align-items:center;';
     const bPrix = document.createElement('span');
-    bPrix.style.cssText = 'font-size:10px;padding:2px 5px;border-radius:3px;background:rgba(201,168,76,0.12);color:var(--gold);';
+    bPrix.style.cssText = 'font-size:10px;padding:2px 5px;border-radius:3px;background:rgba(26,183,183,0.12);color:var(--gold);';
     bPrix.textContent = `$${tissu.pdsf}/vg`;
     const bLarg = document.createElement('span');
     bLarg.style.cssText = 'font-size:10px;padding:2px 5px;border-radius:3px;background:rgba(91,155,213,0.12);color:var(--blue);';
@@ -8877,7 +8878,7 @@ function buildOptionsRomain() {
   if (opt.romainDoublure === 'oui') {
     if (opt.romainDoublureTissu) {
       const badge = document.createElement('div');
-      badge.style.cssText = 'padding:7px 12px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:6px;font-size:12px;font-family:DM Mono,monospace;color:var(--gold);margin-bottom:8px;cursor:pointer;';
+      badge.style.cssText = 'padding:7px 12px;background:rgba(26,183,183,0.08);border:1px solid rgba(26,183,183,0.3);border-radius:6px;font-size:12px;font-family:DM Mono,monospace;color:var(--gold);margin-bottom:8px;cursor:pointer;';
       badge.textContent = `✓ ${opt.romainDoublureTissu.nom} — $${opt.romainDoublureTissu.pdsf}/vg · ${opt.romainDoublureTissu.largeur}"`;
       badge.onclick = () => { opt.romainDoublureTissu = null; buildOptionsRomain(); calculatePriceRomain(); };
       dblBody.appendChild(badge);
@@ -8991,14 +8992,14 @@ function normRomainDoublureList(filter) {
     if (filter && !tissu.nom.toLowerCase().includes(filter)) return;
     const isSelected = state.options.romainDoublureTissu && state.options.romainDoublureTissu.nom === tissu.nom;
     const row = document.createElement('div');
-    row.style.cssText = `display:flex;align-items:center;justify-content:space-between;padding:6px 12px 6px 20px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.03);background:${isSelected ? 'rgba(201,168,76,0.12)' : 'transparent'};`;
+    row.style.cssText = `display:flex;align-items:center;justify-content:space-between;padding:6px 12px 6px 20px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.03);background:${isSelected ? 'rgba(26,183,183,0.12)' : 'transparent'};`;
     row.onmouseover = () => { if (!isSelected) row.style.background = 'rgba(255,255,255,.06)'; };
     row.onmouseout  = () => { if (!isSelected) row.style.background = 'transparent'; };
     const name = document.createElement('span');
     name.style.cssText = `font-size:12px;font-family:DM Mono,monospace;color:${isSelected ? 'var(--gold)' : 'var(--text)'};`;
     name.textContent = tissu.nom.replace(/\s*\(\d+\)$/, '');
     const prix = document.createElement('span');
-    prix.style.cssText = 'font-size:10px;padding:2px 5px;border-radius:3px;background:rgba(201,168,76,0.12);color:var(--gold);';
+    prix.style.cssText = 'font-size:10px;padding:2px 5px;border-radius:3px;background:rgba(26,183,183,0.12);color:var(--gold);';
     prix.textContent = `$${tissu.pdsf}/vg · ${tissu.largeur}"`;
     row.appendChild(name); row.appendChild(prix);
     row.onclick = () => {
@@ -9107,7 +9108,7 @@ function calculatePriceRomain() {
         <span class="price-label">Ton coût (${settings.norm.pct}%)</span>
         <span class="price-value cout">${fmtCAD(cout)}</span>
       </div>
-      <div class="price-row" style="border-color:var(--gold-dim);background:rgba(201,168,76,0.12)">
+      <div class="price-row" style="border-color:var(--gold-dim);background:rgba(26,183,183,0.12)">
         <span class="price-label" style="color:var(--gold);font-weight:500">PRIX VENDANT</span>
         <span class="price-value vente">${fmtCAD(vente)}</span>
       </div>
@@ -9573,7 +9574,7 @@ function calculatePriceNorm() {
         <span class="price-value cout">${fmtCAD(cout)}</span>
       </div>
       ${motoRow}
-      <div class="price-row" style="border-color:var(--gold-dim);background:rgba(201,168,76,0.12)">
+      <div class="price-row" style="border-color:var(--gold-dim);background:rgba(26,183,183,0.12)">
         <span class="price-label" style="color:var(--gold);font-weight:500">PRIX VENDANT</span>
         <span class="price-value vente">${fmtCAD(vente)}</span>
       </div>
@@ -9723,7 +9724,7 @@ function buildOptionsVtx() {
   };
   const mkInfo = (html, rgb) => {
     const d = document.createElement('div');
-    const c = rgb || '201,168,76';
+    const c = rgb || '26,183,183';
     d.style.cssText = `margin-top:8px;padding:9px 12px;font-size:11px;line-height:1.7;border-radius:6px;background:rgba(${c},0.08);border:1px solid rgba(${c},0.25);color:var(--text-mid);`;
     d.innerHTML = html;
     return d;
@@ -10017,7 +10018,7 @@ function calculatePriceVtx() {
         <span class="price-label">Ton coût (${Math.round(pct*100)}%)</span>
         <span class="price-value cout">${fmtCAD(cout)}</span>
       </div>
-      <div class="price-row" style="border-color:var(--gold-dim);background:rgba(201,168,76,0.12)">
+      <div class="price-row" style="border-color:var(--gold-dim);background:rgba(26,183,183,0.12)">
         <span class="price-label" style="color:var(--gold);font-weight:500">PRIX VENDANT</span>
         <span class="price-value vente">${fmtCAD(vente)}</span>
       </div>
@@ -10478,7 +10479,7 @@ function calculateSvc() {
         <span class="price-label">Coût services (Les Install. Sup.)</span>
         <span class="price-value pdsf">${fmtCAD(total)}</span>
       </div>
-      <div class="price-row" style="border-color:var(--gold-dim);background:rgba(201,168,76,0.12)">
+      <div class="price-row" style="border-color:var(--gold-dim);background:rgba(26,183,183,0.12)">
         <span class="price-label" style="color:var(--gold);font-weight:500">PRIX VENDANT (×${multiSvc.toFixed(2)})</span>
         <span class="price-value vente">${fmtCAD(totalVente)}</span>
       </div>
