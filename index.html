@@ -731,6 +731,9 @@
                 <button class="resume-copy-btn" id="resume-copy-btn" onclick="copyResume()">
                   ⎘ &nbsp;Copier pour soumission
                 </button>
+                <button class="resume-copy-btn" id="devis-add-btn" onclick="addToDevis()" style="display:none;margin-top:8px;border-color:#02787d;color:#02787d;background:rgba(2,120,125,0.06)">
+                  ➕ &nbsp;Ajouter au devis
+                </button>
               </div>
             </div>
           </div>
@@ -10907,6 +10910,63 @@ function copyResume() {
   panel.addEventListener('change', refresh, true);
   panel.addEventListener('input',  refresh, true);
   panel.addEventListener('click',  refresh, true);
+})();
+
+// ══════════════════════════════════════════════════════
+// AJOUT DIRECT AU DEVIS ODOO (via postMessage au parent)
+// Actif uniquement quand le Price Board est ouvert depuis un devis
+// (?order_id=... dans l'URL, ajouté par le composant Odoo).
+// Sans order_id (menu autonome) : bouton caché, aucun effet.
+// ══════════════════════════════════════════════════════
+(function() {
+  function getOrderId() {
+    try { return new URLSearchParams(window.location.search).get('order_id'); }
+    catch (e) { return null; }
+  }
+  var LBAS_ORDER_ID = getOrderId();
+
+  var addBtn = document.getElementById('devis-add-btn');
+  if (addBtn && LBAS_ORDER_ID) addBtn.style.display = 'block';
+
+  // Déduire le type de produit Odoo : 'rideau' ou 'store'
+  window.lbasProductKind = function() {
+    var f = (typeof state !== 'undefined' && state.fournisseur) ? String(state.fournisseur) : '';
+    var t = (typeof state !== 'undefined' && state.type) ? String(state.type) : '';
+    var rb = document.getElementById('result-body');
+    var txt = (f + ' ' + t + ' ' + (rb ? rb.textContent : '')).toLowerCase();
+    if (f === 'vtx' || t === 'norm-rideau' || txt.indexOf('rideau') !== -1 || txt.indexOf('draperie') !== -1) return 'rideau';
+    return 'store';
+  };
+
+  window.addToDevis = function() {
+    if (!LBAS_ORDER_ID) { alert("Ouvre le Price Board depuis un devis pour utiliser ce bouton."); return; }
+    if (typeof state === 'undefined' || !state.lastResult || !(state.lastResult.vente > 0)) {
+      alert("Configure un produit et un prix avant d'ajouter au devis."); return;
+    }
+    var description = (typeof buildResumeText === 'function' ? buildResumeText() : '') || (state.modele || 'Produit');
+    var price = Math.round((state.lastResult.vente + Number.EPSILON) * 100) / 100;
+    var payload = {
+      source: 'lbas-priceboard',
+      type: 'lbas_add_line',
+      order_id: LBAS_ORDER_ID,
+      description: description,
+      price: price,
+      qty: 1,
+      kind: window.lbasProductKind()
+    };
+    try {
+      window.parent.postMessage(payload, '*');
+      var b = document.getElementById('devis-add-btn');
+      if (b) {
+        var old = b.innerHTML;
+        b.innerHTML = '✓ &nbsp;Ajouté au devis';
+        b.classList.add('copied');
+        setTimeout(function(){ b.innerHTML = old; b.classList.remove('copied'); }, 1800);
+      }
+    } catch (e) {
+      alert("Impossible d'envoyer au devis : " + e);
+    }
+  };
 })();
 </script>
 </body>
