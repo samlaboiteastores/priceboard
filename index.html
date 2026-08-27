@@ -11037,9 +11037,28 @@ function copyResume() {
     var supplier_code = _f ? _f.value : '';
     var cost = (state.lastResult && state.lastResult.cout > 0)
       ? Math.round((state.lastResult.cout + Number.EPSILON) * 100) / 100 : 0;
-    var _larg = (typeof state.larg !== 'undefined' && state.larg) ? state.larg : (state.largTip || '');
-    var _haut = (typeof state.haut !== 'undefined' && state.haut) ? state.haut : (state.hautTip || '');
-    var releve = (_larg && _haut) ? (_larg + '" × ' + _haut + '"') : '';
+    function _fmtPo(v) {
+      v = parseFloat(v) || 0;
+      var w = Math.floor(v + 0.0001);
+      var fr = Math.round((v - w) * 8) / 8;
+      if (fr >= 1) { w += 1; fr = 0; }
+      var m = { 0: '', 0.125: '1/8', 0.25: '1/4', 0.375: '3/8', 0.5: '1/2', 0.625: '5/8', 0.75: '3/4', 0.875: '7/8' };
+      return m[fr] ? (w + ' ' + m[fr] + '"') : (w + '"');
+    }
+    var _N = (typeof state !== 'undefined' && state.options)
+      ? (state.options.multiple === '2x1' ? 2 : state.options.multiple === '3x1' ? 3 : 1) : 1;
+    var _mes = [];
+    var _l1 = state.larg ? state.larg : (state.largTip || 0);
+    var _h1 = state.haut ? state.haut : (state.hautTip || 0);
+    if (_l1 && _h1) _mes.push(_fmtPo(_l1) + ' × ' + _fmtPo(_h1));
+    for (var _t = 2; _t <= _N; _t++) {
+      var _tl = parseFloat((document.getElementById('inp-larg' + _t) || {}).value || 0) + parseFloat((document.getElementById('frac-larg' + _t) || {}).value || 0);
+      var _th = parseFloat((document.getElementById('inp-haut' + _t) || {}).value || 0) + parseFloat((document.getElementById('frac-haut' + _t) || {}).value || 0);
+      if (_tl && _th) _mes.push(_fmtPo(_tl) + ' × ' + _fmtPo(_th));
+    }
+    var releve = _mes.length > 1
+      ? _mes.map(function (m, i) { return 'Toile ' + (i + 1) + ': ' + m; }).join(' | ')
+      : (_mes[0] || '');
     var payload = {
       source: 'lbas-priceboard',
       type: 'lbas_add_line',
