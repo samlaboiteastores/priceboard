@@ -697,17 +697,17 @@
                   <div id="toile-2-row" style="display:none;margin-bottom:8px;">
                     <label style="font-size:11px;color:var(--text-mid)">Toile 2</label>
                     <div class="dim-row">
-                      <div class="dim-input-group"><input type="number" id="inp-larg2" placeholder="Largeur" min="1" max="200" step="1" oninput="onDimChange()"><span class="dim-unit">po</span></div>
+                      <div class="dim-input-group"><input type="number" id="inp-larg2" placeholder="Largeur" min="1" max="200" step="1" oninput="onDimChange()"><select id="frac-larg2" onchange="onDimChange()" style="width:auto;padding:4px 6px;font-size:11px;"><option value="0">0</option><option value="0.125">1/8"</option><option value="0.25">1/4"</option><option value="0.375">3/8"</option><option value="0.5">1/2"</option><option value="0.625">5/8"</option><option value="0.75">3/4"</option><option value="0.875">7/8"</option></select></div>
                       <div class="dim-sep">×</div>
-                      <div class="dim-input-group"><input type="number" id="inp-haut2" placeholder="Hauteur" min="1" max="250" step="1" oninput="onDimChange()"><span class="dim-unit">po</span></div>
+                      <div class="dim-input-group"><input type="number" id="inp-haut2" placeholder="Hauteur" min="1" max="250" step="1" oninput="onDimChange()"><select id="frac-haut2" onchange="onDimChange()" style="width:auto;padding:4px 6px;font-size:11px;"><option value="0">0</option><option value="0.125">1/8"</option><option value="0.25">1/4"</option><option value="0.375">3/8"</option><option value="0.5">1/2"</option><option value="0.625">5/8"</option><option value="0.75">3/4"</option><option value="0.875">7/8"</option></select></div>
                     </div>
                   </div>
                   <div id="toile-3-row" style="display:none;">
                     <label style="font-size:11px;color:var(--text-mid)">Toile 3</label>
                     <div class="dim-row">
-                      <div class="dim-input-group"><input type="number" id="inp-larg3" placeholder="Largeur" min="1" max="200" step="1" oninput="onDimChange()"><span class="dim-unit">po</span></div>
+                      <div class="dim-input-group"><input type="number" id="inp-larg3" placeholder="Largeur" min="1" max="200" step="1" oninput="onDimChange()"><select id="frac-larg3" onchange="onDimChange()" style="width:auto;padding:4px 6px;font-size:11px;"><option value="0">0</option><option value="0.125">1/8"</option><option value="0.25">1/4"</option><option value="0.375">3/8"</option><option value="0.5">1/2"</option><option value="0.625">5/8"</option><option value="0.75">3/4"</option><option value="0.875">7/8"</option></select></div>
                       <div class="dim-sep">×</div>
-                      <div class="dim-input-group"><input type="number" id="inp-haut3" placeholder="Hauteur" min="1" max="250" step="1" oninput="onDimChange()"><span class="dim-unit">po</span></div>
+                      <div class="dim-input-group"><input type="number" id="inp-haut3" placeholder="Hauteur" min="1" max="250" step="1" oninput="onDimChange()"><select id="frac-haut3" onchange="onDimChange()" style="width:auto;padding:4px 6px;font-size:11px;"><option value="0">0</option><option value="0.125">1/8"</option><option value="0.25">1/4"</option><option value="0.375">3/8"</option><option value="0.5">1/2"</option><option value="0.625">5/8"</option><option value="0.75">3/4"</option><option value="0.875">7/8"</option></select></div>
                     </div>
                   </div>
                 </div>
@@ -3757,8 +3757,8 @@ function calculatePrice() {
   }
   let _fabric = pdsf; // toile 1
   for (let _i = 2; _i <= _multN; _i++) {
-    const _lg = parseFloat((document.getElementById('inp-larg' + _i) || {}).value || 0);
-    const _ht = parseFloat((document.getElementById('inp-haut' + _i) || {}).value || 0);
+    const _lg = parseFloat((document.getElementById('inp-larg' + _i) || {}).value || 0) + parseFloat((document.getElementById('frac-larg' + _i) || {}).value || 0);
+    const _ht = parseFloat((document.getElementById('inp-haut' + _i) || {}).value || 0) + parseFloat((document.getElementById('frac-haut' + _i) || {}).value || 0);
     if (_lg > 0 && _ht > 0) {
       const _lt = nextDim(grille.largeurs, _lg);
       const _htt = nextDim(grille.hauteurs, _ht);
