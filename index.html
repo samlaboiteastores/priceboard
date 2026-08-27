@@ -692,6 +692,25 @@
                   </div>
                 </div>
                 <div class="dim-note" id="note-dim"></div>
+                <div id="multi-toiles-extra" style="display:none;margin-top:14px;border-top:1px solid var(--border);padding-top:12px;">
+                  <div style="font-size:11px;color:var(--gold);margin-bottom:8px;">Dimensions de chaque toile (même cassette) — Toile 1 = dimensions ci-dessus</div>
+                  <div id="toile-2-row" style="display:none;margin-bottom:8px;">
+                    <label style="font-size:11px;color:var(--text-mid)">Toile 2</label>
+                    <div class="dim-row">
+                      <div class="dim-input-group"><input type="number" id="inp-larg2" placeholder="Largeur" min="1" max="200" step="1" oninput="onDimChange()"><span class="dim-unit">po</span></div>
+                      <div class="dim-sep">×</div>
+                      <div class="dim-input-group"><input type="number" id="inp-haut2" placeholder="Hauteur" min="1" max="250" step="1" oninput="onDimChange()"><span class="dim-unit">po</span></div>
+                    </div>
+                  </div>
+                  <div id="toile-3-row" style="display:none;">
+                    <label style="font-size:11px;color:var(--text-mid)">Toile 3</label>
+                    <div class="dim-row">
+                      <div class="dim-input-group"><input type="number" id="inp-larg3" placeholder="Largeur" min="1" max="200" step="1" oninput="onDimChange()"><span class="dim-unit">po</span></div>
+                      <div class="dim-sep">×</div>
+                      <div class="dim-input-group"><input type="number" id="inp-haut3" placeholder="Hauteur" min="1" max="250" step="1" oninput="onDimChange()"><span class="dim-unit">po</span></div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -3728,6 +3747,26 @@ function calculatePrice() {
 
   const optsData = VP[type].options;
 
+  // ── Multiple toiles : fabric calculé PAR toile (chaque section à ses dims) ──
+  const _multN = state.options.multiple === '2x1' ? 2 : state.options.multiple === '3x1' ? 3 : 1;
+  const _mtEl = document.getElementById('multi-toiles-extra');
+  if (_mtEl) {
+    _mtEl.style.display = _multN > 1 ? 'block' : 'none';
+    const _t2 = document.getElementById('toile-2-row'); if (_t2) _t2.style.display = _multN >= 2 ? 'block' : 'none';
+    const _t3 = document.getElementById('toile-3-row'); if (_t3) _t3.style.display = _multN >= 3 ? 'block' : 'none';
+  }
+  let _fabric = pdsf; // toile 1
+  for (let _i = 2; _i <= _multN; _i++) {
+    const _lg = parseFloat((document.getElementById('inp-larg' + _i) || {}).value || 0);
+    const _ht = parseFloat((document.getElementById('inp-haut' + _i) || {}).value || 0);
+    if (_lg > 0 && _ht > 0) {
+      const _lt = nextDim(grille.largeurs, _lg);
+      const _htt = nextDim(grille.hauteurs, _ht);
+      const _p = (_lt && _htt) ? getPrixGrille(grille, _lt, _htt) : null;
+      if (_p) { _fabric += _p; breakdown.push({ label: `Toile ${_i} — ${state.modele} ${_lt}"×${_htt}"`, pdsf: _p }); }
+    }
+  }
+
   // Entête
   if (state.options.entete && optsData.entete) {
     const enteteOpt = optsData.entete.find(o => o.val === state.options.entete);
@@ -3773,51 +3812,54 @@ function calculatePrice() {
     }
   }
 
-  // Mécanisme — séparer Somfy vs reste (bloc unique ; l'ancien doublon a été retiré)
+  // Mécanisme/motorisation — PAR TOILE : chaque toile a son mécanisme → ×N si multiple
   let pdsfSomfy = 0; // PDSF motorisation Somfy → multi 1.5x
-  let extraPdsfStore = 0; // autres extras → multi normal
+  let _mecaStore = 0; // mécanisme non-somfy, par toile
+  let _mecaSomfy = 0; // mécanisme somfy, par toile
+  const _suffN = _multN > 1 ? ` ×${_multN}` : '';
 
   if (state.options.mecanisme && optsData.mecanisme) {
     const mecaOpt = optsData.mecanisme.find(o => o.val === state.options.mecanisme);
     if (mecaOpt && mecaOpt.extra > 0) {
       const isSomfy = mecaOpt.type && mecaOpt.type.startsWith('somfy');
       if (isSomfy) {
-        pdsfSomfy += mecaOpt.extra;
-        breakdown.push({ label: mecaOpt.label, pdsf: mecaOpt.extra, somfy: true });
+        _mecaSomfy += mecaOpt.extra;
+        breakdown.push({ label: mecaOpt.label + _suffN, pdsf: mecaOpt.extra * _multN, somfy: true });
       } else {
-        extraPdsf += mecaOpt.extra;
-        breakdown.push({ label: mecaOpt.label, pdsf: mecaOpt.extra });
+        _mecaStore += mecaOpt.extra;
+        breakdown.push({ label: mecaOpt.label + _suffN, pdsf: mecaOpt.extra * _multN });
       }
     }
 
-    // Articles additionnels motorisation cochés
+    // Articles additionnels motorisation cochés (par toile)
     const moteurType = getMoteurType(state.options.mecanisme);
     const isSomfyType = moteurType && moteurType.startsWith('somfy');
     if (moteurType && MOTO_EXTRAS[moteurType]) {
       MOTO_EXTRAS[moteurType].items.forEach(item => {
         if (state.options['moto_' + item.key]) {
           if (isSomfyType) {
-            pdsfSomfy += item.extra;
-            breakdown.push({ label: item.label, pdsf: item.extra, somfy: true });
+            _mecaSomfy += item.extra;
+            breakdown.push({ label: item.label + _suffN, pdsf: item.extra * _multN, somfy: true });
           } else {
-            extraPdsf += item.extra;
-            breakdown.push({ label: item.label, pdsf: item.extra });
+            _mecaStore += item.extra;
+            breakdown.push({ label: item.label + _suffN, pdsf: item.extra * _multN });
           }
         }
       });
     }
   }
+  pdsfSomfy = _mecaSomfy * _multN;
 
-  // Multiple toiles
+  // Multiple toiles — supplément cassette partagée (une fois)
   if (state.options.multiple && optsData.multiple) {
     const multOpt = optsData.multiple.find(o => o.val === state.options.multiple);
     if (multOpt && multOpt.extra > 0) {
       extraPdsf += multOpt.extra;
-      breakdown.push({ label: multOpt.label, pdsf: multOpt.extra });
+      breakdown.push({ label: multOpt.label + ' (cassette partagée)', pdsf: multOpt.extra });
     }
   }
 
-  const pdsfStore = pdsf + extraPdsf;
+  const pdsfStore = _fabric + extraPdsf + (_mecaStore * _multN);
   const pdsfTotal = pdsfStore + pdsfSomfy;
 
   // Coût store (25%) → prix vendant ×multi
