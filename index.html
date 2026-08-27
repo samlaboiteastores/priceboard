@@ -3749,6 +3749,7 @@ function calculatePrice() {
 
   // ── Multiple toiles : fabric calculé PAR toile (chaque section à ses dims) ──
   const _multN = state.options.multiple === '2x1' ? 2 : state.options.multiple === '3x1' ? 3 : 1;
+  const _suffN = _multN > 1 ? ` ×${_multN}` : '';
   const _mtEl = document.getElementById('multi-toiles-extra');
   if (_mtEl) {
     _mtEl.style.display = _multN > 1 ? 'block' : 'none';
@@ -3775,8 +3776,8 @@ function calculatePrice() {
       if (enteteOpt.extra !== undefined) eExtra = enteteOpt.extra;
       else if (enteteOpt.extraFn) eExtra = VP.TR[enteteOpt.extraFn][state.largTip] || 0;
       if (eExtra > 0) {
-        extraPdsf += eExtra;
-        breakdown.push({ label: enteteOpt.label, pdsf: eExtra });
+        extraPdsf += eExtra * _multN;
+        breakdown.push({ label: enteteOpt.label + _suffN, pdsf: eExtra * _multN });
       }
     }
   }
@@ -3789,8 +3790,8 @@ function calculatePrice() {
       if (baseOpt.extra !== undefined) bExtra = baseOpt.extra;
       else if (baseOpt.extraFn) bExtra = VP.TR[baseOpt.extraFn][state.largTip] || 0;
       if (bExtra > 0) {
-        extraPdsf += bExtra;
-        breakdown.push({ label: baseOpt.label, pdsf: bExtra });
+        extraPdsf += bExtra * _multN;
+        breakdown.push({ label: baseOpt.label + _suffN, pdsf: bExtra * _multN });
       }
     }
   }
@@ -3799,16 +3800,16 @@ function calculatePrice() {
   if (type === 'TR' && state.options.coulisses === true) {
     const hautPi = state.hautTip / 12;
     const coulissePrix = Math.round(hautPi * 55 * 100) / 100;
-    extraPdsf += coulissePrix;
-    breakdown.push({ label: `Coulisses d'obscurité — ${hautPi.toFixed(2)} pi × $55/pl`, pdsf: coulissePrix });
+    extraPdsf += coulissePrix * _multN;
+    breakdown.push({ label: `Coulisses d'obscurité — ${hautPi.toFixed(2)} pi × $55/pl` + _suffN, pdsf: coulissePrix * _multN });
   }
 
   // Barre de charge TA
   if (type === 'TA' && state.options.barre && optsData.barre) {
     const barreOpt = optsData.barre.find(o => o.val === state.options.barre);
     if (barreOpt && barreOpt.extra > 0) {
-      extraPdsf += barreOpt.extra;
-      breakdown.push({ label: barreOpt.label, pdsf: barreOpt.extra });
+      extraPdsf += barreOpt.extra * _multN;
+      breakdown.push({ label: barreOpt.label + _suffN, pdsf: barreOpt.extra * _multN });
     }
   }
 
@@ -3816,7 +3817,6 @@ function calculatePrice() {
   let pdsfSomfy = 0; // PDSF motorisation Somfy → multi 1.5x
   let _mecaStore = 0; // mécanisme non-somfy, par toile
   let _mecaSomfy = 0; // mécanisme somfy, par toile
-  const _suffN = _multN > 1 ? ` ×${_multN}` : '';
 
   if (state.options.mecanisme && optsData.mecanisme) {
     const mecaOpt = optsData.mecanisme.find(o => o.val === state.options.mecanisme);
