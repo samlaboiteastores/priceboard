@@ -8696,12 +8696,17 @@ function onNormTissuChange(nom) {
   const badge = document.getElementById('norm-selected');
   if (badge && tissu) {
     badge.innerHTML = `
-      <div style="font-size:10px;opacity:.6;margin-bottom:3px;">Simplicity</div>
+      <div style="font-size:10px;opacity:.6;margin-bottom:3px;">${tissu.collection || 'Simplicity'}</div>
       <div style="display:flex;align-items:center;gap:8px;">
         <span>${nom.replace(/\s*\(\d+\)$/, '')}</span>
         <span style="font-size:10px;padding:1px 5px;border-radius:3px;background:rgba(26,183,183,0.12);color:var(--gold);">$${tissu.pdsf}/vg</span>
         <span style="font-size:10px;padding:1px 5px;border-radius:3px;background:rgba(91,155,213,0.12);color:var(--blue);">${tissu.largeur}"</span>
         ${tissu.filsPlomb ? '<span style="font-size:10px;padding:1px 5px;border-radius:3px;background:rgba(76,175,125,0.12);color:var(--green);">✦ plomb</span>' : ''}
+      </div>
+      <div style="margin-top:8px;">
+        <label style="display:block;font-size:10px;opacity:.6;margin-bottom:3px;">Code de couleur</label>
+        <input id="norm-code-couleur" type="text" placeholder="ex. 178002 / Blanc naturel" oninput="calculatePriceNorm()"
+               style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:DM Mono,monospace;font-size:12px;padding:7px 10px;outline:none;box-sizing:border-box;">
       </div>`;
     badge.style.display = 'block';
   }
@@ -10413,6 +10418,7 @@ function round05(val) {
 function calculatePriceNorm() {
   const tissu = NORM_CATALOG.find(t => t.nom === state.modele);
   if (!tissu) { resetResult(); return; }
+  const codeCoul = (document.getElementById('norm-code-couleur')?.value || '').trim();
 
   const largBase = (parseFloat(document.getElementById('inp-larg').value) || 0)
                  + (parseFloat(document.getElementById('frac-larg').value) || 0);
@@ -10826,7 +10832,7 @@ function calculatePriceNorm() {
     const _railLbl = _railObj ? (_railObj.label + ' ' + (opt.normRailCouleur || 'Blanc')).trim() : '';
     const _install = (opt.normRailAcc && opt.normRailAcc['support-mural-type']) ? 'Support mural' : 'Support plafond';
     const _parts = [
-      'Tissu : ' + tissu.nom.replace(/\s*\(\d+\)$/, ''),
+      'Tissu : ' + tissu.nom.replace(/\s*\(\d+\)$/, '') + (codeCoul ? ' — Couleur : ' + codeCoul : ''),
       'Confection : ' + finition.label,
       'Tête : ' + _teteLbl,
       'Bas : ' + bas + '"',
@@ -10860,7 +10866,7 @@ function calculatePriceNorm() {
 
   document.getElementById('result-body').innerHTML = `
     <div class="result-fournisseur">Normandie · ${tissu.collection || 'Simplicity'}</div>
-    <div class="result-produit">${tissu.nom.replace(/\s*\(\d+\)$/, '')}${isLaize ? ' <span style="font-size:13px;padding:2px 8px;border-radius:4px;background:rgba(224,92,92,0.15);color:var(--red);font-family:DM Mono,monospace;">⟳ INVERSÉ</span>' : ''}</div>
+    <div class="result-produit">${tissu.nom.replace(/\s*\(\d+\)$/, '')}${codeCoul ? ' <span style="font-size:12px;padding:2px 8px;border-radius:4px;background:rgba(26,183,183,0.12);color:var(--gold);font-family:DM Mono,monospace;">Couleur : ' + codeCoul + '</span>' : ''}${isLaize ? ' <span style="font-size:13px;padding:2px 8px;border-radius:4px;background:rgba(224,92,92,0.15);color:var(--red);font-family:DM Mono,monospace;">⟳ INVERSÉ</span>' : ''}</div>
     <div class="result-detail">
       ${largBase}"${retourVal > 0 ? ` (+${retourVal*2}" retour) = ${larg}"` : ''} × ${haut}" · ${finition.label}<br>
       ${canvasLabels[canvasType]} · Tête ${tete}" · Bas ${bas}"${doublure ? ' · Avec doublure' : ''}<br>
