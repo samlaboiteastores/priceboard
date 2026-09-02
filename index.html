@@ -588,7 +588,7 @@
                 <div id="row-norm-tissu" style="display:none">
                   <div style="padding:0 20px 10px;">
                     <div style="position:relative;">
-                      <input type="text" id="norm-search" placeholder="🔍 Rechercher un tissu Simplicity..." autocomplete="off"
+                      <input type="text" id="norm-search" placeholder="🔍 Rechercher un tissu (Simplicity, Alendel, Unique)..." autocomplete="off"
                         style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:DM Mono,monospace;font-size:12px;padding:9px 36px 9px 12px;outline:none;box-sizing:border-box;"
                         oninput="normFilterTissus(this.value)">
                       <span id="norm-clear" onclick="document.getElementById('norm-search').value='';normFilterTissus('');"
@@ -3145,7 +3145,7 @@ function onFournisseurChange() {
     show('row-type');
     const selType = document.getElementById('sel-type');
     selType.innerHTML = '<option value="">— Sélectionner —</option>'
-      + '<option value="norm-rideau">Rideaux (Simplicity)</option>'
+      + '<option value="norm-rideau">Rideaux (Simplicity, Alendel, Unique)</option>'
       + '<option value="norm-romain">Stores Romains</option>';
     selType.value = '';
     return;
@@ -10828,7 +10828,7 @@ function calculatePriceNorm() {
     </div>` : '';
 
   document.getElementById('result-body').innerHTML = `
-    <div class="result-fournisseur">Normandie · Simplicity</div>
+    <div class="result-fournisseur">Normandie · ${tissu.collection || 'Simplicity'}</div>
     <div class="result-produit">${tissu.nom.replace(/\s*\(\d+\)$/, '')}${isLaize ? ' <span style="font-size:13px;padding:2px 8px;border-radius:4px;background:rgba(224,92,92,0.15);color:var(--red);font-family:DM Mono,monospace;">⟳ INVERSÉ</span>' : ''}</div>
     <div class="result-detail">
       ${largBase}"${retourVal > 0 ? ` (+${retourVal*2}" retour) = ${larg}"` : ''} × ${haut}" · ${finition.label}<br>
