@@ -12308,6 +12308,12 @@ function copyResume() {
     var releve = _mes.length > 1
       ? _mes.map(function (m, i) { return 'Toile ' + (i + 1) + ': ' + m; }).join(' | ')
       : (_mes[0] || '');
+    // Paire décentrée : joindre la largeur d'un panneau (total L×H reste la mesure, le panneau part en note)
+    var _div = (state.options && state.options.normDivision) || 'simple';
+    if (_div === 'paire-dc') {
+      var _pg = parseFloat(state.options.normPanneauGauche) || 0;
+      if (_pg > 0) { releve = (releve || '') + ' — Panneau G: ' + _fmtPo(_pg); }
+    }
     var payload = {
       source: 'lbas-priceboard',
       type: 'lbas_add_line',
