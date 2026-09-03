@@ -1272,9 +1272,9 @@ const VP = {
         { val: 's-r28-bat',  label: 'Moteur R28 + piles rechargeables',   extra: 800,  piCarresTR: 36, piCarresTA: 64, type: 'somfy-r28' },
       ],
       multiple: [
-        { val: '1x1', label: '1 toile / 1 cassette', extra: 0, defaut: true },
-        { val: '2x1', label: '2 toiles / 1 cassette', extra: 50 },
-        { val: '3x1', label: '3 toiles / 1 cassette', extra: 60 },
+        { val: '1x1', label: '1 toile / 1 top', extra: 0, defaut: true },
+        { val: '2x1', label: '2 toiles / 1 top', extra: 50 },
+        { val: '3x1', label: '3 toiles / 1 top', extra: 60 },
       ],
       cote: [
         { val: 'droit', label: 'Contrôle droit', extra: 0, defaut: true },
@@ -1550,9 +1550,9 @@ const VP = {
         { val: 'inverse', label: 'Inversé', extra: 0 },
       ],
       multiple: [
-        { val: '1x1', label: '1 toile / 1 cassette', extra: 0, defaut: true },
-        { val: '2x1', label: '2 toiles / 1 cassette', extra: 50 },
-        { val: '3x1', label: '3 toiles / 1 cassette', extra: 60 },
+        { val: '1x1', label: '1 toile / 1 top', extra: 0, defaut: true },
+        { val: '2x1', label: '2 toiles / 1 top', extra: 50 },
+        { val: '3x1', label: '3 toiles / 1 top', extra: 60 },
       ],
       cote: [
         { val: 'droit',  label: 'Contrôle droit',  extra: 0, defaut: true },
@@ -1621,9 +1621,9 @@ const VP = {
         { val: 's-r28-bat', label: 'Moteur R28 + piles rechargeables', extra: 800,  piCarresTR: 36, piCarresTA: 64, type: 'somfy-r28' },
       ],
       multiple: [
-        { val: '1x1', label: '1 toile / 1 cassette', extra: 0, defaut: true },
-        { val: '2x1', label: '2 toiles / 1 cassette', extra: 50 },
-        { val: '3x1', label: '3 toiles / 1 cassette', extra: 60 },
+        { val: '1x1', label: '1 toile / 1 top', extra: 0, defaut: true },
+        { val: '2x1', label: '2 toiles / 1 top', extra: 50 },
+        { val: '3x1', label: '3 toiles / 1 top', extra: 60 },
       ],
       cote: [
         { val: 'droit',  label: 'Contrôle droit',  extra: 0, defaut: true },
@@ -5997,8 +5997,8 @@ function buildOptionsSBM() {
       label: 'Multiple toiles',
       defaut: '1x1',
       items: [
-        { val: '1x1', label: '1 toile / 1 cassette' },
-        { val: '2x1', label: `2 toiles / 1 cassette — PDSF +$50` },
+        { val: '1x1', label: '1 toile / 1 top' },
+        { val: '2x1', label: `2 toiles / 1 top — PDSF +$50` },
       ]
     }, 'sbmMultiple');
   }
@@ -6207,7 +6207,7 @@ function calculatePriceSBM() {
 
     // Multiple toiles
     if (state.options.sbmMultiple === '2x1') {
-      addExtra('2 toiles / 1 cassette', 50);
+      addExtra('2 toiles / 1 top', 50);
     }
   }
 
