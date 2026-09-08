@@ -12408,6 +12408,13 @@ function copyResume() {
   window.lbasApplyFallback = function(cfg) {
     var f = cfg.fournisseur || (cfg.state && cfg.state.fournisseur) || '';
     var desc = cfg._origDesc || '';
+    // Le nom du fournisseur enregistre n'est pas toujours mappable (ex. "Signature
+    // Textiles Val Abel" pour un rideau Normandie) : deduire du contenu de la description.
+    if (!f) {
+      if (/Ripplefold|Confection|T[êe]te\s*:|Baguettes|Doublure\s*:|Store\s*Romain/i.test(desc)) f = 'norm';
+      else if (/Persienne|Shutter/i.test(desc)) f = 'pd';
+      else if (/Toile/i.test(desc)) f = 'vp';
+    }
     function g(re) { var m = desc.match(re); return m ? m[1].trim() : ''; }
     function byId(id) { return document.getElementById(id); }
     var selF = byId('sel-fournisseur');
