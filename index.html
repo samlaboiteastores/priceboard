@@ -12402,9 +12402,73 @@ function copyResume() {
              state: st, ctrls: ctrls };
   };
 
+  // Reconstruction "au mieux" pour une ancienne ligne SANS config sauvegardee :
+  // on relit la description (_origDesc) pour rouvrir fournisseur + type + tissu/modele
+  // + couleur + dimensions. Les options fines restent a re-choisir (affichees dans la banniere).
+  window.lbasApplyFallback = function(cfg) {
+    var f = cfg.fournisseur || (cfg.state && cfg.state.fournisseur) || '';
+    var desc = cfg._origDesc || '';
+    function g(re) { var m = desc.match(re); return m ? m[1].trim() : ''; }
+    function byId(id) { return document.getElementById(id); }
+    var selF = byId('sel-fournisseur');
+    if (selF) { selF.value = f; }
+    if (typeof onFournisseurChange === 'function') { try { onFournisseurChange(); } catch (e) {} }
+
+    if (f === 'norm') {
+      var isRideau = /Confection|Ripplefold|T[êe]te|\bPli\b/i.test(desc);
+      var selT = byId('sel-type');
+      if (selT) { selT.value = isRideau ? 'norm-rideau' : 'norm-romain'; if (typeof onTypeChange === 'function') { try { onTypeChange(); } catch (e) {} } }
+      var tissu = g(/Tissu\s*:\s*([^—|]+)/); var coul = g(/Couleur\s*:\s*([^|]+)/);
+      if (tissu && typeof NORM_CATALOG !== 'undefined') {
+        var nrm = function (s) { return (s || '').toLowerCase().replace(/\s*\(\d+\)\s*$/, '').trim(); };
+        var hit = NORM_CATALOG.find(function (t) { return nrm(t.nom) === nrm(tissu); })
+               || NORM_CATALOG.find(function (t) { return nrm(t.nom).indexOf(nrm(tissu)) === 0; });
+        if (hit && typeof onNormTissuChange === 'function') {
+          try { onNormTissuChange(hit.nom); } catch (e) {}
+          var cc = byId('norm-code-couleur'); if (cc) { cc.value = coul || ''; }
+        }
+      }
+    } else if (f === 'solr') {
+      var tissuS = g(/Tissu\s*:\s*([^—|]+)/) || g(/Mod[eè]le\s*:\s*([^|]+)/);
+      if (tissuS && typeof onSolrTissuChange === 'function') { try { onSolrTissuChange(tissuS); } catch (e) {} }
+    } else if (f === 'vtx') {
+      var tissuV = g(/Tissu\s*:\s*([^—|]+)/) || g(/Mod[eè]le\s*:\s*([^|]+)/);
+      var vt = byId('vtx-tissu');
+      if (vt && tissuV) {
+        var lo = tissuV.toLowerCase();
+        var opt = Array.from(vt.options).find(function (o) { return o.text.toLowerCase().indexOf(lo) >= 0 || o.value.toLowerCase() === lo; });
+        if (opt) { vt.value = opt.value; if (typeof onVtxTissuChange === 'function') { try { onVtxTissuChange(); } catch (e) {} } }
+      }
+    } else {
+      // VP / PD / SBM : type de produit + modele
+      var tp = g(/Type de produit\s*:\s*([^|]+)/); var mod = g(/Mod[eè]le\s*:\s*([^|]+)/);
+      var typeMap = { 'toile à rouleau': 'TR', 'toile a rouleau': 'TR', 'toile alternée': 'TA',
+                      'toile alternee': 'TA', 'zebra': 'TA', 'toile double': 'TD', 'duo': 'TD' };
+      var selT2 = byId('sel-type');
+      if (selT2 && tp) { var tv = typeMap[tp.toLowerCase()] || ''; if (tv) { selT2.value = tv; if (typeof onTypeChange === 'function') { try { onTypeChange(); } catch (e) {} } } }
+      if (mod) {
+        var selM = byId('sel-modele');
+        if (selM) {
+          var ml = mod.toLowerCase();
+          var mo = Array.from(selM.options).find(function (o) { return o.value.toLowerCase() === ml || o.text.toLowerCase() === ml; });
+          if (mo) { selM.value = mo.value; if (typeof onModeleChange === 'function') { try { onModeleChange(); } catch (e) {} } }
+        }
+      }
+    }
+
+    // Dimensions depuis les champs reconstruits
+    var fc = cfg.ctrls || {};
+    ['inp-larg', 'inp-haut', 'frac-larg', 'frac-haut'].forEach(function (id) {
+      if (fc[id] !== undefined) { var e = byId(id); if (e) { e.value = fc[id].v; } }
+    });
+    if (typeof onDimChange === 'function') { try { onDimChange(); } catch (e) {} }
+    try { window.scrollTo(0, 0); } catch (e) {}
+  };
+
   window.lbasApplyConfig = function(cfg) {
     if (!cfg) return;
     try { if (typeof cfg === 'string') cfg = JSON.parse(cfg); } catch (e) { return; }
+    if (cfg._fallback) { try { window.lbasApplyFallback(cfg); } catch (e) {} return; }
     var saved = cfg.state || {};
     var ctrls = cfg.ctrls || {};
     function byId(id){ return document.getElementById(id); }
