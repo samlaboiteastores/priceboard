@@ -12502,7 +12502,18 @@ function copyResume() {
       document.body.appendChild(banner);
     }
     banner.style.display = 'block';
-    banner.innerHTML = "✎ Modification d'une ligne du devis — ajuste puis « Mettre à jour la ligne ». <span id=\"lbas-edit-cancel\" style=\"text-decoration:underline;cursor:pointer;margin-left:10px;\">Annuler</span>";
+    var _cfgObj = {};
+    try { _cfgObj = (typeof d.config === 'string') ? JSON.parse(d.config) : (d.config || {}); } catch (e) {}
+    var _cancel = " <span id=\"lbas-edit-cancel\" style=\"text-decoration:underline;cursor:pointer;margin-left:10px;\">Annuler</span>";
+    if (_cfgObj && _cfgObj._fallback) {
+      var _od = (_cfgObj._origDesc || '').replace(/</g, '&lt;');
+      banner.innerHTML = "✎ Modification — l'ancienne configuration n'avait pas été sauvegardée. "
+        + "Fournisseur et dimensions rechargés ; re-choisis le modèle/options puis « Mettre à jour la ligne »."
+        + (_od ? "<div style=\"font-weight:normal;font-size:11px;margin-top:4px;opacity:.9\">Spécs d'origine : " + _od + "</div>" : "")
+        + _cancel;
+    } else {
+      banner.innerHTML = "✎ Modification d'une ligne du devis — ajuste puis « Mettre à jour la ligne »." + _cancel;
+    }
     var c = byIdSafe('lbas-edit-cancel');
     if (c) c.onclick = function(){ window.lbasExitEditMode(); };
     try { window.scrollTo(0, 0); } catch (e) {}
