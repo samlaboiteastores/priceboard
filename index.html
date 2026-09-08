@@ -12315,10 +12315,12 @@ function copyResume() {
       var _pg = parseFloat(state.options.normPanneauGauche) || 0;
       if (_pg > 0) { releve = (releve || '') + ' — Panneau G: ' + _fmtPo(_pg); }
     }
+    var _editId = window.LBAS_EDIT_LINE_ID || null;
     var payload = {
       source: 'lbas-priceboard',
-      type: 'lbas_add_line',
+      type: _editId ? 'lbas_update_line' : 'lbas_add_line',
       order_id: LBAS_ORDER_ID,
+      line_id: _editId,
       description: description,
       price: price,
       qty: 1,
@@ -12326,17 +12328,19 @@ function copyResume() {
       supplier_code: supplier_code,
       cost: cost,
       releve: releve,
-      supplier_ref: 'priceboard'
+      supplier_ref: 'priceboard',
+      config: (typeof window.lbasCaptureConfig === 'function') ? window.lbasCaptureConfig() : null
     };
     try {
       window.parent.postMessage(payload, '*');
       var b = document.getElementById('devis-add-btn');
       if (b) {
-        var old = b.innerHTML;
-        b.innerHTML = '✓ &nbsp;Ajouté au devis';
+        var old = _editId ? '💾 &nbsp;Mettre à jour la ligne' : b.innerHTML;
+        b.innerHTML = _editId ? '✓ &nbsp;Ligne mise à jour' : '✓ &nbsp;Ajouté au devis';
         b.classList.add('copied');
         setTimeout(function(){ b.innerHTML = old; b.classList.remove('copied'); }, 1800);
       }
+      if (_editId && typeof window.lbasExitEditMode === 'function') window.lbasExitEditMode();
     } catch (e) {
       alert("Impossible d'envoyer au devis : " + e);
     }
@@ -12373,6 +12377,137 @@ function copyResume() {
       alert("Impossible d'envoyer au devis : " + e);
     }
   };
+
+  // ══════════════════════════════════════════════════════
+  // MODIFIER UNE LIGNE EXISTANTE : capturer / restaurer la config
+  // (le pont Odoo envoie {source:'lbas-odoo', type:'lbas_edit_line', line_id, config})
+  // ══════════════════════════════════════════════════════
+  window.LBAS_EDIT_LINE_ID = null;
+
+  window.lbasCaptureConfig = function() {
+    var ctrls = {};
+    try {
+      document.querySelectorAll('input,select,textarea').forEach(function(el){
+        var id = el.id; if (!id) return;
+        if (id.indexOf('admin') === 0) return;   // ne pas capter les reglages de marge
+        if (id.indexOf('svc-') === 0) return;     // section service geree a part
+        if (el.type === 'checkbox' || el.type === 'radio') ctrls[id] = { c: el.checked, v: el.value };
+        else ctrls[id] = { v: el.value };
+      });
+    } catch (e) {}
+    var st = {};
+    try { st = JSON.parse(JSON.stringify(state)); } catch (e) { st = {}; }
+    return { v: 2, fournisseur: state.fournisseur, type: state.type, modele: state.modele,
+             couleur: state.couleur, tissuNom: state.tissuNom, tissuCouleur: state.tissuCouleur,
+             state: st, ctrls: ctrls };
+  };
+
+  window.lbasApplyConfig = function(cfg) {
+    if (!cfg) return;
+    try { if (typeof cfg === 'string') cfg = JSON.parse(cfg); } catch (e) { return; }
+    var saved = cfg.state || {};
+    var ctrls = cfg.ctrls || {};
+    function byId(id){ return document.getElementById(id); }
+    function setV(id, v){ var el = byId(id); if (el != null) { el.value = v; } return el; }
+    function fire(el, ev){ if (el) { try { el.dispatchEvent(new Event(ev, { bubbles: true })); } catch (e) {} } }
+
+    // 1) Fournisseur (revele l'UI + reset l'etat)
+    var f = cfg.fournisseur || saved.fournisseur || '';
+    setV('sel-fournisseur', f);
+    if (typeof onFournisseurChange === 'function') { try { onFournisseurChange(); } catch (e) {} }
+
+    // 2) Type (SBM / Normandie)
+    if (saved.type) {
+      var selT = byId('sel-type');
+      if (selT) { selT.value = saved.type; if (typeof onTypeChange === 'function') { try { onTypeChange(); } catch (e) {} } }
+    }
+
+    // 3) Fournisseurs a recherche de tissu
+    try {
+      if (f === 'solr' && saved.tissuNom && typeof onSolrTissuChange === 'function') onSolrTissuChange(saved.tissuNom);
+      else if (f === 'norm' && saved.tissuNom && typeof onNormTissuChange === 'function') onNormTissuChange(saved.tissuNom);
+      else if (f === 'vtx') {
+        var vt = byId('vtx-tissu');
+        if (vt && ctrls['vtx-tissu']) { vt.value = ctrls['vtx-tissu'].v; if (typeof onVtxTissuChange === 'function') onVtxTissuChange(); }
+        var vc = byId('vtx-couleur');
+        if (vc && ctrls['vtx-couleur']) { vc.value = ctrls['vtx-couleur'].v; state.options = state.options || {}; state.options.vtxCouleur = vc.value; }
+      }
+    } catch (e) {}
+
+    // 4) Modele + couleur (fournisseurs a selects : VP / PD / SBM)
+    if (saved.modele) {
+      var selM = byId('sel-modele');
+      if (selM) { selM.value = saved.modele; if (typeof onModeleChange === 'function') { try { onModeleChange(); } catch (e) {} } }
+    }
+    if (saved.couleur) {
+      var selC = byId('sel-couleur');
+      if (selC) { selC.value = saved.couleur; }
+    }
+
+    // 5) Restaurer l'etat semantique (options + tissu + type/modele/couleur)
+    try { state.options = JSON.parse(JSON.stringify(saved.options || {})); } catch (e) { state.options = saved.options || {}; }
+    if (saved.type) state.type = saved.type;
+    if (saved.modele) state.modele = saved.modele;
+    if (saved.couleur) state.couleur = saved.couleur;
+    if (saved.tissuNom) state.tissuNom = saved.tissuNom;
+    if (saved.tissuCouleur) state.tissuCouleur = saved.tissuCouleur;
+    if (saved.largTip != null) state.largTip = saved.largTip;
+    if (saved.hautTip != null) state.hautTip = saved.hautTip;
+
+    // 6) Dimensions (toiles 1-3 + fractions)
+    ['inp-larg','inp-haut','frac-larg','frac-haut','inp-larg2','inp-haut2','frac-larg2','frac-haut2','inp-larg3','inp-haut3','frac-larg3','frac-haut3'].forEach(function(id){ if (ctrls[id] !== undefined) setV(id, ctrls[id].v); });
+
+    // 7) Recalcul : construit les options depuis l'etat + calcule
+    if (typeof onDimChange === 'function') { try { onDimChange(); } catch (e) {} }
+
+    // 8) Rejouer les controles d'options presents (opt-*, sbm-*, options-container, base/barre/entete)
+    Object.keys(ctrls).forEach(function(id){
+      if (id === 'sel-fournisseur' || id === 'sel-type' || id === 'sel-modele' || id === 'sel-couleur') return;
+      if (id === 'vtx-tissu' || id === 'vtx-couleur') return;
+      if (id.indexOf('inp-larg') === 0 || id.indexOf('inp-haut') === 0 || id.indexOf('frac-') === 0) return;
+      var el = byId(id); if (!el) return;
+      var c = ctrls[id];
+      if (el.type === 'checkbox' || el.type === 'radio') {
+        if (el.checked !== !!c.c) { el.checked = !!c.c; fire(el, 'change'); }
+      } else if (c.v !== undefined && el.value !== c.v) {
+        el.value = c.v; fire(el, 'change'); fire(el, 'input');
+      }
+    });
+
+    // 9) Recalcul final
+    if (typeof onDimChange === 'function') { try { onDimChange(); } catch (e) {} }
+    try { window.scrollTo(0, 0); } catch (e) {}
+  };
+
+  window.lbasExitEditMode = function() {
+    window.LBAS_EDIT_LINE_ID = null;
+    var b = document.getElementById('devis-add-btn');
+    if (b) b.innerHTML = '➕ &nbsp;Ajouter au devis';
+    var banner = document.getElementById('lbas-edit-banner');
+    if (banner) banner.style.display = 'none';
+  };
+
+  window.addEventListener('message', function(ev) {
+    var d = ev.data || {};
+    if (!d || d.source !== 'lbas-odoo' || d.type !== 'lbas_edit_line') return;
+    window.LBAS_EDIT_LINE_ID = d.line_id || null;
+    try { window.lbasApplyConfig(d.config); } catch (e) {}
+    var b = document.getElementById('devis-add-btn');
+    if (b) { b.style.display = 'block'; b.innerHTML = '💾 &nbsp;Mettre à jour la ligne'; }
+    var banner = document.getElementById('lbas-edit-banner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'lbas-edit-banner';
+      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#02787d;color:#fff;padding:9px 14px;font-weight:600;text-align:center;font-family:-apple-system,Segoe UI,sans-serif;font-size:13px;';
+      document.body.appendChild(banner);
+    }
+    banner.style.display = 'block';
+    banner.innerHTML = "✎ Modification d'une ligne du devis — ajuste puis « Mettre à jour la ligne ». <span id=\"lbas-edit-cancel\" style=\"text-decoration:underline;cursor:pointer;margin-left:10px;\">Annuler</span>";
+    var c = byIdSafe('lbas-edit-cancel');
+    if (c) c.onclick = function(){ window.lbasExitEditMode(); };
+    try { window.scrollTo(0, 0); } catch (e) {}
+    function byIdSafe(id){ try { return document.getElementById(id); } catch(e){ return null; } }
+  });
 })();
 </script>
 </body>
