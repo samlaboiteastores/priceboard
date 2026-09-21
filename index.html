@@ -516,7 +516,7 @@
         <span class="nav-dot"></span>Paramètres
       </div>
     </nav>
-    <div class="sidebar-footer">v4.3 · VP + PD + SBM + SOL-R + Normandie + Signature + Verotex 2026</div>
+    <div class="sidebar-footer">v4.4 · VP + PD + SBM + SOL-R + Normandie + Signature Textiles + Verotex 2026</div>
   </aside>
 
   <!-- MAIN -->
@@ -551,7 +551,8 @@
                     <option value="pd">Persienne Design</option>
                     <option value="sbm">SBM Canada</option>
                     <option value="solr">SOL-R</option>
-                    <option value="norm">Draperie Normandie · Signature Textiles (rideaux)</option>
+                    <option value="norm">Draperie Normandie</option>
+                    <option value="sig">Signature Textiles</option>
                     <option value="vtx">Verotex — Rideau Séparateur</option>
                   </select>
                 </div>
@@ -959,7 +960,7 @@
 
           <div class="card">
             <div class="card-header">
-              <span class="card-title">Draperie Normandie · Signature Textiles — Paramètres</span>
+              <span class="card-title">Draperie Normandie — Paramètres</span>
               <span class="card-badge">Actif</span>
             </div>
             <div class="card-body">
@@ -3101,7 +3102,9 @@ function showPanel(name) {
 // ══════════════════════════════════════════════════════
 
 function onFournisseurChange() {
-  state.fournisseur = document.getElementById('sel-fournisseur').value;
+  const _selF = document.getElementById('sel-fournisseur').value;
+  state.normSource = (_selF === 'sig') ? 'sig' : 'norm';         // Signature Textiles ≠ Draperie Normandie : deux fournisseurs, un même moteur de calcul
+  state.fournisseur = (_selF === 'sig') ? 'norm' : _selF;
   show('row-type', !!state.fournisseur);
   // Réinitialiser TOUT l'état au changement de fournisseur
   state.type = ''; state.modele = ''; state.couleur = '';
@@ -3146,10 +3149,9 @@ function onFournisseurChange() {
     // Afficher sélection type Normandie (Rideaux / Romains)
     show('row-type');
     const selType = document.getElementById('sel-type');
-    selType.innerHTML = '<option value="">— Sélectionner —</option>'
-      + '<option value="norm-rideau">Rideaux (Simplicity, Alendel, Unique)</option>'
-      + '<option value="norm-romain">Stores Romains</option>'
-      + '<option value="norm-pret">Signature — Panneaux prêts à poser</option>';
+    selType.innerHTML = state.normSource === 'sig'
+      ? '<option value="">— Sélectionner —</option><option value="norm-rideau">Rideaux (tissus Signature Textiles + rails)</option><option value="norm-pret">Panneaux prêts à poser</option>'
+      : '<option value="">— Sélectionner —</option><option value="norm-rideau">Rideaux (Simplicity, Alendel, Unique)</option><option value="norm-romain">Stores Romains</option>';
     selType.value = '';
     return;
   } else if (state.fournisseur === 'vtx') {
@@ -7256,6 +7258,9 @@ function calculatePriceSolr() {
 // ══════════════════════════════════════════════════════
 
 // Catalogue tissus Simplicity — { nom, pdsf ($/verge), largeur (pouces), filsPlomb }
+// Le catalogue partage un même moteur ; la source (state.normSource) sépare Signature Textiles de Draperie Normandie.
+function normSrcOk(t) { return ((state.normSource === 'sig') === (t.collection === 'Signature')); }
+function normRailOk(k) { return ((state.normSource === 'sig') === /^SIG_/.test(k)); }
 const NORM_CATALOG = [
   // NOTE 2026-09-02 : 32 tissus Alendel sans largeur a la source (Width=NA) forces a 54" par defaut =>
   // calcul avec plus de laizes = prix conservateur ("back"). A remplacer si Alendel fournit les vraies largeurs.
@@ -8771,7 +8776,7 @@ function normBuildTissuList(filter) {
   };
   let lastCol = null;
 
-  NORM_CATALOG.forEach(tissu => {
+  NORM_CATALOG.filter(normSrcOk).forEach(tissu => {
     const searchStr = tissu.nom.toLowerCase();
     if (filter && !searchStr.includes(filter)) return;
     totalVisible++;
@@ -9374,7 +9379,7 @@ function buildRailSection(container) {
   railBody.style.padding = '0 20px 12px';
   const railSel = mkSel();
   railSel.id = 'norm-rail-sys';
-  const railOpts = [{ val: '', label: '— Aucun rail —' }, ...Object.entries(NORM_RAILS).map(([k,v]) => ({ val: k, label: v.label }))];
+  const railOpts = [{ val: '', label: '— Aucun rail —' }, ...Object.entries(NORM_RAILS).filter(([k]) => normRailOk(k)).map(([k,v]) => ({ val: k, label: v.label }))];
   railOpts.forEach(o => {
     const opt = document.createElement('option');
     opt.value = o.val; opt.textContent = o.label;
@@ -10132,7 +10137,7 @@ function normBuildDoublureList(filter) {
   filter = (filter || '').toLowerCase().trim();
 
   let count = 0;
-  NORM_CATALOG.forEach(tissu => {
+  NORM_CATALOG.filter(normSrcOk).forEach(tissu => {
     if (filter && !tissu.nom.toLowerCase().includes(filter)) return;
     count++;
     const isSelected = state.options.normDoublureTissu && state.options.normDoublureTissu.nom === tissu.nom;
@@ -10181,7 +10186,7 @@ function normBuildTissu2List(filter) {
   filter = (filter || '').toLowerCase().trim();
 
   let count = 0;
-  NORM_CATALOG.forEach(tissu => {
+  NORM_CATALOG.filter(normSrcOk).forEach(tissu => {
     if (filter && !tissu.nom.toLowerCase().includes(filter)) return;
     count++;
     const isSelected = state.options.normTissu2 && state.options.normTissu2.nom === tissu.nom;
@@ -10479,7 +10484,7 @@ function normRomainDoublureList(filter) {
   if (!list) return;
   list.innerHTML = '';
   filter = (filter || '').toLowerCase().trim();
-  NORM_CATALOG.forEach(tissu => {
+  NORM_CATALOG.filter(normSrcOk).forEach(tissu => {
     if (filter && !tissu.nom.toLowerCase().includes(filter)) return;
     const isSelected = state.options.romainDoublureTissu && state.options.romainDoublureTissu.nom === tissu.nom;
     const row = document.createElement('div');
@@ -11233,7 +11238,7 @@ function calculatePriceNorm() {
     </div>` : '';
 
   document.getElementById('result-body').innerHTML = `
-    <div class="result-fournisseur">${tissu.collection === 'Signature' ? 'Signature Textiles' : 'Normandie · ' + (tissu.collection || 'Simplicity')}</div>
+    <div class="result-fournisseur">${state.normSource === 'sig' ? 'Signature Textiles' : 'Normandie · ' + (tissu.collection || 'Simplicity')}</div>
     <div class="result-produit">${tissu.nom.replace(/\s*\(\d+\)$/, '')}${codeCoul ? ' <span style="font-size:12px;padding:2px 8px;border-radius:4px;background:rgba(26,183,183,0.12);color:var(--gold);font-family:DM Mono,monospace;">Couleur : ' + codeCoul + '</span>' : ''}${isLaize ? ' <span style="font-size:13px;padding:2px 8px;border-radius:4px;background:rgba(224,92,92,0.15);color:var(--red);font-family:DM Mono,monospace;">⟳ INVERSÉ</span>' : ''}</div>
     <div class="result-detail">
       ${largBase}"${retourVal > 0 ? ` (+${retourVal*2}" retour) = ${larg}"` : ''} × ${haut}" · ${finition.label}<br>
@@ -11267,7 +11272,7 @@ function calculatePriceNorm() {
       </div>
     </div>
     <div class="breakdown">
-      <div class="breakdown-title">Détail — Draperie Normandie${pdsfMoto>0?' · ⚡ = Motorisation ×'+multiSomfy:''}</div>
+      <div class="breakdown-title">Détail — ${state.normSource === 'sig' ? 'Signature Textiles' : 'Draperie Normandie'}${pdsfMoto>0?' · ⚡ = Motorisation ×'+multiSomfy:''}</div>
       ${bdHtml}
       <div class="breakdown-item" style="color:var(--text);font-weight:500;margin-top:4px">
         <span>Total matériaux + conf.</span><span>${fmtCAD(pdsfTotal)}</span>
@@ -12650,7 +12655,6 @@ function copyResume() {
     var price = Math.round((state.lastResult.vente + Number.EPSILON) * 100) / 100;
     var _f = document.getElementById('sel-fournisseur');
     var supplier_code = _f ? _f.value : '';
-    try { var _tsig = (supplier_code === 'norm' && typeof NORM_CATALOG !== 'undefined') ? NORM_CATALOG.find(function (t) { return t.nom === state.modele; }) : null; if (_tsig && _tsig.collection === 'Signature') supplier_code = 'sig'; if (supplier_code === 'norm' && state.type === 'norm-pret') supplier_code = 'sig'; } catch (e) {}
     var cost = (state.lastResult && state.lastResult.cout > 0)
       ? Math.round((state.lastResult.cout + Number.EPSILON) * 100) / 100 : 0;
     function _fmtPo(v) {
@@ -12763,7 +12767,7 @@ function copyResume() {
     } catch (e) {}
     var st = {};
     try { st = JSON.parse(JSON.stringify(state)); } catch (e) { st = {}; }
-    return { v: 2, fournisseur: state.fournisseur, type: state.type, modele: state.modele,
+    return { v: 2, fournisseur: (state.fournisseur === 'norm' && state.normSource === 'sig') ? 'sig' : state.fournisseur, type: state.type, modele: state.modele,
              couleur: state.couleur, tissuNom: state.tissuNom, tissuCouleur: state.tissuCouleur,
              state: st, ctrls: ctrls };
   };
@@ -12862,7 +12866,7 @@ function copyResume() {
     // 3) Fournisseurs a recherche de tissu
     try {
       if (f === 'solr' && saved.tissuNom && typeof onSolrTissuChange === 'function') onSolrTissuChange(saved.tissuNom);
-      else if (f === 'norm' && saved.tissuNom && typeof onNormTissuChange === 'function') onNormTissuChange(saved.tissuNom);
+      else if ((f === 'norm' || f === 'sig') && saved.tissuNom && typeof onNormTissuChange === 'function') onNormTissuChange(saved.tissuNom);
       else if (f === 'vtx') {
         var vt = byId('vtx-tissu');
         if (vt && ctrls['vtx-tissu']) { vt.value = ctrls['vtx-tissu'].v; if (typeof onVtxTissuChange === 'function') onVtxTissuChange(); }
