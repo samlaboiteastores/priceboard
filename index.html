@@ -553,6 +553,7 @@
                     <option value="solr">SOL-R</option>
                     <option value="norm">Draperie Normandie</option>
                     <option value="sig">Signature Textiles</option>
+                    <option value="altex">Altex — Toiles à rouleau</option>
                     <option value="vtx">Verotex — Rideau Séparateur</option>
                   </select>
                 </div>
@@ -600,6 +601,24 @@
                     style="max-height:300px;overflow-y:auto;border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
                   </div>
                   <div id="norm-selected" style="display:none;margin:10px 20px 0;padding:8px 12px;background:rgba(26,183,183,0.08);border:1px solid rgba(26,183,183,0.3);border-radius:6px;font-size:12px;font-family:DM Mono,monospace;color:var(--gold);"></div>
+                </div>
+
+                <!-- ALTEX — recherche par tissu (données altex.json, code altex.js) -->
+                <div id="row-altex" style="display:none">
+                  <div style="padding:0 20px 10px;">
+                    <div style="position:relative;">
+                      <input type="text" id="altex-search" placeholder="🔍 Rechercher un tissu Altex (Oslo, Basic, Ambio…)" autocomplete="off"
+                        style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:DM Mono,monospace;font-size:12px;padding:9px 36px 9px 12px;outline:none;box-sizing:border-box;"
+                        oninput="altexListe(this.value)">
+                      <span id="altex-clear" onclick="document.getElementById('altex-search').value='';altexListe('');"
+                        style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text-dim);font-size:14px;line-height:1;">✕</span>
+                    </div>
+                  </div>
+                  <div id="altex-list"
+                    style="max-height:300px;overflow-y:auto;border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+                  </div>
+                  <div id="altex-selected" style="display:none;margin:10px 20px 0;padding:8px 12px;background:rgba(26,183,183,0.08);border:1px solid rgba(26,183,183,0.3);border-radius:6px;font-size:12px;font-family:DM Mono,monospace;color:var(--gold);"></div>
+                  <div id="altex-choix"></div>
                 </div>
 
                 <!-- VEROTEX — sélecteur tissu + options -->
@@ -913,6 +932,31 @@
               <div class="admin-row">
                 <div class="admin-label">Marge brute résultante</div>
                 <div id="admin-marge-sbm" style="color:var(--green);font-size:13px">—</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Altex — Paramètres</span>
+              <span class="card-badge">Actif</span>
+            </div>
+            <div class="card-body">
+              <div class="admin-row">
+                <div>
+                  <div class="admin-label">Coût</div>
+                  <div class="admin-sublabel" style="font-size:11px;color:var(--text-dim)">Calculé par Odoo (confidentiel)</div>
+                </div>
+                <div style="color:var(--text-dim);font-size:12px">—</div>
+              </div>
+              <div class="admin-row">
+                <div>
+                  <div class="admin-label">Multiplicateur de vente</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px">
+                  <input type="number" class="admin-input" id="admin-multi-altex" value="2.0" min="1" max="10" step="0.1" onchange="saveAdminSettings()">
+                  <span style="color:var(--text-dim);font-size:12px">×</span>
+                </div>
               </div>
             </div>
           </div>
@@ -2918,6 +2962,8 @@ function loadSettings() {
   if (!settings.norm) settings.norm = { pct: 50, multi: 2.0, multiSomfy: 1.5 };
   if (!settings.norm.multiSomfy) settings.norm.multiSomfy = 1.5;
   if (!settings.vtx)  settings.vtx  = { pct: 100, multi: 1.0 };
+  if (!settings.altex) settings.altex = { multi: 2.0 };
+  if (document.getElementById('admin-multi-altex')) document.getElementById('admin-multi-altex').value = settings.altex.multi;
   if (!settings.svc)  settings.svc  = { multi: 1.35 };
   document.getElementById('admin-pct-vp').value = settings.vp.pct;
   document.getElementById('admin-multi-vp').value = settings.vp.multi;
@@ -2960,6 +3006,8 @@ function saveAdminSettings() {
   settings.norm.multiSomfy = parseFloat(document.getElementById('admin-multi-somfy-norm').value) || 1.5;
   settings.vtx.pct  = parseFloat(document.getElementById('admin-pct-vtx').value)  || 100;
   settings.vtx.multi = parseFloat(document.getElementById('admin-multi-vtx').value) || 1.0;
+  if (!settings.altex) settings.altex = {};
+  settings.altex.multi = parseFloat((document.getElementById('admin-multi-altex') || {}).value) || 2.0;
   if (!settings.svc) settings.svc = {};
   settings.svc.multi = parseFloat(document.getElementById('admin-multi-svc').value) || 1.35;
   localStorage.setItem('lbas_settings', JSON.stringify(settings));
@@ -2974,6 +3022,7 @@ function saveAdminSettings() {
     else calculatePriceNorm();
   }
   else if (state.fournisseur === 'vtx') calculatePriceVtx();
+  else if (state.fournisseur === 'altex') calculatePriceAltex();
   else calculatePrice();
 }
 
@@ -3105,6 +3154,8 @@ function onFournisseurChange() {
   const _selF = document.getElementById('sel-fournisseur').value;
   state.normSource = (_selF === 'sig') ? 'sig' : 'norm';         // Signature Textiles ≠ Draperie Normandie : deux fournisseurs, un même moteur de calcul
   state.fournisseur = (_selF === 'sig') ? 'norm' : _selF;
+  hide('row-altex');
+  if (state.fournisseur === 'altex') { altexOnFournisseur(); return; }
   show('row-type', !!state.fournisseur);
   // Réinitialiser TOUT l'état au changement de fournisseur
   state.type = ''; state.modele = ''; state.couleur = '';
@@ -3329,6 +3380,9 @@ function onDimChange() {
     calculatePriceVtx();
     return;
   }
+
+  // ── Altex — grille par tissu / système / type (altex.js) ──
+  if (state.fournisseur === 'altex') { calculatePriceAltex(); return; }
 
   if (!state.modele || !state.type) { resetResult(); return; }
 
@@ -12223,6 +12277,7 @@ function _buildResumeLines() {
   if (!state.fournisseur) return null;
 
   const f   = state.fournisseur;
+  if (f === 'altex') return (state.altexResume && state.altexResume.length && state.lastResult) ? state.altexResume.slice() : null;
   const opt = state.options;
   const lines = [];
 
@@ -12697,6 +12752,7 @@ function copyResume() {
       kind: window.lbasProductKind(),
       supplier_code: supplier_code,
       cost: cost,
+      pdsf: (state.fournisseur === 'altex' && state.lastResult) ? (state.lastResult.pdsfTotal || 0) : 0,
       releve: releve,
       supplier_ref: 'priceboard',
       config: (typeof window.lbasCaptureConfig === 'function') ? window.lbasCaptureConfig() : null
@@ -12857,6 +12913,8 @@ function copyResume() {
     setV('sel-fournisseur', f);
     if (typeof onFournisseurChange === 'function') { try { onFournisseurChange(); } catch (e) {} }
 
+    if (f === 'altex' && typeof window.altexRestore === 'function') { window.altexRestore(saved, ctrls); return; }
+
     // 2) Type (SBM / Normandie)
     if (saved.type) {
       var selT = byId('sel-type');
@@ -12962,5 +13020,6 @@ function copyResume() {
   });
 })();
 </script>
+<script src="altex.js"></script>
 </body>
 </html>
