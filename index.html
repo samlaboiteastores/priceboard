@@ -12916,6 +12916,7 @@ function copyResume() {
       if (fc[id] !== undefined) { var e = byId(id); if (e) { e.value = fc[id].v; } }
     });
     if (typeof onDimChange === 'function') { try { onDimChange(); } catch (e) {} }
+    try { if (state.fournisseur && (fc['inp-larg'] || fc['inp-haut'])) show('card-dim'); } catch (e) {}
     try { window.scrollTo(0, 0); } catch (e) {}
   };
 
@@ -12997,6 +12998,8 @@ function copyResume() {
     });
 
     // 9) Recalcul final
+    // La section Dimensions doit rester visible pour qu'on puisse modifier les mesures
+    try { if (state.fournisseur && (ctrls['inp-larg'] || ctrls['inp-haut'])) show('card-dim'); } catch (e) {}
     if (typeof onDimChange === 'function') { try { onDimChange(); } catch (e) {} }
     try { window.scrollTo(0, 0); } catch (e) {}
   };
