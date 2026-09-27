@@ -621,6 +621,22 @@
                   <div id="altex-choix"></div>
                 </div>
 
+                <!-- SIGNATURE — rideaux confectionnés, liste PDSF (sig_grilles.js) -->
+                <div id="row-sig" style="display:none">
+                  <div style="padding:0 20px 10px;">
+                    <div style="position:relative;">
+                      <input type="text" id="sig-search" placeholder="🔍 Rechercher un tissu Signature (Adorable, Legend, James…)" autocomplete="off"
+                        style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:DM Mono,monospace;font-size:12px;padding:9px 36px 9px 12px;outline:none;box-sizing:border-box;"
+                        oninput="sigListe(this.value)">
+                      <span id="sig-clear" onclick="document.getElementById('sig-search').value='';sigListe('');"
+                        style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text-dim);font-size:14px;line-height:1;">✕</span>
+                    </div>
+                  </div>
+                  <div id="sig-list" style="max-height:300px;overflow-y:auto;border-top:1px solid var(--border);border-bottom:1px solid var(--border);"></div>
+                  <div id="sig-selected" style="display:none;margin:10px 20px 0;padding:8px 12px;background:rgba(26,183,183,0.08);border:1px solid rgba(26,183,183,0.3);border-radius:6px;font-size:12px;font-family:DM Mono,monospace;color:var(--gold);"></div>
+                  <div id="sig-choix"></div>
+                </div>
+
                 <!-- VEROTEX — sélecteur tissu + options -->
                 <div id="row-vtx" style="display:none">
                   <div style="padding:8px 20px 4px;">
@@ -3017,7 +3033,8 @@ function saveAdminSettings() {
   else if (state.fournisseur === 'sbm') calculatePriceSBM();
   else if (state.fournisseur === 'solr') calculatePriceSolr();
   else if (state.fournisseur === 'norm') {
-    if (state.type === 'norm-romain') calculatePriceRomain();
+    if (state.type === 'sig-grille') calculatePriceSigGrille();
+    else if (state.type === 'norm-romain') calculatePriceRomain();
     else if (state.type === 'norm-pret') calculatePricePret();
     else calculatePriceNorm();
   }
@@ -3154,7 +3171,7 @@ function onFournisseurChange() {
   const _selF = document.getElementById('sel-fournisseur').value;
   state.normSource = (_selF === 'sig') ? 'sig' : 'norm';         // Signature Textiles ≠ Draperie Normandie : deux fournisseurs, un même moteur de calcul
   state.fournisseur = (_selF === 'sig') ? 'norm' : _selF;
-  hide('row-altex');
+  hide('row-altex'); hide('row-sig');
   if (state.fournisseur === 'altex') { altexOnFournisseur(); return; }
   show('row-type', !!state.fournisseur);
   // Réinitialiser TOUT l'état au changement de fournisseur
@@ -3201,7 +3218,7 @@ function onFournisseurChange() {
     show('row-type');
     const selType = document.getElementById('sel-type');
     selType.innerHTML = state.normSource === 'sig'
-      ? '<option value="">— Sélectionner —</option><option value="norm-rideau">Rideaux (tissus Signature Textiles + rails)</option><option value="norm-pret">Panneaux prêts à poser</option>'
+      ? '<option value="">— Sélectionner —</option><option value="sig-grille">Rideaux confectionnés — liste de prix (largeur × hauteur)</option><option value="norm-pret">Panneaux prêts à poser</option><option value="norm-rideau">Ancien calcul au mètre (lignes existantes)</option>'
       : '<option value="">— Sélectionner —</option><option value="norm-rideau">Rideaux (Simplicity, Alendel, Unique)</option><option value="norm-romain">Stores Romains</option>';
     selType.value = '';
     return;
@@ -3244,9 +3261,11 @@ function onTypeChange() {
     hide('row-modele'); hide('row-couleur');
     hide('row-tissu-nom'); hide('row-tissu-couleur');
     hide('row-solr-tissu');
+    hide('row-sig');
     hide('card-dim'); hide('card-options');
     resetResult();
 
+    if (state.type === 'sig-grille') { sigGrilleStart(); return; }
     if (state.type === 'norm-rideau') {
       // Sélection tissu Simplicity
       const badge = document.getElementById('norm-selected');
@@ -3408,6 +3427,7 @@ function onDimChange() {
   if (state.fournisseur === 'norm') {
     show('card-options');
     state.options = state.options || {};
+    if (state.type === 'sig-grille') { calculatePriceSigGrille(); return; }
     if (state.type === 'norm-romain') {
       buildOptionsRomain();
       calculatePriceRomain();
@@ -10041,7 +10061,7 @@ function buildOptionsNorm() {
     const divSel = document.createElement('select');
     divSel.style.cssText = 'width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:DM Mono,monospace;font-size:12px;padding:9px 12px;outline:none;appearance:none;-webkit-appearance:none;';
     [
-      { val: 'simple',    label: 'Simple — panneau seul' },
+      { val: 'simple',    label: 'Demi-paire (1 panneau)' },
       { val: 'paire-c',   label: '1 paire centrée — 2 panneaux identiques (G et D)' },
       { val: 'paire-dc',  label: '1 paire décentrée — panneaux non identiques' },
     ].forEach(o => {
@@ -11249,7 +11269,7 @@ function calculatePriceNorm() {
 
   const divLabel = opt.normDivision === 'paire-c'  ? '1 paire centrée (G+D identiques)'
                  : opt.normDivision === 'paire-dc' ? `1 paire décentrée — G:${opt.normPanneauGauche || '?'}" / D:${largBase + retourVal*2 - (opt.normPanneauGauche||0)}'"`
-                 : 'Simple (1 panneau)';
+                 : 'Demi-paire (1 panneau)';
   const retourLabel = retourVal > 0 ? ` · Retour ${retourVal}" × 2 côtés (+${retourVal*2}" à la largeur)` : '';
 
   // ── Descriptif ORDER-COMPLETE pour la ligne de devis (rideau Normandie) ──
@@ -12278,6 +12298,7 @@ function _buildResumeLines() {
 
   const f   = state.fournisseur;
   if (f === 'altex') return (state.altexResume && state.altexResume.length && state.lastResult) ? state.altexResume.slice() : null;
+  if (state.type === 'sig-grille') return (state.sigResume && state.sigResume.length && state.lastResult) ? state.sigResume.slice() : null;
   const opt = state.options;
   const lines = [];
 
@@ -12921,6 +12942,8 @@ function copyResume() {
       if (selT) { selT.value = saved.type; if (typeof onTypeChange === 'function') { try { onTypeChange(); } catch (e) {} } }
     }
 
+    if (saved.type === 'sig-grille' && typeof window.sigGrilleRestore === 'function') { window.sigGrilleRestore(saved, ctrls); return; }
+
     // 3) Fournisseurs a recherche de tissu
     try {
       if (f === 'solr' && saved.tissuNom && typeof onSolrTissuChange === 'function') onSolrTissuChange(saved.tissuNom);
@@ -13021,5 +13044,7 @@ function copyResume() {
 })();
 </script>
 <script src="altex.js"></script>
+<script src="sig_grilles_data.js"></script>
+<script src="sig_grilles.js"></script>
 </body>
 </html>
