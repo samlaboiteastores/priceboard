@@ -12591,9 +12591,24 @@ function _buildResumeLines() {
 }
 
 // Résumé multi-ligne (affichage écran + "Copier pour soumission")
+// Retire les rubriques vides ou « rien de choisi » (Aucun, Aucune, Non, Sans, —, 0) : les fournisseurs
+// ne veulent voir que ce qui est réellement commandé. S'applique au résumé ET à la ligne de devis.
+function lbasSansVides(parts) {
+  var VIDE = /^(aucun(e)?\b.*|non|sans\b.*|—|–|-|0|0"|0 po|n\/a)$/i;
+  return (parts || []).filter(function (p) {
+    var t = String(p == null ? '' : p).trim();
+    if (!t || /:$/.test(t)) return false;
+    var i = t.indexOf(' : ');
+    if (i < 0) return true;
+    var v = t.slice(i + 3).trim();
+    return v !== '' && !VIDE.test(v);
+  });
+}
+
 function buildResumeText() {
   var l = _buildResumeLines();
-  return l ? l.join('\n') : null;
+  l = l ? lbasSansVides(l) : l;
+  return l && l.length ? l.join('\n') : null;
 }
 
 // Descriptif compact pour la LIGNE DE DEVIS : même contenu, une seule ligne
@@ -12604,10 +12619,11 @@ function buildDevisDescription() {
   // (confection + installation plafond/mural + ajouts cochés). Les stores et
   // autres retombent sur le résumé générique (déjà complet, options-container).
   if (typeof state !== 'undefined' && state.lastResult && state.lastResult.desc) {
-    return state.lastResult.desc;
+    return lbasSansVides(String(state.lastResult.desc).split(' | ')).join(' | ');
   }
   var l = _buildResumeLines();
-  return l ? l.join(' | ') : null;
+  l = l ? lbasSansVides(l) : l;
+  return l && l.length ? l.join(' | ') : null;
 }
 
 function isVisible(el) {
