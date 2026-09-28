@@ -363,5 +363,6 @@ window.addEventListener('message', function (ev) {
   const f = parseFloat(d.altex);
   window.LBAS_ALTEX_FACTEUR = (f > 0 && f < 1) ? f : null;
   if (state.fournisseur === 'altex' && state.lastResult) calculatePriceAltex();
+  if (typeof updateAdminMarge === 'function') try { updateAdminMarge(); } catch (e) {}
 });
 try { if (window.parent && window.parent !== window) window.parent.postMessage({ source: 'lbas-priceboard', type: 'lbas_hello' }, ALTEX_ODOO_ORIGIN); } catch (e) {}

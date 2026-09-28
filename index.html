@@ -960,10 +960,17 @@
             <div class="card-body">
               <div class="admin-row">
                 <div>
-                  <div class="admin-label">Coût</div>
-                  <div class="admin-sublabel" style="font-size:11px;color:var(--text-dim)">Calculé par Odoo (confidentiel)</div>
+                  <div class="admin-label">% Coût / PDSF</div>
+                  <div class="admin-sublabel" style="font-size:11px;color:var(--text-dim)">Reçu d'Odoo (confidentiel — non modifiable ici)</div>
                 </div>
-                <div style="color:var(--text-dim);font-size:12px">—</div>
+                <div id="admin-pct-altex" style="color:var(--text-dim);font-size:12px">—</div>
+              </div>
+              <div class="admin-row">
+                <div>
+                  <div class="admin-label">Calcul</div>
+                  <div style="font-size:10px;color:var(--text-dim);margin-top:2px">PDSF = grille du guide Altex 2026 + options</div>
+                </div>
+                <div style="font-size:11px;color:var(--text-dim);text-align:right;font-family:DM Mono,monospace">Coût = PDSF × % coût<br>Vente = Coût × multiplicateur</div>
               </div>
               <div class="admin-row">
                 <div>
@@ -973,6 +980,10 @@
                   <input type="number" class="admin-input" id="admin-multi-altex" value="2.0" min="1" max="10" step="0.1" onchange="saveAdminSettings()">
                   <span style="color:var(--text-dim);font-size:12px">×</span>
                 </div>
+              </div>
+              <div class="admin-row">
+                <div class="admin-label">Marge brute résultante</div>
+                <div id="admin-marge-altex" style="color:var(--green);font-size:13px">—</div>
               </div>
             </div>
           </div>
@@ -3044,6 +3055,14 @@ function saveAdminSettings() {
 }
 
 function updateAdminMarge() {
+  if (document.getElementById('admin-pct-altex')) {
+    const fA = window.LBAS_ALTEX_FACTEUR;
+    const mA = (settings.altex && settings.altex.multi) || 2.0;
+    const elP = document.getElementById('admin-pct-altex');
+    if (fA) { elP.textContent = (Math.round(fA * 1000) / 10) + ' %'; elP.style.color = 'var(--gold)'; }
+    else { elP.textContent = 'Ouvrir depuis Odoo'; elP.style.color = 'var(--text-dim)'; }
+    document.getElementById('admin-marge-altex').textContent = ((mA - 1) / mA * 100).toFixed(1) + '%';
+  }
   const pctVP = settings.vp.pct / 100;
   const margeVP = ((100*pctVP*settings.vp.multi - 100*pctVP) / (100*pctVP*settings.vp.multi) * 100).toFixed(1);
   document.getElementById('admin-marge').textContent = margeVP + '%';
