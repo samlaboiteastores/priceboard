@@ -60,3 +60,10 @@ npx --yes netlify-cli@latest deploy --prod --dir=. --site=40870ad5-a013-4bcf-ab7
 ## Historique
 - **2026-09-02** : refonte complète des 3 collections depuis les listes 2025/2026.
   Alendel 641→578, Unique 629→648, Simplicity 50→62. Toronto corrigé (47,95 coûtant → pdsf 96).
+
+
+## Signature Textiles (ajouté 2026-09-21)
+- Source : bibliothèque Odoo, document 164 « Signature Textiles — Liste de prix 2022 » (15 mai 2022) — à remplacer par la liste la plus récente dès qu'on l'a.
+- Tissus (collection `Signature`, ~151) : tableau « Tissus au mètre » ; prix = coût/mètre ; coût/verge = prix × 0,9144 arrondi au $ supérieur ; pdsf = coût × 2.
+- Rails (`NORM_RAILS['SIG_…']`) : pages 58-72 ; pdsf = prix unitaire × 2 ; CRS a un prix par couleur.
+- Fournisseur Odoo : code `sig` → « Signature Textiles Val Abel » (sale_order.py).

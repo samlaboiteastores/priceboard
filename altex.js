@@ -362,6 +362,8 @@ window.addEventListener('message', function (ev) {
   if (ev.origin !== ALTEX_ODOO_ORIGIN || d.source !== 'lbas-odoo' || d.type !== 'lbas_facteurs') return;
   const f = parseFloat(d.altex);
   window.LBAS_ALTEX_FACTEUR = (f > 0 && f < 1) ? f : null;
+  const navAdmin = document.getElementById('nav-admin');
+  if (navAdmin) navAdmin.style.display = (d.admin === true) ? '' : 'none';
   if (state.fournisseur === 'altex' && state.lastResult) calculatePriceAltex();
   if (typeof updateAdminMarge === 'function') try { updateAdminMarge(); } catch (e) {}
 });

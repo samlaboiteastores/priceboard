@@ -512,7 +512,8 @@
       <div class="nav-item" onclick="showPanel('history')">
         <span class="nav-dot"></span>Historique
       </div>
-      <div class="nav-item" onclick="showPanel('admin')">
+      <!-- Paramètres : caché, affiché seulement si Odoo confirme que c'est Sam (message lbas_facteurs, admin:true) -->
+      <div class="nav-item" id="nav-admin" style="display:none" onclick="showPanel('admin')">
         <span class="nav-dot"></span>Paramètres
       </div>
     </nav>
