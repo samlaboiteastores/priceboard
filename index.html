@@ -3243,6 +3243,7 @@ function onFournisseurChange() {
   state.normSource = (_selF === 'sig') ? 'sig' : 'norm';         // Signature Textiles ≠ Draperie Normandie : deux fournisseurs, un même moteur de calcul
   state.fournisseur = (_selF === 'sig') ? 'norm' : _selF;
   hide('row-altex'); hide('row-sig');
+  multiDimsUI(1);   // le bloc toiles/stores 2-3 ne reste jamais affiché d'un fournisseur à l'autre
   if (state.fournisseur === 'altex') { altexOnFournisseur(); return; }
   show('row-type', !!state.fournisseur);
   // Réinitialiser TOUT l'état au changement de fournisseur
@@ -3958,12 +3959,7 @@ function calculatePrice() {
   // ── Multiple toiles : fabric calculé PAR toile (chaque section à ses dims) ──
   const _multN = state.options.multiple === '2x1' ? 2 : state.options.multiple === '3x1' ? 3 : 1;
   const _suffN = _multN > 1 ? ` ×${_multN}` : '';
-  const _mtEl = document.getElementById('multi-toiles-extra');
-  if (_mtEl) {
-    _mtEl.style.display = _multN > 1 ? 'block' : 'none';
-    const _t2 = document.getElementById('toile-2-row'); if (_t2) _t2.style.display = _multN >= 2 ? 'block' : 'none';
-    const _t3 = document.getElementById('toile-3-row'); if (_t3) _t3.style.display = _multN >= 3 ? 'block' : 'none';
-  }
+  multiDimsUI(_multN, 'Toile', 'même cassette');
   let _fabric = pdsf; // toile 1
   for (let _i = 2; _i <= _multN; _i++) {
     const _lg = parseFloat((document.getElementById('inp-larg' + _i) || {}).value || 0) + parseFloat((document.getElementById('frac-larg' + _i) || {}).value || 0);
@@ -4178,6 +4174,8 @@ function renderResult({ pdsf, pdsfStore, pdsfSomfy, pdsfTotal, cout, coutStore, 
 }
 
 function resetResult() {
+  // Prix bloqué ou incomplet : on oublie le dernier résultat pour qu'« Ajouter au devis » ne l'envoie pas
+  if (typeof state !== 'undefined' && state) state.lastResult = null;
   document.getElementById('result-body').innerHTML = `
     <div class="empty-state">
       <div class="icon">◈</div>
@@ -4260,37 +4258,41 @@ function renderOptionsNDA(container) {
     return { wrap:d, body:b };
   }
 
-  // Système
+  // Système (liste PD 2026 p.21-22)
   const { wrap:sw, body:sb } = mkSection('Système');
   const sysSel = mkSel('nda-systeme');
-  [['leve-barre','Levé & Barré (standard, sans corde)'],
-   ['haut-bas','Haut-Bas / Bas-Haut (Top-Down — 2 tissus, 1 cadre)']
+  [['leve-barre','Levé & Barré'],
+   ['haut-bas','Haut-Bas / Bas-Haut (Top-Down) — 1 tissu'],
+   ['2en1','2 en 1 — 2 tissus (haut + bas), prix de 2 stores']
   ].forEach(function(x) { const o=document.createElement('option'); o.value=x[0]; o.textContent=x[1]; sysSel.appendChild(o); });
   sysSel.value = state.options.systeme || 'leve-barre';
+  if (!sysSel.value) sysSel.value = 'leve-barre';
   state.options.systeme = sysSel.value;
   sysSel.addEventListener('change', function() { state.options.systeme = sysSel.value; rebuildNDA(); });
   sb.appendChild(sysSel); container.appendChild(sw);
 
-  // Avertissement commercial
+  // Avertissement Top-Down (liste p.22 : commercial seulement, largeur min 20")
   const warnDiv = document.createElement('div');
   warnDiv.id = 'nda-warn-commercial';
   warnDiv.style.cssText = 'display:none;margin:0 20px 12px;padding:8px 12px;background:rgba(224,92,92,0.1);border:1px solid rgba(224,92,92,0.3);border-radius:6px;font-size:11px;color:#e05c5c;';
-  warnDiv.textContent = 'Haut-Bas sans tissu du haut — cordes apparentes. Usage commercial seulement.';
+  warnDiv.textContent = 'Top-Down : commercial seulement · largeur minimum ' + NDA_TD_LARG_MIN + '" (liste PD p.22).';
   container.appendChild(warnDiv);
 
-  // Nombre de stores
+  // Nombre de stores sous une même cantonnière — chaque store à sa mesure
   const { wrap:mw, body:mb } = mkSection('Nombre de stores / cantonnière');
   const multSel = mkSel('nda-multiple');
-  [['1','1 store / 1 cantonnière'],['2','2 stores identiques (prix × 2)']].forEach(function(x) {
+  [['1x1','1 store / 1 cantonnière'],['2x1','2 stores / 1 cantonnière'],['3x1','3 stores / 1 cantonnière']].forEach(function(x) {
     const o=document.createElement('option'); o.value=x[0]; o.textContent=x[1]; multSel.appendChild(o);
   });
-  multSel.value = state.options.multiple || '1';
+  var mult0 = state.options.multiple || '1x1';
+  if (mult0 === '1') mult0 = '1x1'; if (mult0 === '2') mult0 = '2x1';   // anciennes lignes
+  multSel.value = mult0;
   state.options.multiple = multSel.value;
   multSel.addEventListener('change', function() { state.options.multiple = multSel.value; rebuildNDA(); });
   const noteX2 = document.createElement('div');
   noteX2.id = 'nda-note-mult';
   noteX2.style.cssText = 'display:none;font-size:10px;color:var(--gold);margin-top:6px;padding:6px 8px;background:rgba(26,183,183,0.08);border-radius:4px;border:1px solid rgba(26,183,183,0.2)';
-  noteX2.textContent = 'Même groupe, tissu, couleur et dimensions — prix × 2 automatiquement.';
+  noteX2.textContent = 'Inscris la mesure de chaque store sous « Dimensions » (Store 1 = dimensions du haut). Chaque store est calculé à sa mesure ; vide = mêmes mesures que le store 1.';
   mb.appendChild(multSel); mb.appendChild(noteX2);
   container.appendChild(mw);
 
@@ -4301,25 +4303,24 @@ function renderOptionsNDA(container) {
   cNote.textContent = 'Blanc (unique)';
   cb.appendChild(cNote); container.appendChild(cw);
 
-  // Tissu du Haut
-  const { wrap:hw, body:hb } = mkSection('Tissu du Haut — Groupe');
+  // Tissu (du haut en 2 en 1)
+  const { wrap:hw, body:hb } = mkSection('Tissu — Groupe');
   hw.id = 'nda-section-haut';
   const grpHautSel = mkSel('nda-groupe-haut');
   ['A','B','C','D','E','F'].forEach(function(g) { const o=document.createElement('option'); o.value=g; o.textContent='Groupe '+g; grpHautSel.appendChild(o); });
   grpHautSel.value = state.options.groupeHaut || PD.NDA.modeles[state.modele].groupe;
+  if (!grpHautSel.value) grpHautSel.value = PD.NDA.modeles[state.modele].groupe;
   state.options.groupeHaut = grpHautSel.value;
-  grpHautSel.addEventListener('change', function() { state.options.groupeHaut = grpHautSel.value; rebuildNDA(); });
-  const noteH = document.createElement('div'); noteH.id='nda-note-haut'; noteH.style.cssText='font-size:10px;color:var(--text-dim);margin-top:6px';
-  noteH.textContent = 'Groupe du store.';
-  hb.appendChild(grpHautSel); hb.appendChild(noteH); container.appendChild(hw);
+  grpHautSel.addEventListener('change', function() { state.options.groupeHaut = grpHautSel.value; calculatePricePD(); });
+  hb.appendChild(grpHautSel); container.appendChild(hw);
 
   const dynDiv = document.createElement('div'); dynDiv.id='nda-dyn-section'; container.appendChild(dynDiv);
 
   // Motorisation
   const { wrap:motw, body:motb } = mkSection('Motorisation');
   const motSel = mkSel('nda-moteur');
-  [['aucun',    'Aucune (sans corde — standard)'],
-   ['signature','Moteur Signature PD — Nid d\'Abeille (+800$ PDSF)'],
+  [['aucun',    'Aucune'],
+   ['signature','Moteur Signature PD — Nid d\'Abeille (+800$ PDSF par store)'],
   ].forEach(function(x) {
     const o = document.createElement('option'); o.value=x[0]; o.textContent=x[1];
     if ((state.options.ndaMoteur||'aucun') === x[0]) o.selected=true;
@@ -4332,7 +4333,6 @@ function renderOptionsNDA(container) {
   });
   const motNote = document.createElement('div');
   motNote.style.cssText = 'font-size:10px;color:var(--text-dim);margin-top:6px;line-height:1.5';
-  motNote.textContent = 'Disponible pour store à tissu unique seulement (non disponible avec Top-Down).';
   motb.appendChild(motSel); motb.appendChild(motNote);
   container.appendChild(motw);
 
@@ -4345,61 +4345,43 @@ function rebuildNDA() {
   if (!sysSel || !multSel) return;
   state.options.systeme = sysSel.value;
   state.options.multiple = multSel.value;
-  const isTopDown = sysSel.value === 'haut-bas';
-  const selHaut = document.getElementById('nda-groupe-haut');
+  const sys = sysSel.value;
+  const is2en1 = sys === '2en1';
+  const isTD = sys === 'haut-bas' || (is2en1 && !!state.options.nda2en1TD);
 
-  // Moteur : store à tissu unique seulement (liste PD p.21) → désactivé et remis à « Aucune » en Top-Down
+  // Moteur : store à tissu unique (Levé & Barré) seulement (liste PD p.21)
   const motSel = document.getElementById('nda-moteur');
   if (motSel) {
-    motSel.disabled = isTopDown;
-    if (isTopDown && motSel.value !== 'aucun') { motSel.value = 'aucun'; state.options.ndaMoteur = 'aucun'; }
+    const off = sys !== 'leve-barre';
+    motSel.disabled = off;
+    if (off && motSel.value !== 'aucun') { motSel.value = 'aucun'; state.options.ndaMoteur = 'aucun'; }
     const motNote = motSel.nextElementSibling;
     if (motNote) {
-      motNote.textContent = isTopDown
-        ? '⚠ Non disponible en Top-Down (moteur pour store à tissu unique seulement).'
-        : 'Disponible pour store à tissu unique seulement (non disponible avec Top-Down).';
-      motNote.style.color = isTopDown ? '#e05c5c' : 'var(--text-dim)';
+      motNote.textContent = off
+        ? '⚠ Non disponible en ' + (is2en1 ? '2 en 1' : 'Top-Down') + ' (moteur pour store à tissu unique seulement).'
+        : 'Store à tissu unique seulement. Un moteur par store.';
+      motNote.style.color = off ? '#e05c5c' : 'var(--text-dim)';
     }
   }
 
-  // Note ×2
   const noteMult = document.getElementById('nda-note-mult');
-  if (noteMult) noteMult.style.display = multSel.value === '2' ? '' : 'none';
+  if (noteMult) noteMult.style.display = multSel.value !== '1x1' ? '' : 'none';
 
-  // Label haut
   const sectionHaut = document.getElementById('nda-section-haut');
   if (sectionHaut) {
     const lbl = sectionHaut.querySelector('.section-divider');
-    if (lbl) lbl.textContent = isTopDown ? 'Tissu du Haut — Groupe (optionnel)' : 'Tissu — Groupe';
-  }
-  const noteHaut = document.getElementById('nda-note-haut');
-  if (noteHaut) noteHaut.textContent = isTopDown ? 'Laisser sur "— Aucun" si vous ne chargez pas le haut.' : 'Groupe du store.';
-
-  // Option vide pour haut
-  if (selHaut) {
-    const hasVide = !!selHaut.querySelector('option[value=""]');
-    if (isTopDown && !hasVide) {
-      const ov = document.createElement('option'); ov.value=''; ov.textContent='— Aucun —';
-      selHaut.insertBefore(ov, selHaut.firstChild);
-      if (!state.options.groupeHaut) { selHaut.value=''; state.options.groupeHaut=''; }
-    } else if (!isTopDown && hasVide) {
-      selHaut.querySelector('option[value=""]').remove();
-      if (!selHaut.value) { selHaut.value='A'; state.options.groupeHaut='A'; }
-    }
-    if (selHaut.value !== undefined) state.options.groupeHaut = selHaut.value;
+    if (lbl) lbl.textContent = is2en1 ? 'Tissu du haut — Groupe' : 'Tissu — Groupe';
   }
 
-  // Avertissement cordes apparentes
   const warn = document.getElementById('nda-warn-commercial');
-  const hautvide = isTopDown && (!selHaut || !selHaut.value);
-  if (warn) warn.style.display = hautvide ? '' : 'none';
+  if (warn) warn.style.display = isTD ? '' : 'none';
 
-  // Zone dynamique — tissu du bas
+  // Zone dynamique — 2 en 1 : tissu du bas + fonction Top-Down
   const dynDiv = document.getElementById('nda-dyn-section');
   dynDiv.innerHTML = '';
-  if (isTopDown) {
+  if (is2en1) {
     const bw = document.createElement('div');
-    bw.innerHTML = '<div class="section-divider" style="color:var(--blue)">Tissu du Bas — Groupe (obligatoire)</div>';
+    bw.innerHTML = '<div class="section-divider" style="color:var(--blue)">Tissu du bas — Groupe</div>';
     const bb = document.createElement('div'); bb.style.padding = '0 20px 12px';
     const selBas = document.createElement('select');
     selBas.id = 'nda-groupe-bas';
@@ -4408,15 +4390,26 @@ function rebuildNDA() {
     selBas.value = state.options.groupeBas || 'A';
     state.options.groupeBas = selBas.value;
     selBas.addEventListener('change', function() { state.options.groupeBas = selBas.value; calculatePricePD(); });
+    const tdWrap = document.createElement('div');
+    tdWrap.style.cssText = 'display:flex;align-items:flex-start;gap:10px;padding:8px 0 0';
+    const tdCb = document.createElement('input');
+    tdCb.type = 'checkbox'; tdCb.id = 'nda-2en1-td'; tdCb.checked = !!state.options.nda2en1TD;
+    tdCb.style.cssText = 'width:14px;height:14px;accent-color:var(--gold);cursor:pointer;flex-shrink:0;margin-top:2px';
+    const tdLbl = document.createElement('label'); tdLbl.htmlFor = 'nda-2en1-td';
+    tdLbl.style.cssText = 'font-size:12px;color:var(--text-mid);cursor:pointer;line-height:1.5';
+    tdLbl.textContent = 'Avec fonction Top-Down (+ surcharge Top-Down)';
+    tdCb.onchange = function() { state.options.nda2en1TD = tdCb.checked; rebuildNDA(); };
+    tdWrap.appendChild(tdCb); tdWrap.appendChild(tdLbl);
     const nb = document.createElement('div');
     nb.style.cssText = 'font-size:10px;color:var(--blue);margin-top:6px;padding:6px 8px;background:rgba(91,155,213,0.07);border-radius:4px;border:1px solid rgba(91,155,213,0.2)';
-    nb.textContent = 'Prix haut + prix bas calculés séparément. Surcharge Top-Down incluse selon largeur.';
-    bb.appendChild(selBas); bb.appendChild(nb); bw.appendChild(bb); dynDiv.appendChild(bw);
+    nb.textContent = '2 en 1 = prix de 2 stores distincts (tissu du haut + tissu du bas), liste PD p.21.';
+    bb.appendChild(selBas); bb.appendChild(tdWrap); bb.appendChild(nb); bw.appendChild(bb); dynDiv.appendChild(bw);
   } else {
     state.options.groupeBas = null;
+    state.options.nda2en1TD = false;
   }
 
-  if (state.largTip) calculatePricePD();
+  calculatePricePD();
 }
 
 function renderOptionsPE(container) {
@@ -4561,6 +4554,26 @@ function updatePEPanneaux() {
 // 65 % d'escompte (coût 35 %) même en cueillette. Les lignes marquées `sansEscCueillette`
 // gardent ce coût ; les autres suivent le réglage (35 % livré / 30 % cueillette).
 const PD_PCT_SANS_ESC_CUEILLETTE = 35;
+// Nid d'abeille Top-Down : commercial seulement, largeur minimum 20" (liste PD 2026 p.22)
+const NDA_TD_LARG_MIN = 20;
+
+// Bloc « dimensions de chaque toile/store » (sections 2 et 3 sous les dimensions principales).
+// n = nombre de toiles/stores ; nom = 'Toile' | 'Store' ; top = 'même cassette' | 'même cantonnière'.
+function multiDimsUI(n, nom, top) {
+  const el = document.getElementById('multi-toiles-extra');
+  if (!el) return;
+  el.style.display = n > 1 ? 'block' : 'none';
+  const r2 = document.getElementById('toile-2-row'); if (r2) r2.style.display = n >= 2 ? 'block' : 'none';
+  const r3 = document.getElementById('toile-3-row'); if (r3) r3.style.display = n >= 3 ? 'block' : 'none';
+  if (n > 1 && nom) {
+    const intro = el.firstElementChild;
+    if (intro) intro.textContent = 'Dimensions de chaque ' + nom.toLowerCase() + ' (' + top + ') — ' + nom + ' 1 = dimensions ci-dessus';
+    [2, 3].forEach(function(i) {
+      const lbl = document.querySelector('#toile-' + i + '-row > label');
+      if (lbl) lbl.textContent = nom + ' ' + i;
+    });
+  }
+}
 
 // Livraison PD (liste 2026 p.33) : stores 0,70 $/po de largeur ; persiennes 120 $ + 20 $/panneau
 // additionnel. Ajoutée en prix NET seulement si la case « Livraison incluse » est cochée
@@ -4624,72 +4637,86 @@ function pdFinaliser(breakdown, ui) {
 function calculatePricePD() {
   if (!state.modele || !state.largTip || !state.hautTip) return;
   const fmtCAD = function(v) { return '$ '+v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,'\u202f'); };
+  if (state.type !== 'NDA') multiDimsUI(1);
   if (state.type === 'NDA') { calculatePriceNDA(fmtCAD); return; }
   if (state.type === 'PE')  { calculatePricePE(fmtCAD);  return; }
   if (state.type === 'SH')  { calculatePriceSH(fmtCAD);  return; }
 }
 
 function calculatePriceNDA(fmtCAD) {
-  const larg = state.largTip;
-  const haut = state.hautTip;
   const systeme = state.options.systeme || 'leve-barre';
-  const multiple = state.options.multiple || '1';
+  var mult = state.options.multiple || '1x1';
+  if (mult === '1') mult = '1x1'; if (mult === '2') mult = '2x1';   // anciennes lignes
+  const n = mult === '3x1' ? 3 : mult === '2x1' ? 2 : 1;
+  const is2en1 = systeme === '2en1';
+  const isTD = systeme === 'haut-bas' || (is2en1 && !!state.options.nda2en1TD);
   const grpHaut = state.options.groupeHaut || PD.NDA.modeles[state.modele].groupe;
+  const grpBas = is2en1 ? (state.options.groupeBas || 'A') : null;
+  const alertEl = document.getElementById('alert-dim');
+  const bloquer = function(msg) { alertEl.textContent = msg; alertEl.classList.add('show'); resetResult(); };
 
-  if (state.larg < PD.NDA.largMin) {
-    document.getElementById('alert-dim').textContent = 'Largeur minimum : '+PD.NDA.largMin+'" pour les Nid d\'Abeille';
-    document.getElementById('alert-dim').classList.add('show');
-    resetResult(); return;
-  }
-  document.getElementById('alert-dim').classList.remove('show');
+  multiDimsUI(n, 'Store', 'même cantonnière');
 
   const nomTissu = state.tissuNom || '';
   const coulTissu = state.tissuCouleur || '';
+
+  // Stores : store 1 = dimensions principales ; stores 2-3 = leurs propres mesures (vide = mêmes que store 1)
+  const G = PD.NDA.grilles[grpHaut];
+  const stores = [{ l: state.largTip, h: state.hautTip, lr: state.larg || state.largTip, idem: false }];
+  for (var i = 2; i <= n; i++) {
+    var lg = parseFloat((document.getElementById('inp-larg' + i) || {}).value || 0) + parseFloat((document.getElementById('frac-larg' + i) || {}).value || 0);
+    var hg = parseFloat((document.getElementById('inp-haut' + i) || {}).value || 0) + parseFloat((document.getElementById('frac-haut' + i) || {}).value || 0);
+    if (!(lg > 0 && hg > 0)) { stores.push({ l: stores[0].l, h: stores[0].h, lr: stores[0].lr, idem: true }); continue; }
+    var lt = nextDim(G.largeurs, Math.max(lg, G.largeurs[0])), ht = nextDim(G.hauteurs, Math.max(hg, G.hauteurs[0]));
+    if (!lt || !ht) { bloquer('⚠ Store ' + i + ' hors limite — max ' + G.largeurs[G.largeurs.length - 1] + '" × ' + G.hauteurs[G.hauteurs.length - 1] + '"'); return; }
+    stores.push({ l: lt, h: ht, lr: lg, idem: false });
+  }
+  for (var k = 0; k < stores.length; k++) {
+    if (stores[k].lr < PD.NDA.largMin) { bloquer('⚠ Largeur minimum ' + PD.NDA.largMin + '" pour les Nid d\'Abeille' + (n > 1 ? ' (store ' + (k + 1) + ')' : '')); return; }
+    if (isTD && stores[k].lr < NDA_TD_LARG_MIN) { bloquer('⚠ Top-Down : largeur minimum ' + NDA_TD_LARG_MIN + '"' + (n > 1 ? ' (store ' + (k + 1) + ')' : '') + ' — liste PD p.22'); return; }
+  }
+  alertEl.classList.remove('show');
+
   if (!nomTissu || !coulTissu) {
     document.getElementById('result-body').innerHTML = '<div class="empty-state"><div class="icon">◈</div><p>Inscris le nom du tissu<br>et la couleur pour<br>calculer le prix</p></div>';
     return;
   }
 
   var breakdown = [];
-  var pdsfBase = 0;
-
-  if (grpHaut) {
-    var gH = PD.NDA.grilles[grpHaut];
-    if (gH) { var p = getPrixGrille(gH, larg, haut); if (p) { breakdown.push({label:'Tissu du Haut — Grp '+grpHaut+' ('+larg+'" × '+haut+'")',pdsf:p}); pdsfBase+=p; } }
+  for (var s = 0; s < stores.length; s++) {
+    var st = stores[s];
+    var pre = n > 1 ? 'Store ' + (s + 1) + ' — ' : '';
+    var dims = ' (' + st.l + '" × ' + st.h + '"' + (st.idem ? ', mêmes mesures que store 1' : '') + ')';
+    var p = getPrixGrille(G, st.l, st.h);
+    if (!p) { bloquer('⚠ Dimension non disponible : ' + st.l + '" × ' + st.h + '"'); return; }
+    breakdown.push({ label: pre + (is2en1 ? 'Tissu du haut' : 'Tissu') + ' — Grp ' + grpHaut + dims, pdsf: p });
+    if (is2en1) {
+      var pb = getPrixGrille(PD.NDA.grilles[grpBas], st.l, st.h);
+      if (pb) breakdown.push({ label: pre + 'Tissu du bas — Grp ' + grpBas + dims, pdsf: pb });
+    }
+    if (isTD) {
+      var sur = PD.NDA.surchargeHautBas[st.l] || 0;
+      if (sur > 0) breakdown.push({ label: pre + 'Surcharge Top-Down (' + st.l + '")', pdsf: sur });
+    }
   }
 
-  if (systeme === 'haut-bas') {
-    var grpBas = state.options.groupeBas || 'A';
-    var gB = PD.NDA.grilles[grpBas];
-    if (gB) { var pb = getPrixGrille(gB, larg, haut); if (pb) { breakdown.push({label:'Tissu du Bas — Grp '+grpBas+' ('+larg+'" × '+haut+'")',pdsf:pb}); pdsfBase+=pb; } }
-    var surcharge = PD.NDA.surchargeHautBas[larg] || 0;
-    if (surcharge > 0) { breakdown.push({label:'Surcharge Top-Down ('+larg+'")',pdsf:surcharge}); pdsfBase+=surcharge; }
-  }
-
-  if (pdsfBase === 0) return;
-  var isDouble = multiple === '2';
-  if (isDouble) breakdown.push({label:'2e store identique', pdsf:pdsfBase});
-
-  // Moteur Signature PD — disponible tissu unique seulement (pas Top-Down)
-  var moteur = state.options.ndaMoteur || 'aucun';
-  var moteurActif = moteur === 'signature' && systeme !== 'haut-bas';
+  // Moteur Signature PD — Levé & Barré (tissu unique) seulement, un par store
+  var moteurActif = (state.options.ndaMoteur || 'aucun') === 'signature' && systeme === 'leve-barre';
   if (moteurActif) {
-    var motPdsf = isDouble ? 800 * 2 : 800;
-    breakdown.push({label:'Moteur Signature PD — Nid d\'Abeille'+(isDouble?' × 2':''), pdsf:motPdsf, sansEscCueillette:true});
+    breakdown.push({ label: 'Moteur Signature PD — Nid d\'Abeille' + (n > 1 ? ' × ' + n : ''), pdsf: 800 * n, sansEscCueillette: true });
   }
 
-  var largLiv = state.larg || larg;
-  pdAjouterLivraison(breakdown, Math.round(largLiv * 0.70 * (isDouble ? 2 : 1) * 100) / 100,
-    largLiv + '" × 0,70 $/po' + (isDouble ? ' × 2 stores' : ''));
+  var largTot = stores.reduce(function(a, x) { return a + x.lr; }, 0);
+  pdAjouterLivraison(breakdown, Math.round(largTot * 0.70 * 100) / 100,
+    (n > 1 ? stores.map(function(x) { return x.lr + '"'; }).join(' + ') : largTot + '"') + ' × 0,70 $/po');
 
-  var sysLabel = systeme==='haut-bas' ? 'Top-Down — 2 tissus / 1 cadre' : 'Levé & Barré';
-  var multLabel = isDouble ? ' · 2 stores' : '';
-  var moteurLabel = moteurActif ? ' · Moteur Signature PD' : '';
-
+  var sysLabel = systeme === 'haut-bas' ? 'Top-Down — 1 tissu'
+               : is2en1 ? '2 en 1 — 2 tissus' + (isTD ? ' · Top-Down' : '')
+               : 'Levé & Barré';
   pdFinaliser(breakdown, {
-    fournisseur: 'Persienne Design · Nid d\'Abeille'+multLabel+moteurLabel,
+    fournisseur: 'Persienne Design · Nid d\'Abeille' + (n > 1 ? ' · ' + n + ' stores / 1 cantonnière' : '') + (moteurActif ? ' · Moteur Signature PD' : ''),
     produit: sysLabel,
-    detail: larg+'" × '+haut+'"<br>'+nomTissu+' — '+coulTissu,
+    detail: stores.map(function(x, j) { return (n > 1 ? 'Store ' + (j + 1) + ' : ' : '') + x.l + '" × ' + x.h + '"'; }).join('<br>') + '<br>' + nomTissu + ' — ' + coulTissu,
     titre: 'Détail PDSF — Nid d\'Abeille'
   });
 }
