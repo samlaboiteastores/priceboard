@@ -1374,7 +1374,7 @@ const VP = {
       'Fashion screen 3%':{ grille: 'fashion', couleurs: ['S-2001','S-2002','S-2003','S-2004','S-2005','S-2006','S-2007','S-2008','S-2009','S-2010','S-2011','S-2012'] },
       'Flamenco':      { grille: 'blues', couleurs: ['79001','79002','79003','79004','79005'] },
       'Linen look blackout':{ grille: 'blues', couleurs: ['47005','47011','47012','47013','47014','47015','47016','47017','47018','47019','47020'], blackout: true },
-      'Linen screen 5%':{ grille: 'fashion', couleurs: ['01','02','03','04','05','07'] },
+      'Linen screen 5%':{ grille: 'linen', couleurs: ['01','02','03','04','05','07'] },
       'Milan blackout':{ grille: 'blues', couleurs: ['159001','159002','159003','159004','159005'], blackout: true },
       'Orient blackout':{ grille: 'blues', couleurs: ['134440','134506','134513','134518','134520','134521','134522','134523','134524','134525','134526','134531','134532','134535','134536','134537','134538'], blackout: true },
       'Orient transparent':{ grille: 'orient', couleurs: ['57001','57005','57009','57011','57013','57026','57032','57033','57034','57035','57036','57037','57038','57039'] },
@@ -1486,6 +1486,24 @@ const VP = {
           [716,790,864,953,1027,1101,1176,1250,1324,1592,1741,2330,2613,3035],
           [787,870,969,1052,1135,1219,1302,1385,1487,1761,1921,2572,2886,3357],
           [862,955,1063,1156,1249,1341,1434,1527,1640,1936,2107,2825,3173,3696],
+        ]
+      },
+      // Linen screen 5% — liste VP 2025-2026 p. TR21 : mêmes prix que Alix jusqu'à 144" + ligne 156"
+      linen: {
+        largeurs: [37,43,49,55,61,67,73,79,85,97,103,109,121,145],
+        hauteurs: [36,48,60,72,84,96,108,120,132,144,156],
+        prix: [
+          [342,369,396,423,450,477,562,592,622,694,724,966,1240,1423],
+          [417,452,487,522,557,592,627,662,709,779,814,1087,1378,1588],
+          [451,491,531,571,611,651,691,744,784,864,904,1229,1516,1831],
+          [486,531,576,621,666,711,769,814,859,949,1010,1478,1654,1997],
+          [521,571,621,671,721,784,834,884,934,1034,1100,1598,1871,2161],
+          [556,611,666,721,789,844,899,954,1009,1135,1283,1720,2010,2326],
+          [619,682,745,821,884,947,1010,1072,1135,1278,1439,2009,2250,2609],
+          [716,790,864,953,1027,1101,1176,1250,1324,1592,1741,2330,2613,3035],
+          [787,870,969,1052,1135,1219,1302,1385,1487,1761,1921,2572,2886,3357],
+          [862,955,1063,1156,1249,1341,1434,1527,1640,1936,2107,2825,3173,3696],
+          [939,1042,1164,1265,1369,1470,1574,1677,1802,2119,2302,3088,3473,4052],
         ]
       },
       blackout: {
@@ -1710,6 +1728,27 @@ const VP = {
 // ══════════════════════════════════════════════════════
 // DONNÉES PERSIENNE DESIGN
 // ══════════════════════════════════════════════════════
+
+// Formats NON DISPONIBLES chez VP (liste 2025-2026, toiles à rouleau) : cases « N/D » du PDF
+// (Trento : colonne 169" absente). Clé = modèle, valeur = "largeurxhauteur" de la case de grille.
+const VP_ND = {
+  "Alix 10%": ["103x84","109x84","121x84","145x84","103x96","109x96","121x96","145x96","103x108","109x108","121x108","145x108","103x120","109x120","121x120","145x120","103x132","109x132","121x132","145x132","37x144","43x144","49x144","55x144","61x144","67x144","73x144","79x144","85x144","97x144","103x144","109x144","121x144","145x144"],
+  "Blues": ["121x96","145x96","121x108","145x108","121x120","145x120","121x132","145x132","121x144","145x144","121x156","145x156"],
+  "Channel": ["145x120","145x132","145x144","145x156"],
+  "Channel blackout": ["145x120","145x132","145x144","145x156"],
+  "Dakota 3%": ["103x84","109x84","121x84","145x84","103x96","109x96","121x96","145x96","103x108","109x108","121x108","145x108","103x120","109x120","121x120","145x120","103x132","109x132","121x132","145x132","103x144","109x144","121x144","145x144","103x156","109x156","121x156","145x156"],
+  "Linen look blackout": ["97x84","103x84","109x84","121x84","145x84","97x96","103x96","109x96","121x96","145x96","97x108","103x108","109x108","121x108","145x108","97x120","103x120","109x120","121x120","145x120","97x132","103x132","109x132","121x132","145x132","97x144","103x144","109x144","121x144","145x144","97x156","103x156","109x156","121x156","145x156"],
+  "Milan blackout": ["121x96","145x96","121x108","145x108","121x120","145x120","121x132","145x132","121x144","145x144","121x156","145x156"],
+  "Orient blackout": ["97x84","103x84","109x84","121x84","145x84","97x96","103x96","109x96","121x96","145x96","97x108","103x108","109x108","121x108","145x108","97x120","103x120","109x120","121x120","145x120","97x132","103x132","109x132","121x132","145x132","97x144","103x144","109x144","121x144","145x144","97x156","103x156","109x156","121x156","145x156"],
+  "Orient transparent": ["97x84","103x84","109x84","121x84","145x84","97x96","103x96","109x96","97x108","103x108","109x108","97x120","103x120","109x120","97x132","103x132","109x132","97x144","103x144","109x144","97x156","103x156","109x156"],
+  "Puglia": ["121x96","145x96","121x108","145x108","121x120","145x120","121x132","145x132","121x144","145x144","121x156","145x156"],
+  "Rêve": ["121x96","145x96","121x108","145x108","121x120","145x120","121x132","145x132","121x144","145x144","121x156","145x156"],
+  "Riva": ["121x108","145x108","121x120","145x120","121x132","145x132","121x144","145x144","121x156","145x156"],
+  "Swing": ["121x36","145x36","121x48","145x48","121x60","145x60","121x72","145x72","121x84","145x84","121x96","145x96","121x108","145x108","121x120","145x120","121x132","145x132","121x144","145x144","121x156","145x156"],
+  "Trento": ["121x96","145x96","121x108","145x108","121x120","145x120","121x132","145x132","121x144","145x144","121x156","145x156","169x36","169x48","169x60","169x72","169x84","169x96","169x108","169x120","169x132","169x144","169x156"],
+  "Venezia": ["121x96","145x96","121x108","145x108","121x120","145x120","121x132","145x132","121x144","145x144","121x156","145x156"],
+  "Verona": ["97x84","103x84","109x84","121x84","145x84","97x96","103x96","109x96","121x96","145x96","97x108","103x108","109x108","121x108","145x108","97x120","103x120","109x120","121x120","145x120","97x132","103x132","109x132","121x132","145x132","97x144","103x144","109x144","121x144","145x144","97x156","103x156","109x156","121x156","145x156"],
+};
 
 const PD = {
   NDA: {
@@ -2055,7 +2094,7 @@ const MOTO_EXTRAS = {
     titre: 'Articles additionnels — Somfy R28',
     note: '⚠ Télécommande REQUISE. Chargeur selon modèle.',
     items: [
-      { key: 's-r28-chargeur',  label: '★ Chargeur R28 (REQUIS si modèle WF)', extra: 125, requis: true },
+      { key: 's-r28-chargeur',  label: '★ Chargeur R28 (REQUIS si modèle à piles)', extra: 125, requis: true, requisSi: ['s-r28-bat'] },
       { key: 's-tele-situo1b',  label: '★ Télécommande Situo 1 blanc (REQUIS)', extra: 255, requis: true },
       { key: 's-tele-situo4b',  label: 'Télécommande Situo 4 blanc — 5 canaux', extra: 350 },
       { key: 's-tele-smoove1',  label: 'Smoove 1 canal', extra: 300 },
@@ -3672,6 +3711,7 @@ function buildOptions() {
       if (key === 'mecanisme') buildOptions();
       if (key === 'entete') buildOptions();
       if (key === 'base') buildOptions();
+      if (key === 'multiple') buildOptions();
       if (key === 'enroulement' && sel.value === 'ordinaire') {
         document.getElementById('alert-dim').classList.remove('show');
       }
@@ -3705,6 +3745,17 @@ function buildOptions() {
           if (state.options[key] === opt.val) {
             state.options[key] = 'open-roll';
           }
+        }
+      }
+
+      // Liste VP 2025-2026 : Verona sans fascia recouvert tissu ; 3 toiles / 1 top = cassette seulement
+      if (key === 'entete' && state.type === 'TR' && !disabled) {
+        const ndVerona = state.modele === 'Verona' && opt.val === 'fascia-tissu';
+        const nd3x1 = state.options.multiple === '3x1' && (opt.val === 'fascia-reg' || opt.val === 'fascia-tissu');
+        if (ndVerona || nd3x1) {
+          label += ndVerona ? ' ⚠ N/D pour Verona' : ' ⚠ N/D avec 3 toiles (cassette seulement)';
+          disabled = true;
+          if (state.options[key] === opt.val) state.options[key] = 'open-roll';
         }
       }
 
@@ -3766,18 +3817,20 @@ function buildOptions() {
         }
 
         extrasData.items.forEach(item => {
+          // `requisSi` : requis seulement pour ces mécanismes (ex. chargeur R28 = version à piles)
+          const requis = !!item.requis && (!item.requisSi || item.requisSi.indexOf(state.options.mecanisme) !== -1);
           const row = document.createElement('div');
           row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)';
 
           const left = document.createElement('label');
-          left.style.cssText = `display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:${item.requis ? 'var(--gold)' : 'var(--text-mid)'}`;
+          left.style.cssText = `display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:${requis ? 'var(--gold)' : 'var(--text-mid)'}`;
 
           const chk = document.createElement('input');
           chk.type = 'checkbox';
           chk.id = 'moto-' + item.key;
           chk.style.cssText = 'width:14px;height:14px;accent-color:var(--gold);cursor:pointer';
           chk.checked = !!state.options['moto_' + item.key];
-          if (item.requis) chk.checked = true; // auto-coché si requis
+          if (requis) chk.checked = true; // auto-coché si requis
           state.options['moto_' + item.key] = chk.checked;
 
           chk.onchange = () => {
@@ -3848,7 +3901,17 @@ function calculatePrice() {
   const grille = VP[type].grilles[grilleKey];
   const pdsf = getPrixGrille(grille, state.largTip, state.hautTip);
 
-  if (!pdsf) { resetResult(); return; }
+  // Format non disponible chez VP (case N/D ou vide de la liste) → bloqué avec message
+  const _ndVP = (l, h) => type === 'TR' && (VP_ND[state.modele] || []).indexOf(l + 'x' + h) !== -1;
+  const _alertND = (txt) => {
+    const a = document.getElementById('alert-dim');
+    if (a) { a.textContent = txt; a.classList.add('show'); }
+    resetResult();
+  };
+  if (!pdsf || _ndVP(state.largTip, state.hautTip)) {
+    _alertND(`⚠ Non disponible chez VP : ${state.modele} en ${state.largTip}" × ${state.hautTip}" (liste 2025-2026)`);
+    return;
+  }
 
   // Calcul extras
   let extraPdsf = 0;
@@ -3873,7 +3936,11 @@ function calculatePrice() {
       const _lt = nextDim(grille.largeurs, _lg);
       const _htt = nextDim(grille.hauteurs, _ht);
       const _p = (_lt && _htt) ? getPrixGrille(grille, _lt, _htt) : null;
-      if (_p) { _fabric += _p; breakdown.push({ label: `Toile ${_i} — ${state.modele} ${_lt}"×${_htt}"`, pdsf: _p }); }
+      if (!_p || _ndVP(_lt, _htt)) {
+        _alertND(`⚠ Toile ${_i} non disponible chez VP : ${state.modele} en ${_lg}" × ${_ht}" (liste 2025-2026)`);
+        return;
+      }
+      _fabric += _p; breakdown.push({ label: `Toile ${_i} — ${state.modele} ${_lt}"×${_htt}"`, pdsf: _p });
     }
   }
 
