@@ -1729,6 +1729,17 @@ const VP = {
 // DONNÉES PERSIENNE DESIGN
 // ══════════════════════════════════════════════════════
 
+// Limites de largeur de la liste VP 2025-2026 (bloquées avec message)
+const VP_LARG_MIN = 7;
+const VP_LARG_MAX = { TA: { 'Lotus': 96 }, TD: { '*': 116 } };
+// Largeur minimum du store selon le moteur / la levée assistée (liste Motorisation + TR5)
+const VP_MECA_LARG_MIN = {
+  'levee-assistee': 35,
+  'q-rts-03': 17.25, 'q-rts-11': 21.25, 'q-rts-20': 25, 'q-rts-30': 30.5, 'q-bv-20': 16.5, 'q-120v-60': 26.75,
+  'q-baton-11': 21.25, 'q-baton-20': 25, 'q-baguette-11': 21.25,
+  's-28wf': 24, 's-30wf': 26, 's-3024v': 19, 's-40wf': 29, 's-40120v': 24, 's-r28': 16, 's-r28-bat': 16,
+};
+
 // Formats NON DISPONIBLES chez VP (liste 2025-2026, toiles à rouleau) : cases « N/D » du PDF
 // (Trento : colonne 169" absente). Clé = modèle, valeur = "largeurxhauteur" de la case de grille.
 const VP_ND = {
@@ -2001,6 +2012,7 @@ const MOTO_EXTRAS = {
       { key: 'q-tele-extra-16', label: 'Télécommande Quiet 16 canaux (extra)', extra: 175 },
       { key: 'q-hub',           label: 'Hub Quiet — app / Google / Alexa', extra: 360 },
       { key: 'q-panneau-bv',    label: 'Panneau distribution Bas Voltage (max 18 moteurs)', extra: 1200 },
+      { key: 'q-transfo-bv',    label: 'Transformateur mural bas voltage Quiet (extra)', extra: 100 },
     ]
   },
   // Quiet 120V — pas de panneau distribution
@@ -3526,6 +3538,20 @@ function onDimChange() {
   const alertEl = document.getElementById('alert-dim');
   const noteEl = document.getElementById('note-dim');
 
+  // Limites de largeur de la liste VP 2025-2026 (min 7" partout ; max par produit/modèle)
+  if (!isPD) {
+    const limMax = (VP_LARG_MAX[type] && (VP_LARG_MAX[type][state.modele] || VP_LARG_MAX[type]['*'])) || null;
+    let msgLim = '';
+    if (larg < VP_LARG_MIN) msgLim = `⚠ Largeur minimum VP : ${VP_LARG_MIN}"`;
+    else if (limMax && larg > limMax) msgLim = `⚠ Largeur maximum VP pour ${state.modele} : ${limMax}"`;
+    if (msgLim) {
+      alertEl.textContent = msgLim + ' (liste 2025-2026)';
+      alertEl.classList.add('show');
+      noteEl.classList.remove('show');
+      resetResult(); return;
+    }
+  }
+
   if (!largTip || !hautTip) {
     alertEl.textContent = `⚠ Dimension hors limite — Max: ${largMax}" × ${hautMax}"`;
     alertEl.classList.add('show');
@@ -3711,7 +3737,6 @@ function buildOptions() {
       if (key === 'mecanisme') buildOptions();
       if (key === 'entete') buildOptions();
       if (key === 'base') buildOptions();
-      if (key === 'multiple') buildOptions();
       if (key === 'enroulement' && sel.value === 'ordinaire') {
         document.getElementById('alert-dim').classList.remove('show');
       }
@@ -3748,15 +3773,18 @@ function buildOptions() {
         }
       }
 
-      // Liste VP 2025-2026 : Verona sans fascia recouvert tissu ; 3 toiles / 1 top = cassette seulement
-      if (key === 'entete' && state.type === 'TR' && !disabled) {
-        const ndVerona = state.modele === 'Verona' && opt.val === 'fascia-tissu';
-        const nd3x1 = state.options.multiple === '3x1' && (opt.val === 'fascia-reg' || opt.val === 'fascia-tissu');
-        if (ndVerona || nd3x1) {
-          label += ndVerona ? ' ⚠ N/D pour Verona' : ' ⚠ N/D avec 3 toiles (cassette seulement)';
-          disabled = true;
-          if (state.options[key] === opt.val) state.options[key] = 'open-roll';
-        }
+      // Liste VP 2025-2026 : Verona sans fascia recouvert tissu
+      if (key === 'entete' && state.type === 'TR' && !disabled && state.modele === 'Verona' && opt.val === 'fascia-tissu') {
+        label += ' ⚠ N/D pour Verona';
+        disabled = true;
+        if (state.options[key] === opt.val) state.options[key] = 'open-roll';
+      }
+
+      // Largeur minimum du store selon le moteur / la levée assistée
+      if (key === 'mecanisme' && VP_MECA_LARG_MIN[opt.val]) {
+        const minL = VP_MECA_LARG_MIN[opt.val];
+        const largReelle = state.larg || state.largTip || 0;
+        if (largReelle && largReelle < minL) { label += ` ⚠ (min ${minL}" de largeur)`; disabled = true; }
       }
 
       // Vérif pieds carrés pour moteurs
@@ -3910,6 +3938,14 @@ function calculatePrice() {
   };
   if (!pdsf || _ndVP(state.largTip, state.hautTip)) {
     _alertND(`⚠ Non disponible chez VP : ${state.modele} en ${state.largTip}" × ${state.hautTip}" (liste 2025-2026)`);
+    return;
+  }
+  // Largeur minimum selon le moteur / la levée assistée (largeur réelle du store)
+  const _mecMin = VP_MECA_LARG_MIN[state.options.mecanisme];
+  const _largReelle = state.larg || state.largTip;
+  if (_mecMin && _largReelle < _mecMin) {
+    const _mecOpt = (VP[type].options.mecanisme || []).find(o => o.val === state.options.mecanisme);
+    _alertND(`⚠ Largeur minimum ${_mecMin}" pour ${_mecOpt ? _mecOpt.label.split(' — ')[0] : 'ce mécanisme'} (liste VP 2025-2026) — choisir un autre mécanisme`);
     return;
   }
 
