@@ -4348,6 +4348,20 @@ function rebuildNDA() {
   const isTopDown = sysSel.value === 'haut-bas';
   const selHaut = document.getElementById('nda-groupe-haut');
 
+  // Moteur : store à tissu unique seulement (liste PD p.21) → désactivé et remis à « Aucune » en Top-Down
+  const motSel = document.getElementById('nda-moteur');
+  if (motSel) {
+    motSel.disabled = isTopDown;
+    if (isTopDown && motSel.value !== 'aucun') { motSel.value = 'aucun'; state.options.ndaMoteur = 'aucun'; }
+    const motNote = motSel.nextElementSibling;
+    if (motNote) {
+      motNote.textContent = isTopDown
+        ? '⚠ Non disponible en Top-Down (moteur pour store à tissu unique seulement).'
+        : 'Disponible pour store à tissu unique seulement (non disponible avec Top-Down).';
+      motNote.style.color = isTopDown ? '#e05c5c' : 'var(--text-dim)';
+    }
+  }
+
   // Note ×2
   const noteMult = document.getElementById('nda-note-mult');
   if (noteMult) noteMult.style.display = multSel.value === '2' ? '' : 'none';
