@@ -4002,12 +4002,19 @@ function renderResult({ pdsf, pdsfStore, pdsfSomfy, pdsfTotal, cout, coutStore, 
   const pctLabel = ui.pctLabel || `Ton coût (${cfg.pct}%)`;
   const titre = ui.titre || 'Détail PDSF — Store';
 
-  const bdStore = breakdown.filter(b => !b.somfy);
+  const bdStore = breakdown.filter(b => !b.somfy && !b.net);
   const bdSomfy = breakdown.filter(b => b.somfy);
+  const bdNet   = breakdown.filter(b => b.net);
 
   let bdHtml = bdStore.map(b =>
     `<div class="breakdown-item"><span>${b.label}</span><span>${fmtCAD(b.pdsf)}</span></div>`
   ).join('');
+
+  // Extras au prix NET : montant = coût direct (hors PDSF), vendu × multiplicateur
+  const bdNetHtml = bdNet.length ? `
+    <div class="breakdown-title" style="margin-top:10px">Extras au prix net — coût direct (×${cfg.multi})</div>
+    ${bdNet.map(b => `<div class="breakdown-item"><span>${b.label}</span><span>${fmtCAD(b.pdsf)}</span></div>`).join('')}
+  ` : '';
 
   let bdSomfyHtml = bdSomfy.length ? `
     <div class="breakdown-title" style="margin-top:10px;color:var(--blue)">Motorisation Somfy (×${cfg.multiSomfy || 1.5})</div>
@@ -4060,6 +4067,7 @@ function renderResult({ pdsf, pdsfStore, pdsfSomfy, pdsfTotal, cout, coutStore, 
       ${bdHtml}
       ${bdSomfyHtml}
       <div class="breakdown-item" style="color:var(--text);font-weight:500;margin-top:4px"><span>Total PDSF</span><span>${fmtCAD(pdsfTotal)}</span></div>
+      ${bdNetHtml}
     </div>
   `;
 
@@ -4128,9 +4136,11 @@ function renderOptionsPD() {
   const container = document.getElementById('options-container');
   container.innerHTML = '';
   if (!state.type || !state.modele) return;
-  if (state.type === 'NDA') { renderOptionsNDA(container); return; }
-  if (state.type === 'PE')  { renderOptionsPE(container);  return; }
-  if (state.type === 'SH')  { renderOptionsSH(container);  return; }
+  if (state.type === 'NDA') renderOptionsNDA(container);
+  else if (state.type === 'PE') renderOptionsPE(container);
+  else if (state.type === 'SH') renderOptionsSH(container);
+  else return;
+  renderLivraisonPD(container);
 }
 
 function renderOptionsNDA(container) {
@@ -4435,12 +4445,44 @@ function updatePEPanneaux() {
 // gardent ce coût ; les autres suivent le réglage (35 % livré / 30 % cueillette).
 const PD_PCT_SANS_ESC_CUEILLETTE = 35;
 
+// Livraison PD (liste 2026 p.33) : stores 0,70 $/po de largeur ; persiennes 120 $ + 20 $/panneau
+// additionnel. Ajoutée en prix NET seulement si la case « Livraison incluse » est cochée
+// (jamais en cueillette).
+function pdAjouterLivraison(breakdown, montant, detail) {
+  if (!state.options.pdLivraison || settings.pd.pickup || !(montant > 0)) return;
+  breakdown.push({ label: 'Livraison Persienne Design (' + detail + ')', pdsf: montant, net: true });
+}
+
+// Case « Livraison incluse » commune aux 3 produits PD (désactivée en cueillette).
+function renderLivraisonPD(container) {
+  const d = document.createElement('div');
+  d.innerHTML = '<div class="section-divider">Livraison</div>';
+  const b = document.createElement('div'); b.style.padding = '0 20px 12px';
+  const pickup = !!(settings.pd && settings.pd.pickup);
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex;align-items:flex-start;gap:10px;padding:4px 0';
+  const cb = document.createElement('input');
+  cb.type = 'checkbox'; cb.id = 'pd-livraison'; cb.checked = !pickup && !!state.options.pdLivraison; cb.disabled = pickup;
+  cb.style.cssText = 'width:14px;height:14px;accent-color:var(--gold);cursor:pointer;flex-shrink:0;margin-top:2px';
+  const lbl = document.createElement('label'); lbl.htmlFor = 'pd-livraison';
+  lbl.style.cssText = 'font-size:12px;color:var(--text-mid);cursor:pointer;line-height:1.5';
+  lbl.innerHTML = 'Livraison incluse'
+    + '<span style="display:block;font-size:10px;color:var(--text-dim);margin-top:2px">'
+    + (pickup ? 'Mode cueillette : aucune livraison' : 'Stores : 0,70 $/po de largeur · Persiennes : 120 $ + 20 $/panneau additionnel (prix net)')
+    + '</span>';
+  cb.onchange = function() { state.options.pdLivraison = cb.checked; calculatePricePD(); };
+  wrap.appendChild(cb); wrap.appendChild(lbl); b.appendChild(wrap); d.appendChild(b);
+  container.appendChild(d);
+}
+
 // Calcule coût / vente / marge ligne par ligne puis affiche au format commun (renderResult).
 function pdFinaliser(breakdown, ui) {
   const pctN  = settings.pd.pct / 100;
   const pctEx = settings.pd.pickup ? Math.max(settings.pd.pct, PD_PCT_SANS_ESC_CUEILLETTE) / 100 : pctN;
   let pdsfStore = 0, pdsfSomfy = 0, coutStore = 0, coutSomfy = 0, aEx = false;
   breakdown.forEach(function(b) {
+    // Prix NET (couleur spéciale, arche, livraison) : le montant EST le coût, hors PDSF
+    if (b.net) { coutStore += b.pdsf; return; }
     const ex = !!b.sansEscCueillette;
     if (ex) aEx = true;
     const c = b.pdsf * (ex ? pctEx : pctN);
@@ -4519,6 +4561,10 @@ function calculatePriceNDA(fmtCAD) {
     breakdown.push({label:'Moteur Signature PD — Nid d\'Abeille'+(isDouble?' × 2':''), pdsf:motPdsf, sansEscCueillette:true});
   }
 
+  var largLiv = state.larg || larg;
+  pdAjouterLivraison(breakdown, Math.round(largLiv * 0.70 * (isDouble ? 2 : 1) * 100) / 100,
+    largLiv + '" × 0,70 $/po' + (isDouble ? ' × 2 stores' : ''));
+
   var sysLabel = systeme==='haut-bas' ? 'Top-Down — 2 tissus / 1 cadre' : 'Levé & Barré';
   var multLabel = isDouble ? ' · 2 stores' : '';
   var moteurLabel = moteurActif ? ' · Moteur Signature PD' : '';
@@ -4570,7 +4616,9 @@ function calculatePricePE(fmtCAD) {
     var ep = panneauxExtra * PD.PE.panneauExtra;
     breakdown.push({label:panneauxExtra+' panneau'+(panneauxExtra>1?'x':'')+' additionnel'+(panneauxExtra>1?'s':'')+' (×280$)',pdsf:ep,sansEscCueillette:fsEx});
   }
-  if (couleurSpeciale) breakdown.push({label:'Couleur spéciale',pdsf:150,sansEscCueillette:fsEx});
+  if (couleurSpeciale) breakdown.push({label:'Couleur spéciale (150 $ net)',pdsf:150,net:true});
+  pdAjouterLivraison(breakdown, 120 + 20 * Math.max(0, inclus + panneauxExtra - 1),
+    (inclus + panneauxExtra) + ' panneau' + ((inclus + panneauxExtra) > 1 ? 'x' : '') + ' — 120 $ + 20 $/panneau additionnel');
 
   var sysLabel = modeleData.materiau==='bois' ? (systeme==='vision'?'Système Vision':'Système Baguette') : 'PVC';
   var finitionLabel = modeleData.finition==='laque'?' · Laqué':modeleData.finition==='teinte'?' · Teinté':'';
@@ -4713,7 +4761,9 @@ function calculatePriceSH(fmtCAD) {
   }
 
   // Arche fixe
-  if (arche) breakdown.push({label: 'Arche fixe en lamelles de bois', pdsf: 250});
+  if (arche) breakdown.push({label: 'Arche fixe en lamelles de bois (250 $ net)', pdsf: 250, net: true});
+  var largLiv = state.larg || larg;
+  pdAjouterLivraison(breakdown, Math.round(largLiv * 0.70 * 100) / 100, largLiv + '" × 0,70 $/po');
 
   var cantLabel  = cantoniere === 'travaillee' ? 'Travaillée' : 'Carrée Zen';
   var retoursTxt = retours ? ' · avec retours' : ' · sans retours';
