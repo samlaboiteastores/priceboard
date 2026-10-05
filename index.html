@@ -3964,16 +3964,16 @@ function calculatePrice() {
   for (let _i = 2; _i <= _multN; _i++) {
     const _lg = parseFloat((document.getElementById('inp-larg' + _i) || {}).value || 0) + parseFloat((document.getElementById('frac-larg' + _i) || {}).value || 0);
     const _ht = parseFloat((document.getElementById('inp-haut' + _i) || {}).value || 0) + parseFloat((document.getElementById('frac-haut' + _i) || {}).value || 0);
-    if (_lg > 0 && _ht > 0) {
-      const _lt = nextDim(grille.largeurs, _lg);
-      const _htt = nextDim(grille.hauteurs, _ht);
-      const _p = (_lt && _htt) ? getPrixGrille(grille, _lt, _htt) : null;
-      if (!_p || _ndVP(_lt, _htt)) {
-        _alertND(`⚠ Toile ${_i} non disponible chez VP : ${state.modele} en ${_lg}" × ${_ht}" (liste 2025-2026)`);
-        return;
-      }
-      _fabric += _p; breakdown.push({ label: `Toile ${_i} — ${state.modele} ${_lt}"×${_htt}"`, pdsf: _p });
+    // Toile sans mesure inscrite = mêmes mesures que la toile 1 (toujours facturée)
+    const _idem = !(_lg > 0 && _ht > 0);
+    const _lt = _idem ? state.largTip : nextDim(grille.largeurs, _lg);
+    const _htt = _idem ? state.hautTip : nextDim(grille.hauteurs, _ht);
+    const _p = (_lt && _htt) ? getPrixGrille(grille, _lt, _htt) : null;
+    if (!_p || _ndVP(_lt, _htt)) {
+      _alertND(`⚠ Toile ${_i} non disponible chez VP : ${state.modele} en ${_lg}" × ${_ht}" (liste 2025-2026)`);
+      return;
     }
+    _fabric += _p; breakdown.push({ label: `Toile ${_i} — ${state.modele} ${_lt}"×${_htt}"${_idem ? ' (mêmes mesures que toile 1)' : ''}`, pdsf: _p });
   }
 
   // Entête
@@ -5487,14 +5487,14 @@ const SBM = {
         hauteurs: [24, 30, 36, 42, 48, 54, 60, 66, 72, 78, 84, 90, 96, 102, 108, 114, 120, 126, 132, 138, 144],
         prix: [
       [221, 233, 246, 258, 271, 283, 296, 308, 321, 333, 356, 369, 382, 422, 437, 452, 467, 482, 496, 511, 526],
-      [226, 240, 253, 267, 281, 295, 308, 322, 336, 350, 374, 388, 403, 444, 460, 476, 492, 508, 525, 541, 557],
-      [231, 246, 261, 276, 291, 306, 321, 336, 351, 366, 392, 407, 423, 466, 483, 501, 518, 535, 553, 570, 587],
-      [237, 253, 269, 286, 302, 318, 334, 351, 367, 383, 410, 427, 444, 488, 507, 525, 544, 563, 581, 600, 619],
-      [242, 259, 277, 295, 312, 330, 347, 365, 382, 400, 428, 446, 465, 510, 530, 550, 570, 590, 609, 629, 649],
-      [247, 266, 285, 303, 322, 341, 360, 379, 398, 417, 446, 466, 485, 532, 553, 574, 595, 616, 638, 659, 680],
-      [252, 273, 293, 313, 333, 353, 373, 393, 414, 434, 464, 485, 506, 554, 576, 599, 621, 644, 666, 689, 711],
-      [258, 279, 300, 322, 343, 365, 386, 408, 429, 450, 482, 504, 527, 576, 599, 623, 647, 671, 694, 718, 742],
-      [263, 286, 308, 331, 354, 377, 399, 422, 445, 467, 500, 524, 547, 598, 623, 648, 673, 698, 723, 748, 773],
+      [226, 240, 254, 268, 281, 295, 309, 323, 337, 350, 375, 389, 404, 445, 461, 477, 493, 510, 526, 542, 558],
+      [231, 246, 261, 277, 292, 307, 322, 337, 352, 367, 393, 408, 424, 467, 484, 502, 519, 537, 554, 572, 589],
+      [237, 253, 270, 286, 302, 319, 335, 352, 368, 384, 411, 428, 445, 489, 508, 527, 545, 564, 583, 602, 620],
+      [242, 260, 277, 295, 313, 330, 348, 366, 383, 401, 429, 448, 466, 511, 531, 551, 571, 591, 611, 631, 651],
+      [247, 266, 285, 304, 323, 342, 361, 380, 399, 418, 447, 467, 487, 533, 554, 576, 597, 618, 640, 661, 682],
+      [252, 273, 293, 314, 334, 354, 374, 395, 415, 435, 466, 487, 508, 555, 578, 601, 623, 646, 668, 691, 713],
+      [258, 279, 301, 323, 344, 366, 387, 409, 430, 452, 484, 506, 528, 577, 601, 625, 649, 673, 697, 720, 744],
+      [263, 286, 308, 331, 354, 377, 400, 422, 445, 467, 500, 524, 547, 598, 623, 648, 673, 698, 723, 748, 773],
       [269, 293, 317, 341, 365, 389, 413, 437, 461, 485, 519, 544, 568, 620, 646, 673, 699, 725, 752, 778, 804],
       [274, 299, 324, 350, 375, 400, 425, 451, 476, 501, 537, 563, 589, 642, 669, 697, 724, 752, 780, 807, 835],
       [279, 306, 332, 359, 386, 412, 439, 465, 492, 518, 555, 582, 610, 664, 693, 722, 751, 779, 808, 837, 866],
@@ -5580,7 +5580,7 @@ const SBM = {
       [232, 246, 260, 274, 289, 303, 317, 332, 346, 360, 385, 400, 415, 457, 474, 490, 507, 524, 540, 557, 574],
       [234, 249, 264, 279, 294, 309, 324, 339, 353, 368, 394, 409, 425, 468, 485, 502, 519, 537, 554, 571, 588],
       [237, 252, 268, 283, 299, 314, 330, 345, 361, 376, 402, 418, 434, 478, 496, 513, 531, 549, 567, 585, 602],
-      [239, 255, 271, 287, 303, 319, 335, 352, 368, 384, 410, 427, 444, 488, 506, 525, 543, 561, 580, 598, 617],
+      [239, 255, 271, 287, 303, 319, 335, 352, 368, 384, 410, 427, 444, 488, 507, 525, 543, 561, 580, 598, 617],
       [245, 262, 280, 297, 315, 332, 349, 367, 384, 402, 419, 436, 454, 498, 517, 536, 555, 574, 593, 612, 631],
       [247, 265, 283, 301, 319, 337, 355, 373, 391, 409, 427, 445, 489, 508, 528, 548, 567, 587, 606, 626, 645],
       [250, 268, 287, 305, 324, 343, 361, 380, 398, 417, 436, 478, 498, 518, 539, 559, 579, 599, 619, 639, 660],
@@ -5601,7 +5601,7 @@ const SBM = {
       [216, 226, 236, 246, 256, 266, 276, 286, 295, 305, 326, 337, 347, 386, 398, 410, 423, 435, 447, 460, 472],
       [218, 229, 239, 249, 260, 270, 281, 291, 301, 312, 333, 344, 355, 394, 407, 420, 433, 445, 458, 471, 484],
       [221, 231, 242, 253, 264, 275, 286, 297, 308, 319, 340, 352, 364, 403, 416, 430, 443, 456, 470, 483, 496],
-      [223, 234, 245, 257, 268, 280, 291, 302, 314, 325, 347, 360, 372, 412, 425, 439, 453, 467, 481, 494, 508],
+      [223, 234, 245, 257, 268, 280, 291, 302, 314, 325, 347, 360, 372, 412, 426, 439, 453, 467, 481, 494, 508],
       [225, 237, 249, 261, 273, 284, 296, 308, 320, 332, 355, 367, 380, 420, 435, 449, 463, 478, 492, 506, 521],
       [227, 240, 252, 265, 277, 289, 302, 314, 327, 339, 362, 375, 389, 429, 444, 459, 474, 489, 503, 518, 533],
       [229, 242, 255, 268, 281, 294, 307, 320, 333, 346, 369, 383, 397, 438, 453, 469, 484, 499, 514, 530, 545],
@@ -5654,14 +5654,14 @@ const SBM = {
       [234, 250, 266, 282, 297, 313, 329, 344, 360, 376, 402, 419, 435, 478, 496, 514, 533, 551, 569, 587, 605],
       [239, 256, 273, 290, 307, 324, 341, 358, 375, 392, 419, 437, 454, 499, 518, 538, 557, 576, 595, 615, 634],
       [244, 262, 280, 299, 317, 335, 353, 371, 389, 408, 436, 455, 474, 520, 540, 561, 581, 602, 622, 643, 663],
-      [249, 269, 288, 307, 327, 346, 366, 385, 404, 424, 454, 474, 494, 541, 563, 584, 606, 628, 649, 671, 693],
-      [254, 275, 295, 316, 337, 357, 378, 398, 419, 440, 471, 492, 513, 561, 584, 607, 630, 653, 676, 699, 722],
-      [259, 281, 303, 325, 347, 369, 390, 412, 434, 456, 488, 511, 533, 582, 607, 631, 655, 679, 703, 727, 751],
+      [250, 269, 288, 307, 327, 346, 366, 385, 404, 424, 454, 474, 494, 541, 563, 584, 606, 628, 649, 671, 693],
+      [255, 275, 295, 316, 337, 357, 378, 398, 419, 440, 471, 492, 513, 561, 584, 607, 630, 653, 676, 699, 722],
+      [260, 281, 303, 325, 347, 369, 390, 412, 434, 456, 488, 511, 533, 582, 607, 631, 655, 679, 703, 727, 751],
       [265, 288, 311, 334, 357, 380, 403, 426, 449, 472, 505, 529, 553, 604, 629, 654, 680, 705, 730, 756, 781],
       [270, 294, 318, 342, 367, 391, 415, 439, 464, 488, 523, 548, 572, 624, 651, 678, 704, 731, 757, 784, 810],
       [275, 300, 326, 351, 377, 402, 428, 453, 479, 504, 540, 566, 592, 646, 673, 701, 729, 757, 784, 812, 840],
       [280, 307, 333, 360, 387, 413, 440, 467, 493, 520, 557, 584, 612, 666, 695, 724, 753, 782, 811, 840, 869],
-      [285, 313, 341, 368, 396, 424, 452, 480, 508, 536, 574, 603, 631, 687, 717, 747, 778, 808, 838, 868, 898],
+      [285, 313, 341, 369, 398, 426, 454, 482, 510, 538, 576, 605, 634, 689, 720, 750, 781, 811, 841, 872, 902],
       [293, 323, 353, 383, 413, 442, 472, 502, 532, 562, 592, 621, 651, 708, 740, 771, 802, 834, 865, 897, 928],
       [298, 329, 360, 391, 422, 453, 484, 515, 547, 578, 609, 640, 696, 729, 761, 794, 827, 859, 892, 925, 957],
       [303, 335, 367, 400, 432, 464, 497, 529, 561, 593, 626, 682, 716, 749, 783, 817, 851, 885, 919, 953, 986],
@@ -6104,7 +6104,9 @@ function buildOptionsSBM() {
     const { wrap, body } = mkSection(options.label);
     const sel = mkSel(id);
     options.items.forEach(item => {
-      const sel_opt = mkOpt(item.val, item.label, (state.options[stateKey] || options.defaut) === item.val);
+      // Format VP : pas de prix dans les libellés (le détail est dans le résultat)
+      const _lbl = String(item.label).replace(/\s*—\s*PDSF \+\$[\d.,]+/, '');
+      const sel_opt = mkOpt(item.val, _lbl, (state.options[stateKey] || options.defaut) === item.val);
       sel.appendChild(sel_opt);
     });
     if (!state.options[stateKey]) state.options[stateKey] = options.defaut || options.items[0].val;
@@ -6232,7 +6234,7 @@ function buildOptionsSBM() {
     coulLbl.htmlFor = 'sbm-coulisses-cb';
     coulLbl.style.cssText = 'font-size:12px;color:var(--text-mid);cursor:pointer;';
     const coulPrix = sbmSideChannelPrix(haut);
-    coulLbl.textContent = `Ajouter coulisses latérales (2 côtés)${coulPrix > 0 ? ` — PDSF +$${coulPrix}` : ''}`;
+    coulLbl.textContent = 'Ajouter coulisses latérales (2 côtés, prix selon la hauteur)';
     coulCb.onchange = () => {
       state.options.sbmSideChannels = coulCb.checked ? 'oui' : 'non';
       calculatePriceSBM();
@@ -6298,7 +6300,7 @@ function renderSBMMecanisme(container) {
   SBM_MECAS.items.forEach(m => {
     const opt = document.createElement('option');
     opt.value = m.val;
-    const prixLabel = m.extra > 0 ? (m.net ? ` — +$${m.extra.toFixed(2)} net` : ` — PDSF +$${m.extra.toFixed(2)}`) : '';
+    const prixLabel = '';   // format VP : pas de prix dans le menu
     opt.textContent = m.label + prixLabel;
     if (m.zebraSeulement && state.type !== 'TA') { opt.disabled = true; opt.textContent += ' ⚠ N/D en toile à rouleau'; }
     if ((state.options.sbmMecanisme || 'chaine-std-blanc') === m.val) opt.selected = true;
@@ -6444,12 +6446,31 @@ function calculatePriceSBM() {
   const pdsf = getPrixGrille(grille, largTip, hautTip);
   if (!pdsf) { resetResult(); return; }
 
+  // ── Multiple toiles (comme VP) : chaque toile à sa mesure ; options et mécanisme × nombre de toiles ──
+  const N = (type === 'TR' && state.options.sbmMultiple === '2x1') ? 2 : 1;
+  const sufN = N > 1 ? ` ×${N}` : '';
+  multiDimsUI(N, 'Toile', 'même cassette');
+
   // ── Calcul extras options ──
   let extraPdsf = 0;
-  const breakdown = [{ label: `${state.modele} ${largTip}"×${hautTip}"`, pdsf }];
+  const breakdown = [{ label: `${N > 1 ? 'Toile 1 — ' : ''}${state.modele} ${largTip}"×${hautTip}"`, pdsf }];
+  for (let i = 2; i <= N; i++) {
+    const lg = (parseFloat((document.getElementById('inp-larg' + i) || {}).value) || 0) + (parseFloat((document.getElementById('frac-larg' + i) || {}).value) || 0);
+    const hg = (parseFloat((document.getElementById('inp-haut' + i) || {}).value) || 0) + (parseFloat((document.getElementById('frac-haut' + i) || {}).value) || 0);
+    const lt = lg > 0 && hg > 0 ? nextDim(grille.largeurs, lg) : largTip;
+    const ht = lg > 0 && hg > 0 ? nextDim(grille.hauteurs, hg) : hautTip;
+    const p2 = (lt && ht) ? getPrixGrille(grille, lt, ht) : null;
+    if (!p2) {
+      alertEl.textContent = `⚠ Toile ${i} hors limite — Max: ${largMax}" × ${hautMax}"`;
+      alertEl.classList.add('show'); resetResult(); return;
+    }
+    extraPdsf += p2;
+    breakdown.push({ label: `Toile ${i} — ${state.modele} ${lt}"×${ht}"${lg > 0 && hg > 0 ? '' : ' (mêmes mesures que toile 1)'}`, pdsf: p2 });
+  }
 
+  // Option par toile (× N)
   function addExtra(label, prix) {
-    if (prix > 0) { extraPdsf += prix; breakdown.push({ label, pdsf: prix }); }
+    if (prix > 0) { extraPdsf += prix * N; breakdown.push({ label: label + sufN, pdsf: prix * N }); }
   }
 
   // ── Entête (commun TA et TR) ──
@@ -6482,10 +6503,8 @@ function calculatePriceSBM() {
       addExtra("Coulisses d'obscurité (2 côtés)", sbmSideChannelPrix(hautTip));
     }
 
-    // Multiple toiles
-    if (state.options.sbmMultiple === '2x1') {
-      addExtra('2 toiles / 1 top', 50);
-    }
+    // Multiple toiles — supplément du top partagé (une fois)
+    if (N === 2) { extraPdsf += 50; breakdown.push({ label: '2 toiles / 1 top (cassette partagée)', pdsf: 50 }); }
   }
 
   // ── Mécanisme + chaîne inox + articles additionnels ──
@@ -6498,14 +6517,16 @@ function calculatePriceSBM() {
   let pdsfSomfy  = 0;  // Somfy → multiSomfy
 
   let netCout = 0;     // articles au prix NET (ex. Si-Simple non escomptable) : coût direct, hors PDSF
+  // Mécanisme et articles additionnels : un par toile (× N), comme VP
   if (mecaData && mecaData.extra > 0) {
+    const m = mecaData.extra * N;
     if (mecaData.net) {
-      netCout += mecaData.extra;
-      breakdown.push({ label: mecaData.label.split(' — ')[0] + ' (prix net, non escomptable)', pdsf: mecaData.extra, net: true });
+      netCout += m;
+      breakdown.push({ label: mecaData.label.split(' — ')[0] + ' (prix net, non escomptable)' + sufN, pdsf: m, net: true });
     } else {
-      if (isSomfyMeca) pdsfSomfy  += mecaData.extra;
-      else             pdsfMoteur += mecaData.extra;
-      breakdown.push({ label: mecaData.label.split(' — ')[0], pdsf: mecaData.extra, somfy: isSomfyMeca });
+      if (isSomfyMeca) pdsfSomfy  += m;
+      else             pdsfMoteur += m;
+      breakdown.push({ label: mecaData.label.split(' — ')[0] + sufN, pdsf: m, somfy: isSomfyMeca });
     }
   }
 
@@ -6513,8 +6534,9 @@ function calculatePriceSBM() {
   if (mecaType && mecaType !== 'chaine' && SBM_MOTO_EXTRAS[mecaType]) {
     SBM_MOTO_EXTRAS[mecaType].items.forEach(item => {
       if (state.options['sbm_moto_' + item.key]) {
-        if (isSomfyMeca) { pdsfSomfy  += item.extra; breakdown.push({ label: item.label, pdsf: item.extra, somfy: true }); }
-        else             { pdsfMoteur += item.extra; breakdown.push({ label: item.label, pdsf: item.extra }); }
+        const m = item.extra * N;
+        if (isSomfyMeca) { pdsfSomfy  += m; breakdown.push({ label: item.label + sufN, pdsf: m, somfy: true }); }
+        else             { pdsfMoteur += m; breakdown.push({ label: item.label + sufN, pdsf: m }); }
       }
     });
   }
