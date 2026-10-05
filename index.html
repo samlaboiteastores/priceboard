@@ -869,7 +869,7 @@
               <div class="admin-row">
                 <div>
                   <div class="admin-label">% Coût / PDSF</div>
-                  <div style="font-size:10px;color:var(--text-dim);margin-top:2px">35% livraison · 30% pickup</div>
+                  <div style="font-size:10px;color:var(--text-dim);margin-top:2px">35% livraison · 30% pickup (moteurs et forme spéciale : 35% même en pickup)</div>
                 </div>
                 <div style="display:flex;align-items:center;gap:6px">
                   <input type="number" class="admin-input" id="admin-pct-pd" value="35" min="1" max="99" step="1" onchange="saveAdminSettings()">
@@ -3987,11 +3987,20 @@ function calculatePrice() {
   renderResult({ pdsf, pdsfStore, pdsfSomfy, pdsfTotal, cout, coutStore, coutSomfy, vente, venteStore, venteSomfy, marge, breakdown });
 }
 
-function renderResult({ pdsf, pdsfStore, pdsfSomfy, pdsfTotal, cout, coutStore, coutSomfy, vente, venteStore, venteSomfy, marge, breakdown }) {
+// Gabarit de résultat commun (format VP). Les autres fournisseurs passent `ui` pour
+// réutiliser le même format : { cfg, fournisseur, produit, detail, pctLabel, titre }.
+function renderResult({ pdsf, pdsfStore, pdsfSomfy, pdsfTotal, cout, coutStore, coutSomfy, vente, venteStore, venteSomfy, marge, breakdown }, ui) {
+  ui = ui || {};
+  const cfg = ui.cfg || settings.vp;
   const fmtCAD = v => '$\u00a0' + v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f');
 
   const couleur = state.couleur ? `<br>${state.couleur}` : '';
   const dim = state.largTip ? `${state.largTip}" × ${state.hautTip}"` : '';
+  const fournLabel = ui.fournisseur || `VP Stores · ${state.type === 'TA' ? 'Toile alternée' : state.type === 'TR' ? 'Toile à rouleau' : 'Toile diaphane'}`;
+  const produit = ui.produit !== undefined ? ui.produit : state.modele;
+  const detail = ui.detail !== undefined ? ui.detail : `${dim}${couleur}`;
+  const pctLabel = ui.pctLabel || `Ton coût (${cfg.pct}%)`;
+  const titre = ui.titre || 'Détail PDSF — Store';
 
   const bdStore = breakdown.filter(b => !b.somfy);
   const bdSomfy = breakdown.filter(b => b.somfy);
@@ -4001,20 +4010,20 @@ function renderResult({ pdsf, pdsfStore, pdsfSomfy, pdsfTotal, cout, coutStore, 
   ).join('');
 
   let bdSomfyHtml = bdSomfy.length ? `
-    <div class="breakdown-title" style="margin-top:10px;color:var(--blue)">Motorisation Somfy (×${settings.vp.multiSomfy || 1.5})</div>
+    <div class="breakdown-title" style="margin-top:10px;color:var(--blue)">Motorisation Somfy (×${cfg.multiSomfy || 1.5})</div>
     ${bdSomfy.map(b => `<div class="breakdown-item"><span>${b.label}</span><span>${fmtCAD(b.pdsf)}</span></div>`).join('')}
   ` : '';
 
   const somfyPrixDetail = pdsfSomfy > 0 ? `
     <div class="price-row" style="margin-top:6px;border-color:rgba(91,155,213,0.3);background:rgba(91,155,213,0.05)">
-      <span class="price-label" style="color:var(--blue)">Motorisation Somfy (×${settings.vp.multiSomfy || 1.5})</span>
+      <span class="price-label" style="color:var(--blue)">Motorisation Somfy (×${cfg.multiSomfy || 1.5})</span>
       <span class="price-value" style="font-size:15px;color:var(--blue)">${fmtCAD(venteSomfy)}</span>
     </div>` : '';
 
   document.getElementById('result-body').innerHTML = `
-    <div class="result-fournisseur">VP Stores · ${state.type === 'TA' ? 'Toile alternée' : state.type === 'TR' ? 'Toile à rouleau' : 'Toile diaphane'}</div>
-    <div class="result-produit">${state.modele}</div>
-    <div class="result-detail">${dim}${couleur}</div>
+    <div class="result-fournisseur">${fournLabel}</div>
+    <div class="result-produit">${produit}</div>
+    <div class="result-detail">${detail}</div>
 
     <div class="result-prices">
       <div class="price-row">
@@ -4022,11 +4031,11 @@ function renderResult({ pdsf, pdsfStore, pdsfSomfy, pdsfTotal, cout, coutStore, 
         <span class="price-value pdsf">${fmtCAD(pdsfTotal)}</span>
       </div>
       <div class="price-row">
-        <span class="price-label">Ton coût (${settings.vp.pct}%)</span>
+        <span class="price-label">${pctLabel}</span>
         <span class="price-value cout">${fmtCAD(cout)}</span>
       </div>
       <div class="price-row" style="border-color:var(--gold-dim);background:rgba(26,183,183,0.06)">
-        <span class="price-label" style="color:var(--gold)">Store (×${settings.vp.multi})</span>
+        <span class="price-label" style="color:var(--gold)">Store (×${cfg.multi})</span>
         <span class="price-value" style="font-size:17px;color:var(--gold)">${fmtCAD(venteStore)}</span>
       </div>
       ${somfyPrixDetail}
@@ -4047,7 +4056,7 @@ function renderResult({ pdsf, pdsfStore, pdsfSomfy, pdsfTotal, cout, coutStore, 
     </div>
 
     <div class="breakdown">
-      <div class="breakdown-title">Détail PDSF — Store</div>
+      <div class="breakdown-title">${titre}</div>
       ${bdHtml}
       ${bdSomfyHtml}
       <div class="breakdown-item" style="color:var(--text);font-weight:500;margin-top:4px"><span>Total PDSF</span><span>${fmtCAD(pdsfTotal)}</span></div>
@@ -4421,6 +4430,38 @@ function updatePEPanneaux() {
 // PD — CALCUL PRIX
 // ══════════════════════════════════════════════════════
 
+// Lettre d'escompte PD : motorisation, forme spéciale, Sohji et cantonnières restent à
+// 65 % d'escompte (coût 35 %) même en cueillette. Les lignes marquées `sansEscCueillette`
+// gardent ce coût ; les autres suivent le réglage (35 % livré / 30 % cueillette).
+const PD_PCT_SANS_ESC_CUEILLETTE = 35;
+
+// Calcule coût / vente / marge ligne par ligne puis affiche au format commun (renderResult).
+function pdFinaliser(breakdown, ui) {
+  const pctN  = settings.pd.pct / 100;
+  const pctEx = settings.pd.pickup ? Math.max(settings.pd.pct, PD_PCT_SANS_ESC_CUEILLETTE) / 100 : pctN;
+  let pdsfStore = 0, pdsfSomfy = 0, coutStore = 0, coutSomfy = 0, aEx = false;
+  breakdown.forEach(function(b) {
+    const ex = !!b.sansEscCueillette;
+    if (ex) aEx = true;
+    const c = b.pdsf * (ex ? pctEx : pctN);
+    if (b.somfy) { pdsfSomfy += b.pdsf; coutSomfy += c; } else { pdsfStore += b.pdsf; coutStore += c; }
+  });
+  coutStore = Math.round(coutStore * 100) / 100;
+  coutSomfy = Math.round(coutSomfy * 100) / 100;
+  const venteStore = Math.round(coutStore * settings.pd.multi * 100) / 100;
+  const venteSomfy = Math.round(coutSomfy * (settings.pd.multiSomfy || 1.5) * 100) / 100;
+  const pdsfTotal = pdsfStore + pdsfSomfy;
+  const cout  = Math.round((coutStore + coutSomfy) * 100) / 100;
+  const vente = Math.round((venteStore + venteSomfy) * 100) / 100;
+  const marge = vente > 0 ? Math.round((vente - cout) / vente * 1000) / 10 : 0;
+  const pctLabel = (settings.pd.pickup && aEx && pctEx !== pctN)
+    ? 'Ton coût (' + settings.pd.pct + '% cueillette · ' + Math.round(pctEx * 100) + '% moteur / forme spéciale)'
+    : 'Ton coût (' + settings.pd.pct + '%' + (settings.pd.pickup ? ' cueillette' : '') + ')';
+  renderResult({ pdsf: breakdown.length ? breakdown[0].pdsf : 0, pdsfStore, pdsfSomfy, pdsfTotal, cout, coutStore, coutSomfy,
+                 vente, venteStore, venteSomfy, marge, breakdown },
+               Object.assign({ cfg: settings.pd, pctLabel: pctLabel }, ui));
+}
+
 function calculatePricePD() {
   if (!state.modele || !state.largTip || !state.hautTip) return;
   const fmtCAD = function(v) { return '$ '+v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,'\u202f'); };
@@ -4467,48 +4508,27 @@ function calculatePriceNDA(fmtCAD) {
   }
 
   if (pdsfBase === 0) return;
-  var pdsfTotal = pdsfBase;
   var isDouble = multiple === '2';
-  if (isDouble) { pdsfTotal = pdsfBase * 2; breakdown.push({label:'× 2 stores identiques',pdsf:pdsfBase,double:true}); }
+  if (isDouble) breakdown.push({label:'2e store identique', pdsf:pdsfBase});
 
   // Moteur Signature PD — disponible tissu unique seulement (pas Top-Down)
   var moteur = state.options.ndaMoteur || 'aucun';
   var moteurActif = moteur === 'signature' && systeme !== 'haut-bas';
   if (moteurActif) {
     var motPdsf = isDouble ? 800 * 2 : 800;
-    breakdown.push({label:'Moteur Signature PD — Nid d\'Abeille'+(isDouble?' × 2':''), pdsf:motPdsf});
-    pdsfTotal += motPdsf;
+    breakdown.push({label:'Moteur Signature PD — Nid d\'Abeille'+(isDouble?' × 2':''), pdsf:motPdsf, sansEscCueillette:true});
   }
 
-  var cout = Math.round(pdsfTotal * getPct() * 100) / 100;
-  var vente = Math.round(cout * getMulti() * 100) / 100;
-  var marge = vente > 0 ? Math.round((vente-cout)/vente*1000)/10 : 0;
   var sysLabel = systeme==='haut-bas' ? 'Top-Down — 2 tissus / 1 cadre' : 'Levé & Barré';
   var multLabel = isDouble ? ' · 2 stores' : '';
   var moteurLabel = moteurActif ? ' · Moteur Signature PD' : '';
 
-  var bdHtml = breakdown.map(function(b) {
-    return b.double
-      ? '<div class="breakdown-item" style="color:var(--gold);border-top:1px dashed var(--gold-dim);margin-top:4px;padding-top:6px"><span>'+b.label+'</span><span>= '+fmtCAD(pdsfTotal)+'</span></div>'
-      : '<div class="breakdown-item"><span>'+b.label+'</span><span>'+fmtCAD(b.pdsf)+'</span></div>';
-  }).join('');
-
-  document.getElementById('result-body').innerHTML =
-    '<div class="result-fournisseur">Persienne Design · Nid d\'Abeille'+multLabel+moteurLabel+'</div>'
-    +'<div class="result-produit">'+sysLabel+'</div>'
-    +'<div class="result-detail">'+larg+'" × '+haut+'"<br>'+nomTissu+' — '+coulTissu+'</div>'
-    +'<div class="result-prices">'
-    +'<div class="price-row"><span class="price-label">PDSF total</span><span class="price-value pdsf">'+fmtCAD(pdsfTotal)+'</span></div>'
-    +'<div class="price-row"><span class="price-label">Ton coût ('+settings.pd.pct+'%)</span><span class="price-value cout">'+fmtCAD(cout)+'</span></div>'
-    +'<div class="price-row" style="border-color:var(--gold-dim);background:rgba(26,183,183,0.12)">'
-    +'<span class="price-label" style="color:var(--gold);font-weight:500">PRIX VENDANT (×'+settings.pd.multi+')</span>'
-    +'<span class="price-value vente">'+fmtCAD(vente)+'</span></div></div>'
-    +'<div class="margin-bar-wrap"><div class="margin-label"><span>Marge brute</span><span style="color:var(--green)">'+marge+'%</span></div>'
-    +'<div class="margin-bar"><div class="margin-fill" style="width:'+Math.min(marge,100)+'%"></div></div></div>'
-    +'<div class="breakdown"><div class="breakdown-title">Détail PDSF — Nid d\'Abeille</div>'+bdHtml
-    +'<div class="breakdown-item" style="color:var(--text);font-weight:500;margin-top:6px;border-top:1px solid var(--border);padding-top:6px"><span>TOTAL PDSF</span><span>'+fmtCAD(pdsfTotal)+'</span></div></div>';
-
-  state.lastResult = { pdsfStore:pdsfTotal, pdsfSomfy:0, pdsfTotal:pdsfTotal, cout:cout, vente:vente, marge:marge };
+  pdFinaliser(breakdown, {
+    fournisseur: 'Persienne Design · Nid d\'Abeille'+multLabel+moteurLabel,
+    produit: sysLabel,
+    detail: larg+'" × '+haut+'"<br>'+nomTissu+' — '+coulTissu,
+    titre: 'Détail PDSF — Nid d\'Abeille'
+  });
 }
 
 function calculatePricePE(fmtCAD) {
@@ -4542,46 +4562,29 @@ function calculatePricePE(fmtCAD) {
   var cadrageLabel = cadrage === 'bullnose' ? 'Bullnose' : 'Régulier';
   // formeSpeciale et fsFinition déjà déclarés plus haut
 
-  var breakdown = [{label:state.modele+' ('+larg+'" × '+haut+'")',pdsf:pdsf}];
-  var pdsfTotal = pdsf;
+  // Forme spéciale = produit sans escompte de cueillette (coût 35 % même en cueillette)
+  var fsEx = formeSpeciale && modeleData.materiau === 'bois';
+  var breakdown = [{label:state.modele+' ('+larg+'" × '+haut+'")'+(fsEx?' — forme spéciale':''),pdsf:pdsf,sansEscCueillette:fsEx}];
 
   if (panneauxExtra > 0) {
     var ep = panneauxExtra * PD.PE.panneauExtra;
-    breakdown.push({label:panneauxExtra+' panneau'+(panneauxExtra>1?'x':'')+' additionnel'+(panneauxExtra>1?'s':'')+' (×280$)',pdsf:ep});
-    pdsfTotal += ep;
+    breakdown.push({label:panneauxExtra+' panneau'+(panneauxExtra>1?'x':'')+' additionnel'+(panneauxExtra>1?'s':'')+' (×280$)',pdsf:ep,sansEscCueillette:fsEx});
   }
-  if (couleurSpeciale) { breakdown.push({label:'Couleur spéciale',pdsf:150}); pdsfTotal+=150; }
+  if (couleurSpeciale) breakdown.push({label:'Couleur spéciale',pdsf:150,sansEscCueillette:fsEx});
 
-  var cout = Math.round(pdsfTotal * getPct() * 100) / 100;
-  var vente = Math.round(cout * getMulti() * 100) / 100;
-  var marge = vente > 0 ? Math.round((vente-cout)/vente*1000)/10 : 0;
   var sysLabel = modeleData.materiau==='bois' ? (systeme==='vision'?'Système Vision':'Système Baguette') : 'PVC';
   var finitionLabel = modeleData.finition==='laque'?' · Laqué':modeleData.finition==='teinte'?' · Teinté':'';
   var couleurLabel = couleur ? (' — '+couleur+(couleurSpeciale?' (spéciale)':'')) : '';
 
-  var bdHtml = breakdown.map(function(b) {
-    return '<div class="breakdown-item"><span>'+b.label+'</span><span>'+fmtCAD(b.pdsf)+'</span></div>';
-  }).join('');
-
-  document.getElementById('result-body').innerHTML =
-    '<div class="result-fournisseur">Persienne Design · Persienne'+(formeSpeciale?' · Forme Spéciale ✦':'')+'</div>'
-    +'<div class="result-produit">'+state.modele+'</div>'
-    +'<div class="result-detail">'+larg+'" × '+haut+'" · '+sysLabel+finitionLabel+couleurLabel
-    +'<br><span style="color:var(--text-dim)">Cadrage '+cadrageLabel+'</span>'
-    +(formeSpeciale?'<br><span style="color:var(--gold);font-size:10px">✦ Forme spéciale '+(modeleData.finition==='teinte'?'Teintée':'Laquée')+' — gabarit de carton obligatoire · Bois seulement</span>':'')
-    +'<br><span style="color:var(--gold-dim)">'+inclus+' panneau'+(inclus>1?'x':'')+' inclus'+(panneauxExtra>0?' + '+panneauxExtra+' extra':'')+'</span></div>'
-    +'<div class="result-prices">'
-    +'<div class="price-row"><span class="price-label">PDSF total</span><span class="price-value pdsf">'+fmtCAD(pdsfTotal)+'</span></div>'
-    +'<div class="price-row"><span class="price-label">Ton coût ('+settings.pd.pct+'%)</span><span class="price-value cout">'+fmtCAD(cout)+'</span></div>'
-    +'<div class="price-row" style="border-color:var(--gold-dim);background:rgba(26,183,183,0.12)">'
-    +'<span class="price-label" style="color:var(--gold);font-weight:500">PRIX VENDANT (×'+settings.pd.multi+')</span>'
-    +'<span class="price-value vente">'+fmtCAD(vente)+'</span></div></div>'
-    +'<div class="margin-bar-wrap"><div class="margin-label"><span>Marge brute</span><span style="color:var(--green)">'+marge+'%</span></div>'
-    +'<div class="margin-bar"><div class="margin-fill" style="width:'+Math.min(marge,100)+'%"></div></div></div>'
-    +'<div class="breakdown"><div class="breakdown-title">Détail PDSF — Persienne</div>'+bdHtml
-    +'<div class="breakdown-item" style="color:var(--text);font-weight:500;margin-top:6px;border-top:1px solid var(--border);padding-top:6px"><span>TOTAL PDSF</span><span>'+fmtCAD(pdsfTotal)+'</span></div></div>';
-
-  state.lastResult = { pdsfStore:pdsfTotal, pdsfSomfy:0, pdsfTotal:pdsfTotal, cout:cout, vente:vente, marge:marge };
+  pdFinaliser(breakdown, {
+    fournisseur: 'Persienne Design · Persienne'+(formeSpeciale?' · Forme Spéciale ✦':''),
+    produit: state.modele,
+    detail: larg+'" × '+haut+'" · '+sysLabel+finitionLabel+couleurLabel
+      +'<br><span style="color:var(--text-dim)">Cadrage '+cadrageLabel+'</span>'
+      +(formeSpeciale?'<br><span style="color:var(--gold);font-size:10px">✦ Forme spéciale '+(modeleData.finition==='teinte'?'Teintée':'Laquée')+' — gabarit de carton obligatoire · Bois seulement</span>':'')
+      +'<br><span style="color:var(--gold-dim)">'+inclus+' panneau'+(inclus>1?'x':'')+' inclus'+(panneauxExtra>0?' + '+panneauxExtra+' extra':'')+'</span>',
+    titre: 'Détail PDSF — Persienne'
+  });
 }
 
 // ══════════════════════════════════════════════════════
@@ -4703,65 +4706,29 @@ function calculatePriceSH(fmtCAD) {
   var arche      = !!state.options.shArche;
 
   var breakdown = [{label: state.modele+' ('+larg+'" × '+haut+'")', pdsf: pdsf}];
-  var pdsfStore = pdsf;
-  var pdsfSomfy = 0;
 
-  // Motorisation Tilt 50 WireFree Somfy — multiplicateur Somfy séparé
+  // Motorisation Tilt 50 WireFree Somfy — multiplicateur Somfy séparé, sans escompte de cueillette
   if (mecanisme === 'tilt50-wf') {
-    pdsfSomfy = 720;
-    breakdown.push({label: 'Motorisation Tilt 50 WireFree Somfy', pdsf: pdsfSomfy, isSomfy: true});
+    breakdown.push({label: 'Motorisation Tilt 50 WireFree Somfy', pdsf: 720, somfy: true, sansEscCueillette: true});
   }
 
   // Arche fixe
-  if (arche) {
-    breakdown.push({label: 'Arche fixe en lamelles de bois', pdsf: 250});
-    pdsfStore += 250;
-  }
-
-  var coutStore = Math.round(pdsfStore * getPct() * 100) / 100;
-  var coutSomfy = Math.round(pdsfSomfy * getPct() * settings.pd.multiSomfy * 100) / 100;
-  var cout      = coutStore + coutSomfy;
-  var venteStore = Math.round(coutStore * getMulti() * 100) / 100;
-  var venteSomfy = Math.round(pdsfSomfy * getPct() * settings.pd.multiSomfy * 100) / 100;
-  var vente      = venteStore + venteSomfy;
-  var pdsfTotal  = pdsfStore + pdsfSomfy;
-  var marge = vente > 0 ? Math.round((vente-cout)/vente*1000)/10 : 0;
+  if (arche) breakdown.push({label: 'Arche fixe en lamelles de bois', pdsf: 250});
 
   var cantLabel  = cantoniere === 'travaillee' ? 'Travaillée' : 'Carrée Zen';
   var retoursTxt = retours ? ' · avec retours' : ' · sans retours';
   var mecLabel   = mecanisme === 'tilt50-wf' ? 'Tilt 50 WireFree Somfy' : 'Sans cordes';
   var couleurLabel = couleur ? ' — '+couleur : '';
 
-  var bdHtml = breakdown.map(function(b) {
-    if (b.isSomfy) {
-      return '<div class="breakdown-item" style="color:var(--blue)">'
-        +'<span>'+b.label+' <span style="font-size:10px">(×'+settings.pd.multiSomfy+' Somfy)</span></span>'
-        +'<span>'+fmtCAD(b.pdsf)+'</span></div>';
-    }
-    return '<div class="breakdown-item"><span>'+b.label+'</span><span>'+fmtCAD(b.pdsf)+'</span></div>';
-  }).join('');
-
-  document.getElementById('result-body').innerHTML =
-    '<div class="result-fournisseur">Persienne Design · Store Horizontal</div>'
-    +'<div class="result-produit">'+state.modele+'</div>'
-    +'<div class="result-detail">'+larg+'" × '+haut+'"'+couleurLabel
-    +'<br><span style="color:var(--text-dim)">Cantonnière '+cantLabel+retoursTxt+'</span>'
-    +'<br><span style="color:var(--text-dim)">Mécanisme : '+mecLabel+'</span>'
-    +(arche?'<br><span style="color:var(--gold);font-size:10px">✦ Arche fixe — ne pivote pas · +250$ net</span>':'')
-    +'</div>'
-    +'<div class="result-prices">'
-    +'<div class="price-row"><span class="price-label">PDSF total</span><span class="price-value pdsf">'+fmtCAD(pdsfTotal)+'</span></div>'
-    +'<div class="price-row"><span class="price-label">Ton coût store ('+settings.pd.pct+'%)</span><span class="price-value cout">'+fmtCAD(coutStore)+'</span></div>'
-    +(pdsfSomfy>0?'<div class="price-row"><span class="price-label" style="color:var(--blue)">Coût Somfy ('+settings.pd.pct+'% × '+settings.pd.multiSomfy+')</span><span class="price-value" style="color:var(--blue)">'+fmtCAD(coutSomfy)+'</span></div>':'')
-    +'<div class="price-row" style="border-color:var(--gold-dim);background:rgba(26,183,183,0.12)">'
-    +'<span class="price-label" style="color:var(--gold);font-weight:500">PRIX VENDANT TOTAL</span>'
-    +'<span class="price-value vente">'+fmtCAD(vente)+'</span></div></div>'
-    +'<div class="margin-bar-wrap"><div class="margin-label"><span>Marge brute</span><span style="color:var(--green)">'+marge+'%</span></div>'
-    +'<div class="margin-bar"><div class="margin-fill" style="width:'+Math.min(marge,100)+'%"></div></div></div>'
-    +'<div class="breakdown"><div class="breakdown-title">Détail PDSF — Store Horizontal</div>'+bdHtml
-    +'<div class="breakdown-item" style="color:var(--text);font-weight:500;margin-top:6px;border-top:1px solid var(--border);padding-top:6px"><span>TOTAL PDSF</span><span>'+fmtCAD(pdsfTotal)+'</span></div></div>';
-
-  state.lastResult = { pdsfStore:pdsfTotal, pdsfSomfy:0, pdsfTotal:pdsfTotal, cout:cout, vente:vente, marge:marge };
+  pdFinaliser(breakdown, {
+    fournisseur: 'Persienne Design · Store Horizontal',
+    produit: state.modele,
+    detail: larg+'" × '+haut+'"'+couleurLabel
+      +'<br><span style="color:var(--text-dim)">Cantonnière '+cantLabel+retoursTxt+'</span>'
+      +'<br><span style="color:var(--text-dim)">Mécanisme : '+mecLabel+'</span>'
+      +(arche?'<br><span style="color:var(--gold);font-size:10px">✦ Arche fixe — ne pivote pas · +250$ net</span>':''),
+    titre: 'Détail PDSF — Store Horizontal'
+  });
 }
 
 // ══════════════════════════════════════════════════════
