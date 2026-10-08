@@ -56,6 +56,95 @@ function altexEsc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c =>
 function altexTitre(s) { return String(s || '').toLowerCase().replace(/(^|[\s(\-«\/])([a-zà-ÿ])/g, (m, a, b) => a + b.toUpperCase()); }
 function altexSys(s) { return altexTitre(s).replace(/\bRts\b/, 'RTS').replace(/\bAtx\b/, 'ATX').replace(/\bAvec\b/, 'avec'); }
 
+// ── Motorisation à la carte (guide Résidentiel 2026, p. 345-369) ──
+// p = prix par colonne du guide : D = District (et Ambio), A = Absolute 2.0 (et Ambio), X = toile ATX ; min = largeur minimale finie
+// pr = protocole (contrôles offerts) ; alim = alimentations et accessoires offerts ; br = branchements 120 V (prix du moteur AVEC ce branchement)
+const ALTEX_BR = {
+  S40: [['402', 'Fast Connect femelle 1,4 pi, fiche Nema', 1008], ['403', 'Fast Connect femelle 4,4 pi, fiche Nema', 1021], ['404', 'Fast Connect femelle 10,4 pi, fiche Nema *', 1068],
+        ['405', 'Fast Connect femelle 18 pi, fiche Nema *', 1098], ['406', 'Fast Connect femelle 24 pi, fiche Nema *', 1123], ['407', 'Fast Connect femelle 8,4 pi, fil nu', 1036],
+        ['408', 'Wago femelle seulement (aucun filage)', 1022], ['409', 'Wago femelle 10 pi, fil nu', 1063], ['410', 'Wago femelle 24 pi, fil nu', 1122]],
+  S50: [['502', 'Fil 1,5 pi, fiche Nema', 1018], ['503', 'Fil 6 pi, fiche Nema', 1026], ['504', 'Fil 18 pi, fiche Nema *', 1037], ['505', 'Fil 24 pi, fiche Nema *', 1073],
+        ['506', 'Fast Connect femelle 1,4 pi, fiche Nema *', 1137], ['507', 'Fast Connect femelle 4,4 pi, fiche Nema *', 1150], ['508', 'Fast Connect femelle 8,4 pi, fiche Nema *', 1165],
+        ['509', 'Fast Connect femelle 10,4 pi, fiche Nema *', 1197], ['510', 'Fast Connect femelle 18 pi, fiche Nema *', 1227], ['511', 'Fast Connect femelle 24 pi, fiche Nema *', 1252],
+        ['512', 'Fast Connect femelle 8,4 pi, fil nu *', 1165], ['513', 'Wago femelle seulement *', 1029], ['514', 'Wago femelle 10 pi, fil nu *', 1070], ['515', 'Wago femelle 24 pi, fil nu *', 1129]],
+  S50U: [['502', 'Fil 1,5 pi, fiche Nema', 1274], ['503', 'Fil 6 pi, fiche Nema', 1282], ['504', 'Fil 18 pi, fiche Nema *', 1293], ['505', 'Fil 24 pi, fiche Nema *', 1329],
+        ['506', 'Fast Connect femelle 1,4 pi, fiche Nema *', 1393], ['507', 'Fast Connect femelle 4,4 pi, fiche Nema *', 1406], ['508', 'Fast Connect femelle 8,4 pi, fiche Nema *', 1421],
+        ['509', 'Fast Connect femelle 10,4 pi, fiche Nema *', 1453], ['510', 'Fast Connect femelle 18 pi, fiche Nema *', 1483], ['511', 'Fast Connect femelle 24 pi, fiche Nema *', 1508],
+        ['512', 'Fast Connect femelle 8,4 pi, fil nu *', 1421], ['513', 'Wago femelle seulement *', 1285], ['514', 'Wago femelle 10 pi, fil nu *', 1326], ['515', 'Wago femelle 24 pi, fil nu *', 1385]],
+  S40Z: [['412', 'Fast Connect femelle 1,4 pi, fiche Nema', 1223], ['413', 'Fast Connect femelle 4,4 pi, fiche Nema', 1236], ['414', 'Fast Connect femelle 10,4 pi, fiche Nema *', 1283],
+        ['415', 'Fast Connect femelle 18 pi, fiche Nema *', 1313], ['416', 'Fast Connect femelle 24 pi, fiche Nema *', 1338], ['417', 'Fast Connect femelle 8,4 pi, fil nu', 1251],
+        ['418', 'Wago femelle seulement (aucun filage)', 1237], ['419', 'Wago femelle 10 pi, fil nu', 1278], ['420', 'Wago femelle 24 pi, fil nu', 1337]],
+};
+const ALTEX_MOTEURS = [
+  { v: 'S28E-RTS', pr: 'RTS', l: 'Somfy Sonesse 28 RTS pile externe (bloc-piles requis)', p: { D: 589, A: 589 }, min: { D: 18, A: 17 }, alim: 'piles', req: ['BLOC'] },
+  { v: 'S28R-RTS', pr: 'RTS', l: 'Somfy Sonesse 28 RTS rechargeable', p: { D: 686, A: 686 }, min: { D: 26, A: 24 }, alim: 'piles' },
+  { v: 'S30U-RTS', pr: 'RTS', l: 'Somfy Sonesse 30 Ultra RTS rechargeable (ultra-silencieux)', p: { D: 764, A: 764 }, min: { D: 30, A: 28 }, alim: 'piles' },
+  { v: 'S40R-RTS', pr: 'RTS', l: 'Somfy Sonesse 40 RTS rechargeable', p: { D: 1127, A: 1127 }, min: { D: 30, A: 28 }, alim: 'piles' },
+  { v: 'S30-24-RTS', pr: 'RTS', l: 'Somfy Sonesse 30 RTS 24 V (branché)', p: { D: 847, A: 847 }, min: { D: 22, A: 21 }, alim: '24v' },
+  { v: 'S50U-24-RTS', pr: 'RTS', l: 'Somfy Sonesse 50 Ultra RTS 24 V (branché)', p: { X: 1603 }, min: { X: 39 }, alim: '24v' },
+  { v: 'S40-120-RTS', pr: 'RTS', l: 'Somfy Sonesse 40 RTS 120 V (branché, électricien requis)', p: { D: 1036, A: 1036 }, min: { D: 26, A: 22 }, br: 'S40', std: '401' },
+  { v: 'S50-120-RTS', pr: 'RTS', l: 'Somfy Sonesse 50 RTS 120 V (branché, électricien requis)', p: { A: 1032, X: 1032 }, min: { A: 29, X: 35 }, apparentA: true, br: 'S50', std: '501' },
+  { v: 'S50U-120-RTS', pr: 'RTS', l: 'Somfy Sonesse 50 Ultra RTS 120 V (ultra-silencieux, électricien requis)', p: { A: 1288, X: 1288 }, min: { A: 35, X: 39 }, apparentA: true, br: 'S50U', std: '501' },
+  { v: 'S28E-Z', pr: 'ZIG', l: 'Somfy Sonesse 28 Zigbee pile externe (bloc-piles requis)', p: { D: 631, A: 631 }, min: { D: 18, A: 17 }, alim: 'piles', req: ['BLOC'] },
+  { v: 'S28R-Z', pr: 'ZIG', l: 'Somfy Sonesse 28 Zigbee rechargeable', p: { D: 721, A: 721 }, min: { D: 26, A: 24 }, alim: 'piles' },
+  { v: 'S30U-Z', pr: 'ZIG', l: 'Somfy Sonesse 30 Ultra Zigbee rechargeable (ultra-silencieux)', p: { D: 811, A: 811 }, min: { D: 30, A: 28 }, alim: 'piles' },
+  { v: 'S40R-Z', pr: 'ZIG', l: 'Somfy Sonesse 40 Zigbee rechargeable (composantes USB-C)', p: { D: 1345, A: 1345 }, min: { D: 30, A: 28 }, alim: 'usbc' },
+  { v: 'S30-24-Z', pr: 'ZIG', l: 'Somfy Sonesse 30 Zigbee 24 V (branché)', p: { D: 1053, A: 1053 }, min: { D: 23, A: 22 }, alim: '24v' },
+  { v: 'S40-120-Z', pr: 'ZIG', l: 'Somfy Sonesse 40 Zigbee 120 V (branché, électricien requis)', p: { D: 1251, A: 1251 }, min: { D: 26, A: 22 }, br: 'S40Z', std: '411' },
+  { v: 'MB-CM45-PO', pr: 'MB', l: 'Motionblinds Pull CM-45 PO (sans télécommande)', p: { D: 234, A: 234, X: 234 }, alim: 'mb', abs: true },
+  { v: 'MB-CM45-B', pr: 'MB', l: 'Motionblinds Bluetooth CM-45', p: { D: 315, A: 315, X: 315 }, alim: 'mb' },
+  { v: 'MB-CM03-B', pr: 'MB', l: 'Motionblinds Bluetooth CM-03', p: { D: 588, A: 588, X: 588 }, alim: 'mb' },
+  { v: 'MB-CM05-B', pr: 'MB', l: 'Motionblinds Bluetooth CM-05', p: { D: 857, A: 857, X: 857 }, alim: 'mb' },
+  { v: 'MB-CM06-B', pr: 'MB', l: 'Motionblinds Bluetooth CM-06', p: { D: 774, A: 774, X: 774 }, alim: 'mb' },
+  { v: 'MB-CM03-E', pr: 'MB', l: 'Motionblinds Eve CM-03', p: { D: 677, A: 677, X: 677 }, alim: 'mb' },
+  { v: 'MB-CM06-E', pr: 'MB', l: 'Motionblinds Eve CM-06', p: { D: 958, A: 958, X: 958 }, alim: 'mb' },
+];
+const ALTEX_ALIMS = {
+  piles: [['CH56', 'Chargeur Li-ion V2 [9025166] (obligatoire pour recharger)', 56], ['SOL309', 'Panneau solaire Li-ion [9027294]', 309], ['ADM29', 'Adaptateur magnétique [9028562] (1 par moteur)', 29],
+          ['CRM39', 'Câble rigide magnétique [9028560]', 39], ['EXT17', 'Fil d\'extension 7,5 po [9021131] (inclus avec fascia ou cassette)', 17], ['EXT24', 'Fil d\'extension 94,5 po [9021016]', 24],
+          ['BLOC', 'Bloc piles rechargeables Li-ion [9021217]', 203]],
+  usbc: [['CHC68', 'Chargeur rapide Li-ion USB-C [9028923]', 68], ['ADMC14', 'Adaptateur magnétique USB-C [9028564] (1 par moteur)', 14], ['CRMC41', 'Câble rigide magnétique USB-C [9028563]', 41],
+         ['EXTC38', 'Câble d\'extension 8 po USB-C [9028565] (inclus avec fascia ou cassette)', 38], ['SOL309', 'Panneau solaire Li-ion [9027294]', 309]],
+  '24v': [['TR141', 'Transformateur individuel mural [1822209] (sans électricien)', 141], ['BX5', 'Boîtier d\'alimentation — jusqu\'à 5 moteurs [1870196]', 2535],
+          ['BX10', 'Boîtier d\'alimentation — jusqu\'à 10 moteurs [1870192]', 4043], ['BX15', 'Boîtier d\'alimentation — jusqu\'à 15 moteurs [1870197]', 5236],
+          ['BX20', 'Boîtier d\'alimentation — jusqu\'à 20 moteurs [1870198]', 6240]],
+  mb: [['MBUSB', 'Fil de charge USB-C 10 pi [CD02-0180]', 25]],
+};
+const ALTEX_CTRLS_PR = {
+  RTS: [['SITUO1', 'Télécommande Situo 1 canal', 186], ['SITUO5', 'Télécommande Situo 5 canaux', 245], ['SITUO5V', 'Télécommande Situo 5 Variation (Ambio)', 323],
+        ['TELIS16', 'Télécommande Telis 16 canaux (écran)', 723], ['SMOOVE1', 'Interrupteur Smoove 1 canal', 239], ['SMOOVE4', 'Interrupteur Smoove 4 canaux', 306],
+        ['DECO1', 'Interrupteur DecoFlex 1 canal (encastré, à piles)', 385], ['DECO5', 'Interrupteur DecoFlex 5 canaux (encastré, à piles)', 403],
+        ['DECO5S', 'Interrupteur DecoFlex 5 Surface RTS', 445], ['DECO5A', 'Adaptateur encastrable DecoFlex 5', 72], ['REPRTS', 'Répéteur RTS', 534], ['URTSI', 'Interface URTSI RTS 16 canaux', 1485],
+        ['TAHOM', 'Kit TaHoma (concentrateur + adaptateur Ethernet)', 687], ['TAHOS', 'Concentrateur TaHoma Switch (wifi seulement)', 611], ['TAHOE', 'Adaptateur Ethernet TaHoma', 92]],
+  ZIG: [['YSIA1', 'Télécommande Ysia 1 canal', 196], ['YSIA5', 'Télécommande Ysia 5 canaux', 260], ['YSIA5V', 'Télécommande Ysia 5 Variation (Ambio)', 379],
+        ['DZ2E', 'Interrupteur DecoFlex Zigbee 2 canaux encastré', 504], ['DZ4E', 'Interrupteur DecoFlex Zigbee 4 canaux encastré', 504],
+        ['DZ2S', 'Interrupteur DecoFlex Zigbee 2 canaux surface', 504], ['DZ4S', 'Interrupteur DecoFlex Zigbee 4 canaux surface', 504], ['ZPLUG', 'Prise intelligente Zigbee', 138],
+        ['TAHOM', 'Kit TaHoma (concentrateur + adaptateur Ethernet)', 687], ['TAHOS', 'Concentrateur TaHoma Switch (wifi seulement)', 611], ['TAHOE', 'Adaptateur Ethernet TaHoma', 92]],
+  MB: [['CM-11', 'Télécommande Motionblinds 1 canal', 84], ['CM-12', 'Télécommande Motionblinds 5 canaux', 119], ['CM-13', 'Télécommande Motionblinds 15 canaux', 204]],
+};
+// moteur contenu dans chaque kit (même largeur minimum que le moteur à la carte)
+const ALTEX_KIT_MOTEUR = { 'K-S30i-U': 'S30U-RTS', 'K-S28i': 'S28R-RTS', 'K-S30': 'S30-24-RTS', 'K-S40': 'S40-120-RTS',
+  'K-S30i-U-Z': 'S30U-Z', 'K-S28i-Z': 'S28R-Z', 'K-S30-Z': 'S30-24-Z', 'K-S40-Z': 'S40-120-Z' };
+function altexKitProbleme(k, larg) { const m = ALTEX_MOTEURS.find(x => x.v === ALTEX_KIT_MOTEUR[k]); return m ? altexMoteurProbleme(m, larg) : null; }
+// protocole d'un kit « motorisation simplifiée »
+const altexPrKit = k => /^K-CM/.test(k) ? 'MB' : /-Z$/.test(k) ? 'ZIG' : 'RTS';
+function altexColMoteur() { const s = state.altex.s || ''; return /ATX/.test(s) ? 'X' : /ABSOLUTE/.test(s) ? 'A' : 'D'; }
+function altexMoteurProbleme(m, larg) {
+  const c = altexColMoteur();
+  if (!m.p[c]) return 'non offert avec ce système';
+  if (m.apparentA && c === 'A' && state.altex.ty !== 'Rouleau apparent') return 'rouleau apparent seulement';
+  if (m.min && m.min[c] && larg < m.min[c]) return 'largeur minimum ' + m.min[c] + '"';
+  if (m.abs && c !== 'A') return 'Absolute 2.0 seulement';
+  if (state.altex.g === 'V' && m.pr !== 'MB') return 'Meilleure valeur : Motionblinds seulement';
+  if (state.altex.g === 'A' && m.pr === 'ZIG') return 'pas offert dans ce guide';
+  return null;
+}
+function altexSelectGroupes(id, groupes, val, onch) {
+  return '<select id="' + id + '" onchange="' + onch + '">' + groupes.map(g => g.opts.length ? (g.titre ? '<optgroup label="' + altexEsc(g.titre) + '">' : '')
+    + g.opts.map(o => '<option value="' + altexEsc(o.v) + '"' + (String(o.v) === String(val) ? ' selected' : '') + (o.off ? ' disabled' : '') + '>' + altexEsc(o.l) + '</option>').join('')
+    + (g.titre ? '</optgroup>' : '') : '').join('') + '</select>';
+}
+
 // ── Gabarit VP (2026-10-08, demande de Sam) ─────────────
 // 1 — Produit : Type de produit (Toile à rouleau) → Tissu (par guide) → Couleur du tissu
 // 2 — Dimensions
@@ -328,11 +417,37 @@ function buildOptionsAltex(larg, haut) {
       + altexSelect('altex-opt-batons', ALTEX_COULEURS_BATONS.map(c => ({ v: c, l: c })), opt.altexBatons, 'state.options.altexBatons=this.value;calculatePriceAltex();') + '</div>';
   }
   if (/MOTORIS/.test(a.s)) {
-    meca += '<label for="altex-opt-kit" style="font-size:11px;color:var(--text-dim);display:block;margin:10px 0 5px">Moteur</label><div>' + altexSelect('altex-opt-kit', [{ v: '', l: 'Aucun moteur' }, ...altexKitsGuide(ALTEX_KITS).map(k => ({ v: k.v, l: k.l + ' — +' + k.p + ' $' }))],
-      opt.altexKit || '', 'state.options.altexKit=this.value;calculatePriceAltex();') + '</div>';
-    meca += '<label for="altex-opt-ctrl" style="font-size:11px;color:var(--text-dim);display:block;margin:10px 0 5px">Contrôle (télécommande, interrupteur)</label><div>' + altexSelect('altex-opt-ctrl', [{ v: '', l: 'Aucun' }, ...altexKitsGuide(ALTEX_CTRLS).map(k => ({ v: k.v, l: k.l + ' — +' + k.p + ' $' }))],
-      opt.altexCtrl || '', 'state.options.altexCtrl=this.value;calculatePriceAltex();') + '</div>';
-    meca += '<div style="font-size:11px;color:var(--text-dim);margin-top:5px">Prix de la toile SANS moteur : le kit s\'ajoute. Vérifier la compatibilité du moteur (couleur de la case dans le guide).</div>';
+    const kits = altexKitsGuide(ALTEX_KITS).map(k => { const pb = altexKitProbleme(k.v, larg); return { v: k.v, l: 'Kit ' + k.l + ' — +' + k.p + ' $' + (pb ? ' ⚠ ' + pb : ''), off: !!pb }; });
+    const carte = pr => ALTEX_MOTEURS.filter(m => m.pr === pr).map(m => { const pb = altexMoteurProbleme(m, larg); const c = altexColMoteur();
+      return { v: 'M:' + m.v, l: m.l + (m.p[c] ? ' — +' + m.p[c] + ' $' : '') + (pb ? ' ⚠ ' + pb : ''), off: !!pb }; });
+    meca += '<label for="altex-opt-kit" style="font-size:11px;color:var(--text-dim);display:block;margin:10px 0 5px">Moteur</label><div>' + altexSelectGroupes('altex-opt-kit', [
+      { opts: [{ v: '', l: 'Aucun moteur' }] },
+      { titre: 'Kits « motorisation simplifiée » (moteur + alimentation inclus)', opts: kits },
+      { titre: 'Somfy RTS — moteur à la carte', opts: carte('RTS') },
+      { titre: 'Somfy Zigbee — moteur à la carte', opts: carte('ZIG') },
+      { titre: 'Motionblinds — moteur à la carte', opts: carte('MB') },
+    ], opt.altexKit || '', 'state.options.altexKit=this.value;delete state.options.altexBr;state.options.altexAlims={};delete state.options.altexCtrl;state._altexOptCle=null;calculatePriceAltex();') + '</div>';
+    const mot = /^M:/.test(opt.altexKit || '') ? ALTEX_MOTEURS.find(m => 'M:' + m.v === opt.altexKit) : null;
+    const pr = mot ? mot.pr : opt.altexKit ? altexPrKit(opt.altexKit) : null;
+    if (mot && mot.br) {
+      meca += '<label for="altex-opt-br" style="font-size:11px;color:var(--text-dim);display:block;margin:10px 0 5px">Branchement 120 V (prix du moteur avec ce branchement)</label><div>'
+        + altexSelect('altex-opt-br', [{ v: '', l: 'Standard — fil 10 pi avec fiche Nema à plat (code ' + mot.std + ') — +' + mot.p[altexColMoteur()] + ' $' },
+          ...ALTEX_BR[mot.br].map(b => ({ v: b[0], l: 'Code ' + b[0] + ' — ' + b[1] + ' — +' + b[2] + ' $' }))], opt.altexBr || '', 'state.options.altexBr=this.value;calculatePriceAltex();') + '</div>'
+        + '<div style="font-size:11px;color:var(--text-dim);margin-top:5px">* Commande spéciale : délais possibles, aucun retour.</div>';
+    }
+    if (mot && ALTEX_ALIMS[mot.alim]) {
+      opt.altexAlims = opt.altexAlims || {};
+      (mot.req || []).forEach(k => { opt.altexAlims[k] = true; });
+      meca += '<label style="font-size:11px;color:var(--text-dim);display:block;margin:10px 0 5px">Alimentation et accessoires du moteur</label>'
+        + ALTEX_ALIMS[mot.alim].map(x => altexCase_('altex-alim-' + x[0], x[1] + ' — +' + x[2] + ' $' + ((mot.req || []).includes(x[0]) ? ' (requis)' : ''), !!opt.altexAlims[x[0]], (mot.req || []).includes(x[0]),
+          "state.options.altexAlims=state.options.altexAlims||{};state.options.altexAlims['" + x[0] + "']=this.checked;calculatePriceAltex();")).join('');
+    }
+    if (pr) {
+      meca += '<label for="altex-opt-ctrl" style="font-size:11px;color:var(--text-dim);display:block;margin:10px 0 5px">Contrôle (télécommande, interrupteur, concentrateur)</label><div>'
+        + altexSelect('altex-opt-ctrl', [{ v: '', l: 'Aucun' }, ...ALTEX_CTRLS_PR[pr].map(k => ({ v: k[0], l: k[1] + ' — +' + k[2] + ' $' }))], opt.altexCtrl || '',
+          'state.options.altexCtrl=this.value;calculatePriceAltex();') + '</div>';
+    }
+    meca += '<div style="font-size:11px;color:var(--text-dim);margin-top:5px">Prix de la toile SANS moteur : le moteur s\'ajoute. Kit = moteur + alimentation déjà comptés ; à la carte = ajouter l\'alimentation. Vérifier la compatibilité du moteur (couleur de la case dans le guide). Préciser les canaux sur le bon de commande.</div>';
   }
   html += altexSection('Mécanisme & Motorisation', meca);
 
@@ -357,7 +472,7 @@ function buildOptionsAltex(larg, haut) {
 function altexSetEntete(v) { state.altex.e = v; altexAppliquerEntete(); state._altexOptCle = null; calculatePriceAltex(); }
 function altexSetMecanisme(s) {
   state.altex.s = s;
-  ['altexKit', 'altexCtrl', 'altexDiss', 'altexCoulLat'].forEach(k => { delete state.options[k]; });
+  ['altexKit', 'altexCtrl', 'altexDiss', 'altexCoulLat', 'altexBr', 'altexAlims'].forEach(k => { delete state.options[k]; });
   altexDefauts(); state._altexOptCle = null; calculatePriceAltex();
 }
 function altexToggle(el, l) {
@@ -375,7 +490,7 @@ function calculatePriceAltex() {
   if (!larg || !haut) { hide('card-options'); resetResult(); return; }
   const alertEl = document.getElementById('alert-dim'), noteEl = document.getElementById('note-dim');
   const r = altexGrille(larg, haut);
-  const cle = [a.g, a.t, a.s, a.e, larg, haut, state.options.altexAlu, state.options.altexCoulLat, state.options.altexMarche].join('|');
+  const cle = [a.g, a.t, a.s, a.e, larg, haut, state.options.altexAlu, state.options.altexCoulLat, state.options.altexMarche, state.options.altexKit].join('|');
   if (!r.c) {
     const g = r.g;
     alertEl.textContent = g ? `⚠ Non offert à ${larg}" × ${haut}" pour ce tissu / mécanisme / entête (grille : ${g.L[0]}"–${g.L[g.L.length - 1]}" × ${g.H[0]}"–${g.H[g.H.length - 1]}"; « - » = non disponible). Guide p. ${g.p}.`
@@ -435,10 +550,24 @@ function calculatePriceAltex() {
     spec.chaine = (opt.altexMarche === 'com' ? 'commercial, ' : '') + kitCh.t + ' [' + kitCh.kit + ']';
   }
   // Moteur + contrôle (même multiplicateur que la toile)
-  const kit = ALTEX_KITS.find(k => k.v === opt.altexKit);
-  if (kit && /MOTORIS/.test(a.s)) { ajout('Moteur ' + kit.l + ' [' + kit.v + ']', kit.p); spec.kit = kit.l; }
-  const ctrl = ALTEX_CTRLS.find(k => k.v === opt.altexCtrl);
-  if (ctrl && /MOTORIS/.test(a.s)) { ajout(ctrl.l + ' [' + ctrl.v + ']', ctrl.p); spec.ctrl = ctrl.l; }
+  if (/MOTORIS/.test(a.s) && opt.altexKit) {
+    const kit = ALTEX_KITS.find(k => k.v === opt.altexKit);
+    const mot = /^M:/.test(opt.altexKit) ? ALTEX_MOTEURS.find(m => 'M:' + m.v === opt.altexKit) : null;
+    let pr = null;
+    if (kit && altexKitProbleme(kit.v, larg)) { alertEl.textContent = '⚠ Kit ' + kit.l + ' : ' + altexKitProbleme(kit.v, larg) + ' — choisir un autre moteur.'; alertEl.classList.add('show'); resetResult(); state.lastResult = null; return; }
+    if (kit) { ajout('Kit moteur ' + kit.l + ' [' + kit.v + ']', kit.p); spec.kit = 'Kit ' + kit.l + ' [' + kit.v + ']'; pr = altexPrKit(kit.v); }
+    else if (mot) {
+      const pb = altexMoteurProbleme(mot, larg);
+      if (pb) { alertEl.textContent = '⚠ ' + mot.l + ' : ' + pb + ' — choisir un autre moteur.'; alertEl.classList.add('show'); resetResult(); state.lastResult = null; return; }
+      const br = mot.br && opt.altexBr ? ALTEX_BR[mot.br].find(b => b[0] === opt.altexBr) : null;
+      ajout(mot.l + (br ? ' — branchement code ' + br[0] : mot.std ? ' — branchement standard (code ' + mot.std + ')' : ''), br ? br[2] : mot.p[altexColMoteur()]);
+      spec.kit = mot.l + (br ? ' — branchement code ' + br[0] + ' (' + br[1].replace(' *', '') + ')' : '');
+      pr = mot.pr;
+      (ALTEX_ALIMS[mot.alim] || []).forEach(x => { if ((opt.altexAlims || {})[x[0]] || (mot.req || []).includes(x[0])) { ajout(x[1].replace(/ \(.*\)$/, ''), x[2]); (spec.alims = spec.alims || []).push(x[1].replace(/ \(.*\)$/, '')); } });
+    }
+    const ctrl = pr && (ALTEX_CTRLS_PR[pr] || []).find(k => k[0] === opt.altexCtrl);
+    if (ctrl) { ajout(ctrl[1] + ' [' + ctrl[0] + ']', ctrl[2]); spec.ctrl = ctrl[1]; }
+  }
   // Accessoires
   const acc = [];
   Object.keys(opt.altexAutres || {}).forEach(l => {
@@ -476,6 +605,7 @@ function calculatePriceAltex() {
     spec.chaine ? 'Chaînette : ' + spec.chaine : '',
     altexABatons() ? 'Couleur des bâtons : ' + (opt.altexBatons || '') : '',
     spec.kit ? 'Moteur : ' + spec.kit : '',
+    spec.alims ? 'Alimentation : ' + spec.alims.join(', ') : '',
     spec.ctrl ? 'Contrôle : ' + spec.ctrl : '',
     'Côté contrôle : ' + (opt.altexCote === 'gauche' ? 'Contrôle gauche' : 'Contrôle droit'),
     acc.length ? 'Accessoires : ' + acc.join(', ') : '',
