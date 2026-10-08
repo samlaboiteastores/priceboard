@@ -517,7 +517,7 @@
         <span class="nav-dot"></span>Paramètres
       </div>
     </nav>
-    <div class="sidebar-footer">v4.4 · VP + PD + SBM + SOL-R + Normandie + Signature Textiles + Verotex 2026</div>
+    <div class="sidebar-footer">v4.5 · VP + PD + SBM + SOL-R + Altex + Elite + Normandie + Signature Textiles + Verotex 2026</div>
   </aside>
 
   <!-- MAIN -->
@@ -555,6 +555,7 @@
                     <option value="norm">Draperie Normandie</option>
                     <option value="sig">Signature Textiles</option>
                     <option value="altex">Altex — Toiles à rouleau</option>
+                    <option value="elite">Elite — Stores</option>
                     <option value="vtx">Verotex — Rideau Séparateur</option>
                   </select>
                 </div>
@@ -3206,6 +3207,7 @@ function loadSettings() {
   if (!settings.norm.multiSomfy) settings.norm.multiSomfy = 1.5;
   if (!settings.vtx)  settings.vtx  = { pct: 100, multi: 1.0 };
   if (!settings.altex) settings.altex = { multi: 2.0 };
+  if (!settings.elite) settings.elite = { pct: 22.5, multi: 2.0, multiSomfy: 1.5 };   // Elite : 77,5 % de rabais sur la liste (MSRP)
   if (document.getElementById('admin-multi-altex')) document.getElementById('admin-multi-altex').value = settings.altex.multi;
   if (!settings.svc)  settings.svc  = { multi: 1.35 };
   document.getElementById('admin-pct-vp').value = settings.vp.pct;
@@ -3409,6 +3411,7 @@ function onFournisseurChange() {
   hide('row-altex'); hide('row-sig');
   multiDimsUI(1);   // le bloc toiles/stores 2-3 ne reste jamais affiché d'un fournisseur à l'autre
   if (state.fournisseur === 'altex') { altexOnFournisseur(); return; }
+  if (state.fournisseur === 'elite') { eliteOnFournisseur(); return; }
   show('row-type', !!state.fournisseur);
   // Réinitialiser TOUT l'état au changement de fournisseur
   state.type = ''; state.modele = ''; state.couleur = '';
@@ -3496,6 +3499,7 @@ function onFournisseurChange() {
 
 function onTypeChange() {
   if (state.fournisseur === 'altex') { altexOnType(); return; }   // Altex : gabarit VP (altex.js)
+  if (state.fournisseur === 'elite') { eliteOnType(); return; }   // Elite : gabarit VP (elite.js)
   state.type = document.getElementById('sel-type').value;
   if (!state.type) { hide('row-modele'); return; }
 
@@ -3562,6 +3566,7 @@ function onTypeChange() {
 
 function onModeleChange() {
   if (state.fournisseur === 'altex') { altexOnModele(); return; }   // Altex : tissu choisi (altex.js)
+  if (state.fournisseur === 'elite') { eliteOnModele(); return; }   // Elite : tissu choisi (elite.js)
   state.modele = document.getElementById('sel-modele').value;
   if (!state.modele) return;
   // LBAS: memoriser mesures + couleur pour comparer vite un autre tissu/modele
@@ -3648,6 +3653,7 @@ function onDimChange() {
 
   // ── Altex — grille par tissu / système / type (altex.js) ──
   if (state.fournisseur === 'altex') { calculatePriceAltex(); return; }
+  if (state.fournisseur === 'elite') { calculatePriceElite(); return; }
 
   if (!state.modele || !state.type) { resetResult(); return; }
 
@@ -13561,6 +13567,7 @@ function _buildResumeLines() {
 
   const f   = state.fournisseur;
   if (f === 'altex') return (state.altexResume && state.altexResume.length && state.lastResult) ? state.altexResume.slice() : null;
+  if (f === 'elite') return (state.eliteResume && state.eliteResume.length && state.lastResult) ? state.eliteResume.slice() : null;
   if (state.type === 'sig-grille') return (state.sigResume && state.sigResume.length && state.lastResult) ? state.sigResume.slice() : null;
   const opt = state.options;
   const lines = [];
@@ -14224,6 +14231,7 @@ function copyResume() {
     if (typeof onFournisseurChange === 'function') { try { onFournisseurChange(); } catch (e) {} }
 
     if (f === 'altex' && typeof window.altexRestore === 'function') { window.altexRestore(saved, ctrls); return; }
+    if (f === 'elite' && typeof window.eliteRestore === 'function') { window.eliteRestore(saved, ctrls); return; }
 
     // 2) Type (SBM / Normandie)
     if (saved.type) {
@@ -14336,6 +14344,7 @@ function copyResume() {
 })();
 </script>
 <script src="altex.js"></script>
+<script src="elite.js"></script>
 <script src="sig_grilles_data.js"></script>
 <script src="sig_grilles.js"></script>
 </body>
