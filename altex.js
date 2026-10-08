@@ -64,6 +64,21 @@ function altexSys(s) { return altexTitre(s).replace(/\bRts\b/, 'RTS').replace(/\
 //     apparent, cassette ronde, cassette semi-ouverte et son format) ou la dissimulation ajoutée au rouleau apparent.
 const ALTEX_COULEURS_ALU = ['Blanc', 'Clair anodisé', 'Noir', 'Bronze foncé'];
 const ALTEX_BF = 'Bronze foncé';
+// Couleurs des composantes de plastique (guides 2026) ; avec l'aluminium bronze foncé, les composantes sont noires
+function altexCouleursComposantes() {
+  const a = state.altex;
+  if (state.options.altexAlu === ALTEX_BF) return ['Noir'];
+  if (/DISTRICT/.test(a.s)) return ['Blanc pur', 'Gris', 'Noir'];
+  if (a.g === 'V' || (altexCoulLat() && state.options.altexCoulLat != null)) return ['Blanc', 'Gris', 'Noir'];
+  return ['Blanc', 'Écru', 'Gris', 'Anthracite', 'Bronze', 'Noir'];
+}
+const ALTEX_COULEURS_BATONS = ['Blanc mat', 'Clair anodisé', 'Acier inoxydable', 'Noir mat'];
+function altexABatons() { return /BÂTONS|TWIN PULL/.test(state.altex.s || ''); }
+function altexChaines() { const a = state.altex; return (window.ALTEX.chaines || {})[a.g + '|' + a.s] || null; }
+// Bronze foncé offert seulement si le guide a des options « • BF » pour ce système
+function altexCouleursAlu() {
+  return altexOptionsSysteme().some(o => /•\s*BF\b/.test(o.l)) ? ALTEX_COULEURS_ALU : ALTEX_COULEURS_ALU.filter(c => c !== ALTEX_BF);
+}
 
 function altexOnFournisseur() {
   state.type = ''; state.modele = ''; state.options = {}; state.altex = {}; state.tissuCouleur = '';
@@ -239,7 +254,9 @@ function altexCase_(id, label, on, off, onch) {
 function buildOptionsAltex(larg, haut) {
   const a = state.altex, opt = state.options, ops = altexOptionsSysteme();
   const fmt = v => v == null ? 'n/d' : '+' + v + ' $';
-  if (!opt.altexAlu) opt.altexAlu = 'Blanc';
+  if (!altexCouleursAlu().includes(opt.altexAlu)) opt.altexAlu = 'Blanc';
+  const comps = altexCouleursComposantes();
+  if (!comps.includes(opt.altexComp)) opt.altexComp = comps[0];
   if (!opt.altexCote) opt.altexCote = 'droit';
   let html = '';
 
@@ -251,7 +268,7 @@ function buildOptionsAltex(larg, haut) {
   }), a.e, 'altexSetEntete(this.value)'));
 
   // Couleur de l'aluminium (bronze foncé = prix Premium des cassettes, fascias, bases et coulisses)
-  let alu = altexSelect('altex-opt-alu', ALTEX_COULEURS_ALU.map(c => ({ v: c, l: c === ALTEX_BF ? 'Bronze foncé (Premium, supplément)' : c })), opt.altexAlu,
+  let alu = altexSelect('altex-opt-alu', altexCouleursAlu().map(c => ({ v: c, l: c === ALTEX_BF ? 'Bronze foncé (Premium, supplément)' : c })), opt.altexAlu,
     'state.options.altexAlu=this.value;state._altexOptCle=null;calculatePriceAltex();');
   if (opt.altexAlu === ALTEX_BF && a.e !== 'RA' && !/^D:/.test(a.e || '')) {
     const supp = ops.filter(o => /•\s*BF\b/.test(o.l) && /^(Cassette|Fascia)/.test(o.l));
@@ -259,6 +276,10 @@ function buildOptionsAltex(larg, haut) {
       ...supp.map(o => { const p = altexPrixOpt(o, larg); return { v: o.l, l: altexLab(o.l) + ' — ' + fmt(p), off: p == null }; })],
       opt.altexDiss || '', 'state.options.altexDiss=this.value;calculatePriceAltex();') + '</div>';
   }
+  alu += '<label for="altex-opt-comp" style="font-size:11px;color:var(--text-dim);display:block;margin:10px 0 5px">Couleur des composantes (plastique)</label><div>'
+    + altexSelect('altex-opt-comp', comps.map(c => ({ v: c, l: c })), opt.altexComp, 'state.options.altexComp=this.value;calculatePriceAltex();') + '</div>'
+    + (altexChaines() && /ABSOLUTE/.test(a.s) ? '<div style="font-size:11px;color:var(--text-dim);margin-top:5px">La chaînette de plastique prend la couleur des composantes.</div>' : '');
+  if (opt.altexAlu === ALTEX_BF) alu += '<div style="font-size:11px;color:var(--text-dim);margin-top:5px">Avec l\'aluminium bronze foncé, les composantes de plastique et de métal sont noires.</div>';
   html += altexSection("Couleur de l'aluminium", alu);
 
   // Base
@@ -287,6 +308,18 @@ function buildOptionsAltex(larg, haut) {
   // Mécanisme & Motorisation : le système choisit la grille
   const systemes = [...new Set(altexGrillesTissu().map(g => g.s))];
   let meca = altexSelect('altex-opt-meca', systemes.map(s => ({ v: s, l: altexSys(s) })), a.s, 'altexSetMecanisme(this.value)');
+  const ch = altexChaines();
+  if (ch) {
+    if (!ch.kits.some(k => k.kit === opt.altexChaine)) opt.altexChaine = ch.kits[0].kit;
+    meca += '<label for="altex-opt-chaine" style="font-size:11px;color:var(--text-dim);display:block;margin:10px 0 5px">Type de chaînette (résidentiel, gaine de sécurité incluse)</label><div>'
+      + altexSelect('altex-opt-chaine', ch.kits.map(k => ({ v: k.kit, l: k.t + ' [' + k.kit + '] — ' + (k.p ? (k.p > 0 ? '+' : '') + k.p + ' $' : 'incluse') })), opt.altexChaine,
+        'state.options.altexChaine=this.value;calculatePriceAltex();') + '</div>';
+  }
+  if (altexABatons()) {
+    if (!ALTEX_COULEURS_BATONS.includes(opt.altexBatons)) opt.altexBatons = ALTEX_COULEURS_BATONS[0];
+    meca += '<label for="altex-opt-batons" style="font-size:11px;color:var(--text-dim);display:block;margin:10px 0 5px">Couleur des bâtons</label><div>'
+      + altexSelect('altex-opt-batons', ALTEX_COULEURS_BATONS.map(c => ({ v: c, l: c })), opt.altexBatons, 'state.options.altexBatons=this.value;calculatePriceAltex();') + '</div>';
+  }
   if (/MOTORIS/.test(a.s)) {
     meca += '<label for="altex-opt-kit" style="font-size:11px;color:var(--text-dim);display:block;margin:10px 0 5px">Moteur</label><div>' + altexSelect('altex-opt-kit', [{ v: '', l: 'Aucun moteur' }, ...altexKitsGuide(ALTEX_KITS).map(k => ({ v: k.v, l: k.l + ' — +' + k.p + ' $' }))],
       opt.altexKit || '', 'state.options.altexKit=this.value;calculatePriceAltex();') + '</div>';
@@ -335,7 +368,7 @@ function calculatePriceAltex() {
   if (!larg || !haut) { hide('card-options'); resetResult(); return; }
   const alertEl = document.getElementById('alert-dim'), noteEl = document.getElementById('note-dim');
   const r = altexGrille(larg, haut);
-  const cle = [a.g, a.t, a.s, a.e, larg, haut, state.options.altexAlu].join('|');
+  const cle = [a.g, a.t, a.s, a.e, larg, haut, state.options.altexAlu, state.options.altexCoulLat].join('|');
   if (!r.c) {
     const g = r.g;
     alertEl.textContent = g ? `⚠ Non offert à ${larg}" × ${haut}" pour ce tissu / mécanisme / entête (grille : ${g.L[0]}"–${g.L[g.L.length - 1]}" × ${g.H[0]}"–${g.H[g.H.length - 1]}"; « - » = non disponible). Guide p. ${g.p}.`
@@ -387,6 +420,9 @@ function calculatePriceAltex() {
     const t = 'Coulisses latérales (paire) ' + clat.cols[col];
     if (p) { ajout(t, p); spec.clat = t; } else nonOffertes.push(t + ' (max 96" × 96")');
   }
+  // Type de chaînette (ajustement $/mécanisme du guide)
+  const chs = altexChaines(), kitCh = chs && chs.kits.find(k => k.kit === opt.altexChaine);
+  if (kitCh) { if (kitCh.p) ajout('Chaînette ' + kitCh.t + ' [' + kitCh.kit + ']', kitCh.p); spec.chaine = kitCh.t + ' [' + kitCh.kit + ']'; }
   // Moteur + contrôle (même multiplicateur que la toile)
   const kit = ALTEX_KITS.find(k => k.v === opt.altexKit);
   if (kit && /MOTORIS/.test(a.s)) { ajout('Moteur ' + kit.l + ' [' + kit.v + ']', kit.p); spec.kit = kit.l; }
@@ -421,10 +457,13 @@ function calculatePriceAltex() {
     'Couleur : ' + (state.tissuCouleur || ''),
     'Entête : ' + spec.entete,
     "Couleur d'aluminium : " + opt.altexAlu,
+    'Couleur des composantes : ' + (opt.altexComp || ''),
     spec.base ? 'Base : ' + spec.base : 'Base : standard',
     spec.coul ? 'Coulisse du bas : ' + spec.coul : '',
     spec.clat ? spec.clat : '',
     'Mécanisme : ' + altexSys(a.s),
+    spec.chaine ? 'Chaînette : ' + spec.chaine : '',
+    altexABatons() ? 'Couleur des bâtons : ' + (opt.altexBatons || '') : '',
     spec.kit ? 'Moteur : ' + spec.kit : '',
     spec.ctrl ? 'Contrôle : ' + spec.ctrl : '',
     'Côté contrôle : ' + (opt.altexCote === 'gauche' ? 'Contrôle gauche' : 'Contrôle droit'),
