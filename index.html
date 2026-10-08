@@ -3495,6 +3495,7 @@ function onFournisseurChange() {
 }
 
 function onTypeChange() {
+  if (state.fournisseur === 'altex') { altexOnType(); return; }   // Altex : gabarit VP (altex.js)
   state.type = document.getElementById('sel-type').value;
   if (!state.type) { hide('row-modele'); return; }
 
@@ -3560,6 +3561,7 @@ function onTypeChange() {
 }
 
 function onModeleChange() {
+  if (state.fournisseur === 'altex') { altexOnModele(); return; }   // Altex : tissu choisi (altex.js)
   state.modele = document.getElementById('sel-modele').value;
   if (!state.modele) return;
   // LBAS: memoriser mesures + couleur pour comparer vite un autre tissu/modele

@@ -56,57 +56,53 @@ function altexEsc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c =>
 function altexTitre(s) { return String(s || '').toLowerCase().replace(/(^|[\s(\-«\/])([a-zà-ÿ])/g, (m, a, b) => a + b.toUpperCase()); }
 function altexSys(s) { return altexTitre(s).replace(/\bRts\b/, 'RTS').replace(/\bAtx\b/, 'ATX').replace(/\bAvec\b/, 'avec'); }
 
-// ── Choix du fournisseur ────────────────────────────────
+// ── Gabarit VP (2026-10-08, demande de Sam) ─────────────
+// 1 — Produit : Type de produit (Toile à rouleau) → Tissu (par guide) → Couleur du tissu
+// 2 — Dimensions
+// 3 — Options, dans l'ordre de VP : Entête · Couleur de l'aluminium · Base · Coulisses · Mécanisme & Motorisation
+//     · Côté contrôle · Accessoires. Le système (mécanisme) choisit la grille ; l'entête choisit le type (rouleau
+//     apparent, cassette ronde, cassette semi-ouverte et son format) ou la dissimulation ajoutée au rouleau apparent.
+const ALTEX_COULEURS_ALU = ['Blanc', 'Clair anodisé', 'Noir', 'Bronze foncé'];
+const ALTEX_BF = 'Bronze foncé';
+
 function altexOnFournisseur() {
-  state.type = 'altex'; state.modele = ''; state.options = {};
-  state.altex = {};
-  ['row-type', 'row-modele', 'row-couleur', 'row-tissu-nom', 'row-tissu-couleur', 'row-solr-tissu',
-   'row-norm-tissu', 'row-vtx', 'card-dim', 'card-options'].forEach(hide);
+  state.type = ''; state.modele = ''; state.options = {}; state.altex = {}; state.tissuCouleur = '';
+  ['row-modele', 'row-couleur', 'row-tissu-nom', 'row-tissu-couleur', 'row-solr-tissu', 'row-norm-tissu', 'row-vtx',
+   'row-altex', 'card-dim', 'card-options'].forEach(hide);
   resetResult();
-  show('row-altex', true);
-  const s = document.getElementById('altex-search'); if (s) s.value = '';
-  const b = document.getElementById('altex-selected'); if (b) b.style.display = 'none';
-  const c = document.getElementById('altex-choix'); if (c) c.innerHTML = '';
-  const list = document.getElementById('altex-list');
-  if (list) list.innerHTML = '<div style="padding:16px;font-size:12px;color:var(--text-dim);text-align:center;">Chargement des guides Altex 2026…</div>';
-  return altexCharger().then(() => altexListe('')).catch(e => {
-    if (list) list.innerHTML = '<div style="padding:16px;font-size:12px;color:var(--red);text-align:center;">Impossible de charger les prix Altex (' + altexEsc(e.message) + ')</div>';
+  const sel = document.getElementById('sel-type');
+  sel.innerHTML = '<option value="">— Sélectionner —</option><option value="altex-TR">Toile à rouleau</option>';
+  sel.value = '';
+  show('row-type');
+  return altexCharger().catch(e => {
+    const a = document.getElementById('alert-dim');
+    if (a) { a.textContent = 'Impossible de charger les prix Altex (' + e.message + ')'; a.classList.add('show'); }
   });
 }
 
-// ── Liste des tissus (sections = gammes) ────────────────
-function altexListe(filtre) {
-  const A = window.ALTEX; const list = document.getElementById('altex-list');
-  if (!A || !list) return;
-  filtre = (filtre || '').toLowerCase().trim();
-  const clr = document.getElementById('altex-clear'); if (clr) clr.style.display = filtre ? 'block' : 'none';
-  const parGuide = {};
-  A.grilles.forEach(g => { (parGuide[g.g] = parGuide[g.g] || new Set()).add(g.t); });
-  list.innerHTML = '';
-  let n = 0;
-  ['R', 'C', 'V', 'A'].forEach(code => {
-    const gamme = A.guides[code];
-    const tissus = [...(parGuide[code] || [])].sort((a, b) => a.localeCompare(b, 'fr'))
-      .filter(t => !filtre || (t + ' ' + gamme).toLowerCase().includes(filtre));
-    if (!tissus.length) return;
-    const h = document.createElement('div');
-    h.style.cssText = 'position:sticky;top:0;z-index:2;padding:7px 14px 5px;font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--gold);background:var(--surface);border-bottom:1px solid var(--border);text-transform:uppercase;';
-    h.textContent = 'Altex · ' + gamme;
-    list.appendChild(h);
-    tissus.forEach(t => {
-      n++;
-      const sel = state.altex && state.altex.t === t && state.altex.g === code;
-      const row = document.createElement('div');
-      row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 14px 8px 22px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.03);background:' + (sel ? 'rgba(26,183,183,0.12)' : 'transparent') + ';';
-      row.onmouseover = () => { if (!sel) row.style.background = 'rgba(255,255,255,.06)'; };
-      row.onmouseout = () => { if (!sel) row.style.background = 'transparent'; };
-      row.innerHTML = '<span style="font-size:12px;font-family:DM Mono,monospace;color:' + (sel ? 'var(--gold)' : 'var(--text)') + ';">' + altexEsc(t) + '</span>'
-        + (sel ? '<span style="color:var(--gold);font-size:13px;">✓</span>' : '');
-      row.onclick = () => { altexChoisirTissu(code, t); altexListe(document.getElementById('altex-search').value || ''); };
-      list.appendChild(row);
+// Type de produit choisi → liste des tissus, regroupés par guide (un même nom dans 2 guides = 2 produits distincts)
+function altexOnType() {
+  state.type = document.getElementById('sel-type').value;
+  state.modele = ''; state.altex = {}; state.options = {};
+  hide('row-couleur'); hide('row-tissu-nom'); hide('row-tissu-couleur'); hide('card-dim'); hide('card-options');
+  resetResult();
+  if (!state.type) { hide('row-modele'); return; }
+  altexCharger().then(() => {
+    const A = window.ALTEX, parGuide = {}, compte = {};
+    A.grilles.forEach(g => { (parGuide[g.g] = parGuide[g.g] || new Set()).add(g.t); });
+    Object.keys(parGuide).forEach(c => parGuide[c].forEach(t => { compte[t] = (compte[t] || 0) + 1; }));
+    const sel = document.getElementById('sel-modele');
+    let h = '<option value="">— Sélectionner —</option>';
+    ['R', 'C', 'V', 'A'].forEach(code => {
+      if (!parGuide[code]) return;
+      h += '<optgroup label="' + altexEsc(A.guides[code]) + '">'
+        + [...parGuide[code]].sort((a, b) => a.localeCompare(b, 'fr')).map(t =>
+          '<option value="' + altexEsc(code + '|' + t) + '">' + altexEsc(t + (compte[t] > 1 ? ' — ' + A.guides[code] : '')) + '</option>').join('')
+        + '</optgroup>';
     });
+    sel.innerHTML = h; sel.value = '';
+    show('row-modele');
   });
-  if (!n) list.innerHTML = '<div style="padding:20px;font-size:12px;color:var(--text-dim);text-align:center;">Aucun tissu trouvé pour « ' + altexEsc(filtre) + ' »</div>';
 }
 
 function altexGrillesTissu() {
@@ -114,57 +110,56 @@ function altexGrillesTissu() {
   return (window.ALTEX ? window.ALTEX.grilles : []).filter(g => g.g === a.g && g.t === a.t);
 }
 
-// ── Tissu choisi → sélecteurs système / type / format ───
-function altexChoisirTissu(code, tissu, garder) {
-  // on GARDE système / type / options du tissu précédent pour comparer vite (validés dans altexChoix)
+// Tissu choisi → couleur du tissu, puis dimensions (on garde mesures, mécanisme et options pour comparer vite)
+function altexOnModele() {
+  const v = document.getElementById('sel-modele').value;
+  if (!v) { hide('row-tissu-couleur'); hide('card-dim'); hide('card-options'); resetResult(); return; }
+  const i = v.indexOf('|');
   const prec = state.altex || {};
-  state.altex = Object.assign({ g: code, t: tissu }, garder || { s: prec.s, ty: prec.ty, f: prec.f });
-  state.modele = tissu; state.type = 'altex'; state.tissuNom = tissu;
-  const b = document.getElementById('altex-selected');
-  if (b) {
-    b.innerHTML = '<div style="font-size:10px;opacity:.6;margin-bottom:3px;">Altex · ' + altexEsc(window.ALTEX.guides[code]) + '</div><div>' + altexEsc(tissu) + '</div>';
-    b.style.display = 'block';
+  state.altex = { g: v.slice(0, i), t: v.slice(i + 1), s: prec.s, e: prec.e };
+  state.modele = state.altex.t; state.tissuNom = state.altex.t;
+  altexDefauts();
+  const inp = document.getElementById('inp-tissu-couleur');
+  if (inp) {
+    inp.value = state.tissuCouleur || '';
+    if (!inp._altex) { inp._altex = true; inp.addEventListener('input', () => { if (state.fournisseur === 'altex') calculatePriceAltex(); }); }
   }
-  altexChoix();
+  show('row-tissu-couleur');
+  show('card-dim');
+  state._altexOptCle = null;
+  onDimChange();
 }
 
-function altexSelectHtml(id, label, opts, val, onch) {
-  return '<div style="padding:8px 20px 4px;"><label style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);display:block;margin-bottom:7px;">' + label + '</label>'
-    + '<select id="' + id + '" onchange="' + onch + '" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:DM Mono,monospace;font-size:12px;padding:9px 12px;outline:none;">'
-    + opts.map(o => '<option value="' + altexEsc(o.v) + '"' + (o.v === val ? ' selected' : '') + '>' + altexEsc(o.l) + '</option>').join('')
-    + '</select></div>';
-}
-
-function altexChoix() {
-  const a = state.altex; const G = altexGrillesTissu();
+// Mécanisme et entête valides pour ce tissu (par défaut : chaînette, rouleau apparent)
+function altexDefauts() {
+  const a = state.altex, G = altexGrillesTissu();
   const systemes = [...new Set(G.map(g => g.s))];
-  if (!systemes.includes(a.s)) a.s = systemes.length === 1 ? systemes[0] : '';
-  const G2 = G.filter(g => g.s === a.s);
-  const types = [...new Set(G2.map(g => g.ty))];
-  if (!types.includes(a.ty)) a.ty = types.length === 1 ? types[0] : '';
-  const formats = [...new Set(G2.filter(g => g.ty === a.ty).map(g => g.f))].filter(Boolean);
-  if (formats.length < 2) a.f = ''; else if (!['', ...formats].includes(a.f)) a.f = '';
-  let html = altexSelectHtml('altex-sys', 'Système · manœuvre', [{ v: '', l: '— Choisir —' }, ...systemes.map(s => ({ v: s, l: altexSys(s) }))], a.s, 'altexSetChoix(\'s\',this.value)');
-  if (a.s) html += altexSelectHtml('altex-type', 'Type', [{ v: '', l: '— Choisir —' }, ...types.map(t => ({ v: t, l: t }))], a.ty, 'altexSetChoix(\'ty\',this.value)');
-  if (a.s && a.ty && formats.length > 1)
-    html += altexSelectHtml('altex-format', 'Format de cassette', [{ v: '', l: 'Automatique (petite si possible)' }, ...formats.map(f => ({ v: f, l: f }))], a.f, 'altexSetChoix(\'f\',this.value)');
-  html += '<div style="padding:4px 20px 0;">' + altexCouleurHtml() + '</div>';
-  document.getElementById('altex-choix').innerHTML = html;
-  if (a.s && a.ty) { show('card-dim'); onDimChange(); }
-  else { hide('card-dim'); hide('card-options'); resetResult(); }
+  if (!systemes.includes(a.s)) a.s = systemes.find(s => /CHAÎNETTE/.test(s)) || systemes[0] || '';
+  const ent = altexEntetes().map(x => x.v);
+  if (!ent.includes(a.e)) a.e = ent.includes('RA') ? 'RA' : (ent[0] || '');
+  altexAppliquerEntete();
 }
 
-function altexCouleurHtml() {
-  return '<label style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);display:block;margin:6px 0 7px;">Couleur du tissu</label>'
-    + '<input type="text" id="altex-couleur" value="' + altexEsc(state.tissuCouleur || '') + '" placeholder="ex. Blanc, Charbon…" oninput="state.tissuCouleur=this.value.trim();if(state.lastResult)calculatePriceAltex();" '
-    + 'style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:DM Mono,monospace;font-size:12px;padding:9px 12px;outline:none;box-sizing:border-box;">';
+// Entêtes offertes pour le mécanisme choisi : types de la grille + dissimulations ajoutées au rouleau apparent
+function altexEntetes() {
+  const a = state.altex, G = altexGrillesTissu().filter(g => g.s === a.s);
+  const out = [];
+  [...new Set(G.map(g => g.ty))].forEach(ty => {
+    if (ty === 'Rouleau apparent') {
+      out.push({ v: 'RA', l: 'Rouleau apparent (sans entête)', ty });
+      altexOptionsSysteme().filter(o => /^(Cassette|Fascia)/.test(o.l) && !/•\s*BF\b/.test(o.l))
+        .forEach(o => out.push({ v: 'D:' + o.l, l: o.l, ty, diss: o }));
+    } else {
+      const formats = [...new Set(G.filter(g => g.ty === ty).map(g => g.f))].filter(Boolean);
+      out.push({ v: 'T:' + ty, l: ty + (formats.length > 1 ? ' — format automatique' : '') + ' (incluse au prix)', ty, f: '' });
+      if (formats.length > 1) formats.forEach(f => out.push({ v: 'T:' + ty + '|' + f, l: ty + ' — ' + f + ' (incluse au prix)', ty, f }));
+    }
+  });
+  return out;
 }
-
-function altexSetChoix(k, v) {
-  state.altex[k] = v;
-  if (k === 's') { state.altex.ty = ''; state.altex.f = ''; state.options = {}; }
-  if (k === 'ty') { state.altex.f = ''; }
-  altexChoix();
+function altexAppliquerEntete() {
+  const a = state.altex, e = altexEntetes().find(x => x.v === a.e);
+  a.ty = e ? e.ty : ''; a.f = e && e.f ? e.f : '';
 }
 
 // ── Grille active + prix d'une case ─────────────────────
@@ -203,6 +198,12 @@ function altexPrixCoulLat(cl, col, larg, haut) {
   const H = nextDim(cl.H, haut); if (!H) return null;
   return cl.P[cl.H.indexOf(H)][col] || null;
 }
+// Choix de coulisses latérales présentés : District = SCH28 / SCH38 (la couleur suit l'aluminium) ; Absolute = pose
+function altexChoixCoulLat(cl) {
+  if (cl.cols.length === 4) return [{ v: 0, l: 'SCH28 (avec fascia)' }, { v: 1, l: 'SCH38 (avec cassette carrée)' }];
+  return cl.cols.map((c, i) => ({ v: i, l: c }));
+}
+function altexColCoulLat(cl, choix) { return cl.cols.length === 4 && state.options.altexAlu === ALTEX_BF ? choix + 2 : choix; }
 
 function altexPrixOpt(o, larg) {
   const L = nextDim(o.L, larg);
@@ -210,59 +211,118 @@ function altexPrixOpt(o, larg) {
   return o.P[o.L.indexOf(L)] || null;
 }
 
-// ── Options (étape 3) ───────────────────────────────────
-function buildOptionsAltex(larg) {
-  const a = state.altex, opt = state.options;
+// Variante bronze foncé d'une option (cassette, fascia, base, coulisse du bas), sinon l'option elle-même
+function altexVarianteCouleur(o) {
+  if (!o || state.options.altexAlu !== ALTEX_BF) return o;
   const ops = altexOptionsSysteme();
-  const estApparent = a.ty === 'Rouleau apparent';
+  const bf = ops.find(x => x.l === o.l + ' • BF')
+    || ops.find(x => x.l === o.l.replace(/\s*-\s*Couleurs standards$/, ' - Couleur Premium (bronze foncé)'))
+    || ops.find(x => x.l === o.l + ' (bronze)');
+  return bf || o;
+}
+const altexLab = l => l.replace(/\s*•\s*BF\b/, ' (bronze foncé)');
+
+// ── 3 — Options, ordre VP ───────────────────────────────
+function altexSection(titre, contenu) {
+  return '<div><div class="section-divider">' + altexEsc(titre) + '</div><div style="padding:0 20px 12px">' + contenu + '</div></div>';
+}
+function altexSelect(id, opts, val, onch) {
+  return '<select id="' + id + '" onchange="' + onch + '">'
+    + opts.map(o => '<option value="' + altexEsc(o.v) + '"' + (String(o.v) === String(val) ? ' selected' : '') + (o.off ? ' disabled' : '') + '>' + altexEsc(o.l) + '</option>').join('')
+    + '</select>';
+}
+function altexCase_(id, label, on, off, onch) {
+  return '<div style="display:flex;align-items:center;gap:10px;margin-top:6px"><input type="checkbox" id="' + id + '"' + (on ? ' checked' : '') + (off ? ' disabled' : '')
+    + ' style="width:14px;height:14px;accent-color:var(--gold);cursor:pointer" onchange="' + onch + '"><label for="' + id + '" style="font-size:12px;color:var(--text-mid);cursor:pointer">' + altexEsc(label) + '</label></div>';
+}
+
+function buildOptionsAltex(larg, haut) {
+  const a = state.altex, opt = state.options, ops = altexOptionsSysteme();
   const fmt = v => v == null ? 'n/d' : '+' + v + ' $';
-  const lab = o => o.l.replace(/\s*•\s*BF\b/, ' (bronze foncé)');
-  const diss = ops.filter(o => /^(Cassette|Fascia)/.test(o.l) && (estApparent || /•\s*BF/.test(o.l)));
-  const bases = ops.filter(o => /^Base/.test(o.l));
-  const coul = ops.filter(o => /^Coulisse du bas/.test(o.l));
-  const autres = ops.filter(o => !diss.includes(o) && !bases.includes(o) && !coul.includes(o) && !/^(Cassette|Fascia)/.test(o.l)
-    && !(/Recouvrement/.test(o.l) && estApparent && !/District/i.test(a.s)));
-  const selRow = (id, titre, lst, vide, key) => lst.length ? altexSelectHtml(id, titre,
-    [{ v: '', l: vide }, ...lst.map(o => { const p = altexPrixOpt(o, larg); return { v: o.l, l: lab(o) + ' — ' + fmt(p) }; })],
-    opt[key] || '', 'state.options.' + key + '=this.value;calculatePriceAltex();') : '';
+  if (!opt.altexAlu) opt.altexAlu = 'Blanc';
+  if (!opt.altexCote) opt.altexCote = 'droit';
   let html = '';
-  html += selRow('altex-opt-diss', estApparent ? 'Dissimulation (cassette / fascia)' : 'Supplément aluminium', diss, estApparent ? 'Aucune — rouleau apparent' : 'Aucun (couleur standard)', 'altexDiss');
-  html += selRow('altex-opt-base', 'Base', bases, 'Base standard (incluse)', 'altexBase');
-  html += selRow('altex-opt-coul', 'Coulisse du bas', coul, 'Aucune', 'altexCoul');
-  autres.forEach((o, i) => {
-    const p = altexPrixOpt(o, larg); const id = 'altex-opt-x' + i; const on = !!(opt.altexAutres || {})[o.l];
-    html += '<div style="padding:6px 20px;"><label style="display:flex;gap:8px;align-items:center;font-size:12px;cursor:pointer;">'
-      + '<input type="checkbox" id="' + id + '"' + (on ? ' checked' : '') + (p == null ? ' disabled' : '')
-      + ' data-l="' + altexEsc(o.l) + '" onchange="altexToggle(this)">'
-      + altexEsc(lab(o)) + ' <span style="color:var(--text-dim)">' + fmt(p) + '</span></label></div>';
-  });
-  if (/MOTORIS/.test(a.s)) {
-    html += altexSelectHtml('altex-opt-kit', 'Motorisation (kit)', [{ v: '', l: 'Aucun moteur' }, ...altexKitsGuide(ALTEX_KITS).map(k => ({ v: k.v, l: k.l + ' — +' + k.p + ' $' }))],
-      opt.altexKit || '', 'state.options.altexKit=this.value;calculatePriceAltex();');
-    html += altexSelectHtml('altex-opt-ctrl', 'Contrôle', [{ v: '', l: 'Aucun' }, ...altexKitsGuide(ALTEX_CTRLS).map(k => ({ v: k.v, l: k.l + ' — +' + k.p + ' $' }))],
-      opt.altexCtrl || '', 'state.options.altexCtrl=this.value;calculatePriceAltex();');
-    html += '<div style="padding:4px 20px 10px;font-size:11px;color:var(--text-dim);">Prix de la toile SANS moteur : le kit s\'ajoute. Vérifier la compatibilité du moteur (couleur de la case dans le guide).</div>';
+
+  // Entête
+  html += altexSection('Entête', altexSelect('altex-opt-entete', altexEntetes().map(e => {
+    if (!e.diss) return { v: e.v, l: e.l };
+    const p = altexPrixOpt(altexVarianteCouleur(e.diss), larg);
+    return { v: e.v, l: e.l + ' — ' + fmt(p), off: p == null };
+  }), a.e, 'altexSetEntete(this.value)'));
+
+  // Couleur de l'aluminium (bronze foncé = prix Premium des cassettes, fascias, bases et coulisses)
+  let alu = altexSelect('altex-opt-alu', ALTEX_COULEURS_ALU.map(c => ({ v: c, l: c === ALTEX_BF ? 'Bronze foncé (Premium, supplément)' : c })), opt.altexAlu,
+    'state.options.altexAlu=this.value;state._altexOptCle=null;calculatePriceAltex();');
+  if (opt.altexAlu === ALTEX_BF && a.e !== 'RA' && !/^D:/.test(a.e || '')) {
+    const supp = ops.filter(o => /•\s*BF\b/.test(o.l) && /^(Cassette|Fascia)/.test(o.l));
+    if (supp.length) alu += '<label for="altex-opt-bf" style="font-size:11px;color:var(--text-dim);display:block;margin:10px 0 5px">Supplément bronze foncé</label><div>' + altexSelect('altex-opt-bf', [{ v: '', l: '— Choisir —' },
+      ...supp.map(o => { const p = altexPrixOpt(o, larg); return { v: o.l, l: altexLab(o.l) + ' — ' + fmt(p), off: p == null }; })],
+      opt.altexDiss || '', 'state.options.altexDiss=this.value;calculatePriceAltex();') + '</div>';
   }
+  html += altexSection("Couleur de l'aluminium", alu);
+
+  // Base
+  const bases = ops.filter(o => /^Base/.test(o.l) && !/•\s*BF\b|\(bronze\)/.test(o.l));
+  if (bases.length) html += altexSection('Base', altexSelect('altex-opt-base', [{ v: '', l: 'Base standard (incluse au prix)' },
+    ...bases.map(o => { const p = altexPrixOpt(altexVarianteCouleur(o), larg); return { v: o.l, l: o.l + ' — ' + fmt(p), off: p == null }; })],
+    opt.altexBase || '', 'state.options.altexBase=this.value;calculatePriceAltex();'));
+
+  // Coulisses : coulisse du bas + coulisses latérales (paire)
+  const coul = ops.filter(o => /^Coulisse du bas/.test(o.l) && !/Premium/.test(o.l));
   const cl = altexCoulLat();
+  let cou = '';
+  if (coul.length) cou += '<label for="altex-opt-coul" style="font-size:11px;color:var(--text-dim);display:block;margin-bottom:5px">Coulisse du bas</label>' + altexSelect('altex-opt-coul',
+    [{ v: '', l: 'Aucune' }, ...coul.map(o => { const p = altexPrixOpt(altexVarianteCouleur(o), larg); return { v: o.l, l: o.l.replace(/^Coulisse du bas\s*-?\s*/, '').replace(/\s*-\s*Couleurs standards$/, '') + ' — ' + fmt(p), off: p == null }; })],
+    opt.altexCoul || '', 'state.options.altexCoul=this.value;calculatePriceAltex();');
   if (cl) {
-    const hautCL = (parseFloat(document.getElementById('inp-haut').value) || 0) + (parseFloat(document.getElementById('frac-haut').value) || 0);
-    html += altexSelectHtml('altex-opt-clat', 'Coulisses latérales (paire) — prix selon la hauteur', [{ v: '', l: 'Aucune' },
-      ...cl.cols.map((t, i) => { const p = altexPrixCoulLat(cl, i, larg, hautCL); return { v: String(i), l: t + ' — ' + fmt(p) }; })],
-      opt.altexCoulLat == null ? '' : String(opt.altexCoulLat), 'state.options.altexCoulLat=this.value===\'\'?null:parseInt(this.value);calculatePriceAltex();');
-    html += '<div style="padding:0 20px 8px;font-size:11px;color:var(--text-dim);">Maximum 96" × 96". ' + (/DISTRICT/.test(state.altex.s)
-      ? 'SCH28 avec fascia, SCH38 avec cassette carrée ; bases Profil ou pochette fermée seulement.'
-      : 'Avec fascia d\'aluminium M ou ML ; base carrée ou pochette fermée seulement.') + ' Guide p. ' + cl.p + '.</div>';
+    cou += '<label for="altex-opt-clat" style="font-size:11px;color:var(--text-dim);display:block;margin:10px 0 5px">Coulisses latérales (paire), prix selon la hauteur</label>' + altexSelect('altex-opt-clat',
+      [{ v: '', l: 'Aucune' }, ...altexChoixCoulLat(cl).map(c => { const p = altexPrixCoulLat(cl, altexColCoulLat(cl, c.v), larg, haut); return { v: c.v, l: c.l + ' — ' + fmt(p), off: p == null }; })],
+      opt.altexCoulLat == null ? '' : opt.altexCoulLat, "state.options.altexCoulLat=this.value===''?null:parseInt(this.value);calculatePriceAltex();")
+      + '<div style="font-size:11px;color:var(--text-dim);margin-top:5px">Maximum 96" × 96". ' + (/DISTRICT/.test(a.s)
+        ? 'SCH28 avec fascia, SCH38 avec cassette carrée ; bases Profil ou pochette fermée seulement.'
+        : "Avec fascia d'aluminium M ou ML ; base carrée ou pochette fermée seulement.") + ' Guide p. ' + cl.p + '.</div>';
   }
-  html += '<div style="padding:0 20px 8px;font-size:11px;color:var(--text-dim);">Toiles tandem / multimécanismes : additionner les toiles et valider la faisabilité avec Altex.</div>';
-  html += '<div style="padding:4px 20px 12px;"><label style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);display:block;margin-bottom:7px;">Quantité de toiles identiques</label>'
-    + '<input type="number" id="altex-qte" min="1" step="1" value="' + (opt.altexQte || 1) + '" oninput="state.options.altexQte=Math.max(1,parseInt(this.value)||1);calculatePriceAltex();" '
-    + 'style="width:90px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:DM Mono,monospace;font-size:12px;padding:8px 10px;"></div>';
+  if (cou) html += altexSection('Coulisses', cou);
+
+  // Mécanisme & Motorisation : le système choisit la grille
+  const systemes = [...new Set(altexGrillesTissu().map(g => g.s))];
+  let meca = altexSelect('altex-opt-meca', systemes.map(s => ({ v: s, l: altexSys(s) })), a.s, 'altexSetMecanisme(this.value)');
+  if (/MOTORIS/.test(a.s)) {
+    meca += '<label for="altex-opt-kit" style="font-size:11px;color:var(--text-dim);display:block;margin:10px 0 5px">Moteur</label><div>' + altexSelect('altex-opt-kit', [{ v: '', l: 'Aucun moteur' }, ...altexKitsGuide(ALTEX_KITS).map(k => ({ v: k.v, l: k.l + ' — +' + k.p + ' $' }))],
+      opt.altexKit || '', 'state.options.altexKit=this.value;calculatePriceAltex();') + '</div>';
+    meca += '<label for="altex-opt-ctrl" style="font-size:11px;color:var(--text-dim);display:block;margin:10px 0 5px">Contrôle (télécommande, interrupteur)</label><div>' + altexSelect('altex-opt-ctrl', [{ v: '', l: 'Aucun' }, ...altexKitsGuide(ALTEX_CTRLS).map(k => ({ v: k.v, l: k.l + ' — +' + k.p + ' $' }))],
+      opt.altexCtrl || '', 'state.options.altexCtrl=this.value;calculatePriceAltex();') + '</div>';
+    meca += '<div style="font-size:11px;color:var(--text-dim);margin-top:5px">Prix de la toile SANS moteur : le kit s\'ajoute. Vérifier la compatibilité du moteur (couleur de la case dans le guide).</div>';
+  }
+  html += altexSection('Mécanisme & Motorisation', meca);
+
+  // Côté contrôle
+  html += altexSection('Côté contrôle', altexSelect('altex-opt-cote', [{ v: 'droit', l: 'Contrôle droit' }, { v: 'gauche', l: 'Contrôle gauche' }], opt.altexCote,
+    'state.options.altexCote=this.value;calculatePriceAltex();'));
+
+  // Accessoires : cantonnière, recouvrement… (tout le reste du guide pour ce système)
+  const estApparent = a.ty === 'Rouleau apparent';
+  const acc = ops.filter(o => !/^(Cassette|Fascia|Base|Coulisse du bas)/.test(o.l) && !/•\s*BF\b/.test(o.l)
+    && !(/Recouvrement/.test(o.l) && estApparent && !/District/i.test(a.s)));
+  let ac = acc.map((o, i) => {
+    const p = altexPrixOpt(o, larg);
+    return altexCase_('altex-opt-x' + i, o.l + ' — ' + fmt(p), !!(opt.altexAutres || {})[o.l], p == null, "altexToggle(this,'" + altexEsc(o.l).replace(/'/g, "\\'") + "')");
+  }).join('');
+  ac += '<div style="font-size:11px;color:var(--text-dim);margin-top:8px">Toiles tandem / multimécanismes : additionner les toiles et valider la faisabilité avec Altex.</div>';
+  html += altexSection('Accessoires', ac);
+
   document.getElementById('options-container').innerHTML = html;
 }
 
-function altexToggle(el) {
+function altexSetEntete(v) { state.altex.e = v; altexAppliquerEntete(); state._altexOptCle = null; calculatePriceAltex(); }
+function altexSetMecanisme(s) {
+  state.altex.s = s;
+  ['altexKit', 'altexCtrl', 'altexDiss', 'altexCoulLat'].forEach(k => { delete state.options[k]; });
+  altexDefauts(); state._altexOptCle = null; calculatePriceAltex();
+}
+function altexToggle(el, l) {
   state.options.altexAutres = state.options.altexAutres || {};
-  state.options.altexAutres[el.getAttribute('data-l')] = el.checked;
+  state.options.altexAutres[l] = el.checked;
   calculatePriceAltex();
 }
 
@@ -272,104 +332,122 @@ function calculatePriceAltex() {
   if (!window.ALTEX || !a.t || !a.s || !a.ty) { resetResult(); return; }
   const larg = (parseFloat(document.getElementById('inp-larg').value) || 0) + (parseFloat(document.getElementById('frac-larg').value) || 0);
   const haut = (parseFloat(document.getElementById('inp-haut').value) || 0) + (parseFloat(document.getElementById('frac-haut').value) || 0);
-  if (!larg || !haut) { resetResult(); return; }
+  if (!larg || !haut) { hide('card-options'); resetResult(); return; }
   const alertEl = document.getElementById('alert-dim'), noteEl = document.getElementById('note-dim');
   const r = altexGrille(larg, haut);
+  const cle = [a.g, a.t, a.s, a.e, larg, haut, state.options.altexAlu].join('|');
   if (!r.c) {
     const g = r.g;
-    alertEl.textContent = g ? `⚠ Non offert à ${larg}" × ${haut}" pour ce tissu / type (grille : ${g.L[0]}"–${g.L[g.L.length - 1]}" × ${g.H[0]}"–${g.H[g.H.length - 1]}"; « - » = non disponible). Guide p. ${g.p}.`
+    alertEl.textContent = g ? `⚠ Non offert à ${larg}" × ${haut}" pour ce tissu / mécanisme / entête (grille : ${g.L[0]}"–${g.L[g.L.length - 1]}" × ${g.H[0]}"–${g.H[g.H.length - 1]}"; « - » = non disponible). Guide p. ${g.p}.`
       : '⚠ Aucune grille pour ce choix';
     alertEl.classList.add('show'); noteEl.classList.remove('show');
-    hide('card-options'); resetResult(); state.lastResult = null; return;
+    show('card-options'); if (state._altexOptCle !== cle) { buildOptionsAltex(larg, haut); state._altexOptCle = cle; }
+    resetResult(); state.lastResult = null; return;
   }
   alertEl.classList.remove('show');
   const { g, c } = r;
   state.largTip = c.L; state.hautTip = c.H;
+  const badge = document.getElementById('badge-dim'); if (badge) badge.textContent = `${c.L}" × ${c.H}"`;
   noteEl.textContent = `ℹ Grille utilisée : ${c.L}" × ${c.H}"${g.f ? ' · ' + g.f : ''} · guide p. ${g.p}`;
   noteEl.classList.add('show');
-
   show('card-options');
-  if (!document.getElementById('altex-qte') || state._altexOptCle !== [a.g, a.s, a.ty, c.L, c.H, a.t].join('|')) {
-    buildOptionsAltex(larg); state._altexOptCle = [a.g, a.s, a.ty, c.L, c.H, a.t].join('|');
-  }
+  if (state._altexOptCle !== cle) { buildOptionsAltex(larg, haut); state._altexOptCle = cle; }
 
   const opt = state.options, ops = altexOptionsSysteme();
-  const lignes = [{ label: `${a.t} ${c.L}"×${c.H}"${g.f ? ' (' + g.f.toLowerCase() + ')' : ''}`, pdsf: c.v }];
-  const specs = [];
-  let pdsf = c.v;
-  const ajout = (label, p) => { if (p > 0) { pdsf += p; lignes.push({ label, pdsf: p }); } };
-  const lab = l => l.replace(/\s*•\s*BF\b/, ' (bronze foncé)');
   const parNom = l => ops.find(o => o.l === l);
+  const breakdown = [{ label: `${a.t} ${c.L}"×${c.H}"${g.f ? ' (' + g.f.toLowerCase() + ')' : ''}`, pdsf: c.v }];
+  let pdsf = c.v;
+  const ajout = (label, p) => { pdsf += p; breakdown.push({ label, pdsf: p }); };
   const nonOffertes = [];
-  [['altexDiss', a.ty === 'Rouleau apparent' ? 'Dissimulation' : 'Aluminium'], ['altexBase', 'Base'], ['altexCoul', 'Coulisse du bas']].forEach(([k, t]) => {
-    const o = opt[k] && parNom(opt[k]);
-    if (opt[k] && !o) { nonOffertes.push(opt[k]); return; }
-    if (o) { const p = altexPrixOpt(o, larg); if (p) { ajout(lab(o.l), p); specs.push(t + ' : ' + lab(o.l)); } else nonOffertes.push(lab(o.l)); }
+  const ent = altexEntetes().find(x => x.v === a.e);
+  const spec = { entete: ent ? ent.l.replace(/\s*\(incluse au prix\)/, '') : '' };
+
+  // Entête : dissimulation ajoutée au rouleau apparent (couleur selon l'aluminium)
+  if (ent && ent.diss) {
+    const o = altexVarianteCouleur(ent.diss), p = altexPrixOpt(o, larg);
+    if (p) ajout(altexLab(o.l), p); else nonOffertes.push(altexLab(o.l));
+  }
+  // Aluminium bronze foncé sur une cassette incluse : supplément choisi
+  if (opt.altexAlu === ALTEX_BF && ent && !ent.diss && ent.v !== 'RA' && opt.altexDiss) {
+    const o = parNom(opt.altexDiss), p = o && altexPrixOpt(o, larg);
+    if (p) ajout(altexLab(o.l), p); else nonOffertes.push(altexLab(opt.altexDiss));
+  }
+  // Base, coulisse du bas
+  [['altexBase', 'base'], ['altexCoul', 'coul']].forEach(([k, s]) => {
+    if (!opt[k]) return;
+    const o = altexVarianteCouleur(parNom(opt[k]));
+    if (!o) { nonOffertes.push(opt[k]); return; }
+    const p = altexPrixOpt(o, larg);
+    if (p) { ajout(altexLab(o.l), p); spec[s] = altexLab(o.l); } else nonOffertes.push(altexLab(o.l));
   });
-  Object.keys(opt.altexAutres || {}).forEach(l => {
-    const o = opt.altexAutres[l] && parNom(l);
-    if (o) { const p = altexPrixOpt(o, larg); if (p) { ajout(lab(o.l), p); specs.push(lab(o.l)); } else nonOffertes.push(lab(o.l)); }
-  });
+  // Coulisses latérales (paire)
   const clat = altexCoulLat();
   if (clat && opt.altexCoulLat != null) {
-    const p = altexPrixCoulLat(clat, opt.altexCoulLat, larg, haut);
-    const t = 'Coulisses latérales (paire) ' + clat.cols[opt.altexCoulLat];
-    if (p) { ajout(t, p); specs.push(t); } else nonOffertes.push(t + ' (max 96" × 96")');
+    const col = altexColCoulLat(clat, opt.altexCoulLat), p = altexPrixCoulLat(clat, col, larg, haut);
+    const t = 'Coulisses latérales (paire) ' + clat.cols[col];
+    if (p) { ajout(t, p); spec.clat = t; } else nonOffertes.push(t + ' (max 96" × 96")');
   }
+  // Moteur + contrôle (même multiplicateur que la toile)
+  const kit = ALTEX_KITS.find(k => k.v === opt.altexKit);
+  if (kit && /MOTORIS/.test(a.s)) { ajout('Moteur ' + kit.l + ' [' + kit.v + ']', kit.p); spec.kit = kit.l; }
+  const ctrl = ALTEX_CTRLS.find(k => k.v === opt.altexCtrl);
+  if (ctrl && /MOTORIS/.test(a.s)) { ajout(ctrl.l + ' [' + ctrl.v + ']', ctrl.p); spec.ctrl = ctrl.l; }
+  // Accessoires
+  const acc = [];
+  Object.keys(opt.altexAutres || {}).forEach(l => {
+    const o = opt.altexAutres[l] && parNom(l);
+    if (!o) return;
+    const p = altexPrixOpt(o, larg);
+    if (p) { ajout(altexLab(o.l), p); acc.push(altexLab(o.l)); } else nonOffertes.push(altexLab(o.l));
+  });
   if (nonOffertes.length) {
     alertEl.textContent = '⚠ Option non offerte à ' + larg + '" × ' + haut + '" : ' + nonOffertes.join(', ') + ' — retire-la ou change les mesures.';
     alertEl.classList.add('show'); resetResult(); state.lastResult = null; return;
   }
-  const kit = ALTEX_KITS.find(k => k.v === opt.altexKit);
-  if (kit) { ajout('Moteur ' + kit.l + ' [' + kit.v + ']', kit.p); specs.push('Moteur : ' + kit.l); }
-  const ctrl = ALTEX_CTRLS.find(k => k.v === opt.altexCtrl);
-  if (ctrl) { ajout(ctrl.l + ' [' + ctrl.v + ']', ctrl.p); specs.push('Contrôle : ' + ctrl.l); }
 
-  const qte = Math.max(1, parseInt(opt.altexQte) || 1);
-  const pdsfUnit = pdsf;
-  const pdsfTotal = Math.round(pdsfUnit * qte * 100) / 100;
+  // Prix : PDSF du guide → coût (facteur confidentiel reçu d'Odoo) → vente (multiplicateur des Paramètres)
+  const pdsfTotal = Math.round(pdsf * 100) / 100;
   const f = window.LBAS_ALTEX_FACTEUR;
   const multi = (settings.altex && settings.altex.multi) || 2.0;
   const cout = f ? Math.round(pdsfTotal * f * 100) / 100 : 0;
   const vente = f ? Math.round(cout * multi * 100) / 100 : 0;
   const marge = vente > 0 ? Math.round((vente - cout) / vente * 1000) / 10 : 0;
-
   const gamme = window.ALTEX.guides[a.g];
-  const dimTxt = `${fmtPoAltex(larg)} × ${fmtPoAltex(haut)}`;
+
+  // Résumé / description du devis : même ordre que VP
   const resume = [
-    'Fournisseur : Altex (' + gamme + ')',
-    'Produit : Toile à rouleau ' + altexSys(a.s),
-    'Tissu : ' + a.t + (state.tissuCouleur ? ' — ' + state.tissuCouleur : ''),
-    'Type : ' + a.ty + (g.f ? ' — ' + g.f : ''),
-    'Dimensions : ' + dimTxt,
-    ...specs,
-  ];
-  if (qte > 1) resume.push('Quantité : ' + qte);
+    'Type de produit : Toile à rouleau',
+    'Modèle : ' + a.t + ' (Altex ' + gamme + ')',
+    'Couleur : ' + (state.tissuCouleur || ''),
+    'Entête : ' + spec.entete,
+    "Couleur d'aluminium : " + opt.altexAlu,
+    spec.base ? 'Base : ' + spec.base : 'Base : standard',
+    spec.coul ? 'Coulisse du bas : ' + spec.coul : '',
+    spec.clat ? spec.clat : '',
+    'Mécanisme : ' + altexSys(a.s),
+    spec.kit ? 'Moteur : ' + spec.kit : '',
+    spec.ctrl ? 'Contrôle : ' + spec.ctrl : '',
+    'Côté contrôle : ' + (opt.altexCote === 'gauche' ? 'Contrôle gauche' : 'Contrôle droit'),
+    acc.length ? 'Accessoires : ' + acc.join(', ') : '',
+  ].filter(x => x && !/:\s*$/.test(x));
   state.altexResume = resume;
-  const desc = resume.slice(1).join(' | ');
-  state.lastResult = { pdsfTotal, pdsf: pdsfTotal, cout, vente, marge, desc: 'Altex ' + gamme + ' | ' + desc };
   state.pdsf = pdsfTotal;
 
-  const fmtCAD = v => '$ ' + v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-  const bd = lignes.map(b => `<div class="breakdown-item"><span>${altexEsc(b.label)}</span><span>${fmtCAD(b.pdsf)}</span></div>`).join('')
-    + (qte > 1 ? `<div class="breakdown-item"><span>× ${qte} toiles</span><span>${fmtCAD(pdsfTotal)}</span></div>` : '');
-  const prix = f ? `
-      <div class="price-row"><span class="price-label">Ton coût (calculé par Odoo)</span><span class="price-value cout">${fmtCAD(cout)}</span></div>
-      <div class="price-row" style="border-color:var(--gold-dim);background:rgba(26,183,183,0.12)">
-        <span class="price-label" style="color:var(--gold);font-weight:500">PRIX VENDANT</span><span class="price-value vente">${fmtCAD(vente)}</span></div>
-    </div>
-    <div class="margin-bar-wrap"><div class="margin-label"><span>Marge brute</span><span style="color:var(--green)">${marge}%</span></div>
-      <div class="margin-bar"><div class="margin-fill" style="width:${Math.min(marge, 100)}%"></div></div></div>`
-    : `</div><div class="alert warn show" style="margin-top:10px">Coût et prix vendant : ouvre le Price Board depuis Odoo (le coût Altex est confidentiel et calculé par Odoo).</div>`;
-  document.getElementById('result-body').innerHTML = `
-    <div class="result-fournisseur">Altex · ${altexEsc(gamme)}</div>
-    <div class="result-produit">${altexEsc(a.t)}</div>
-    <div class="result-detail">${altexEsc(altexSys(a.s))} · ${altexEsc(a.ty)}${g.f ? ' · ' + altexEsc(g.f) : ''}<br>${c.L}" × ${c.H}"${state.tissuCouleur ? ' · ' + altexEsc(state.tissuCouleur) : ''}${qte > 1 ? ' · ' + qte + ' toiles' : ''}</div>
-    <div class="result-prices">
-      <div class="price-row"><span class="price-label">PDSF total</span><span class="price-value pdsf">${fmtCAD(pdsfTotal)}</span></div>
-      ${prix}
-    <div class="breakdown"><div class="breakdown-title">Détail PDSF — guide Altex 2026 p. ${g.p}</div>${bd}
-      <div class="breakdown-item" style="color:var(--text);font-weight:500;margin-top:4px"><span>Total PDSF</span><span>${fmtCAD(pdsfTotal)}</span></div></div>`;
+  renderResult({ pdsfStore: pdsfTotal, pdsfSomfy: 0, pdsfTotal, cout, vente, venteStore: vente, venteSomfy: 0, marge, breakdown }, {
+    cfg: { multi, pct: '' },
+    fournisseur: 'Altex · Toile à rouleau · ' + gamme,
+    produit: a.t,
+    detail: `${c.L}" × ${c.H}"${state.tissuCouleur ? '<br>' + altexEsc(state.tissuCouleur) : ''}`,
+    pctLabel: 'Ton coût (calculé par Odoo)',
+    titre: 'Détail PDSF — guide Altex 2026 p. ' + g.p,
+  });
+  state.lastResult.desc = resume.join(' | ');
+  state.lastResult.pdsf = pdsfTotal;
+  if (!f) {
+    state.lastResult = null;
+    document.getElementById('result-body').insertAdjacentHTML('beforeend',
+      '<div class="alert warn show" style="margin-top:10px">Coût et prix vendant : ouvre le Price Board depuis Odoo (le coût Altex est confidentiel et calculé par Odoo).</div>');
+  }
 }
 
 function fmtPoAltex(v) {
@@ -385,14 +463,26 @@ window.altexRestore = function (saved, ctrls) {
   altexCharger().then(() => {
     const a = saved.altex || {};
     if (!a.g || !a.t) return;
-    state.options = JSON.parse(JSON.stringify(saved.options || {}));
-    state.tissuCouleur = saved.tissuCouleur || '';
-    ['inp-larg', 'inp-haut', 'frac-larg', 'frac-haut'].forEach(id => { const el = document.getElementById(id); if (el && ctrls[id]) el.value = ctrls[id].v; });
-    state._altexOptCle = null;
-    altexChoisirTissu(a.g, a.t, { s: a.s, ty: a.ty, f: a.f });
-    altexListe('');
+    const sel = document.getElementById('sel-type');
+    sel.value = 'altex-TR';
+    altexOnType();
+    setTimeout(() => {
+      state.options = JSON.parse(JSON.stringify(saved.options || {}));
+      state.tissuCouleur = saved.tissuCouleur || '';
+      ['inp-larg', 'inp-haut', 'frac-larg', 'frac-haut'].forEach(id => { const el = document.getElementById(id); if (el && ctrls[id]) el.value = ctrls[id].v; });
+      // anciennes lignes (avant le gabarit VP) : type + dissimulation → entête
+      if (!a.e) {
+        a.e = a.ty === 'Rouleau apparent' ? (state.options.altexDiss ? 'D:' + state.options.altexDiss : 'RA') : 'T:' + a.ty + (a.f ? '|' + a.f : '');
+        if (a.ty === 'Rouleau apparent') delete state.options.altexDiss;
+      }
+      state.altex = { g: a.g, t: a.t, s: a.s, e: a.e };
+      const m = document.getElementById('sel-modele'); m.value = a.g + '|' + a.t;
+      altexOnModele();
+    }, 0);
   });
 };
+
+function altexListe() {}   // ancienne recherche par tissu (remplacée par le gabarit VP)
 
 // ── Facteur de coût : reçu d'Odoo uniquement ────────────
 window.addEventListener('message', function (ev) {
