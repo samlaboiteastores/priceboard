@@ -9553,7 +9553,6 @@ const NORM_CATALOG = [
   { nom: 'ELIZA', pdsf: 174, largeur: 56, filsPlomb: false, collection: 'Alendel' },
   { nom: 'EMBRACE', pdsf: 110, largeur: 55, filsPlomb: false, collection: 'Alendel' },
   { nom: 'EMOTION', pdsf: 86, largeur: 55, filsPlomb: false, collection: 'Alendel' },
-  { nom: 'EMPIRE VOILE 118', pdsf: 24, largeur: 118, filsPlomb: false, collection: 'Alendel' },
   { nom: 'EMPIRE VOILE 130', pdsf: 26, largeur: 130, filsPlomb: false, collection: 'Alendel' },
   { nom: 'ENACT', pdsf: 80, largeur: 54, filsPlomb: false, collection: 'Alendel' },
   { nom: 'ENDLESS', pdsf: 62, largeur: 55, filsPlomb: false, collection: 'Alendel' },
@@ -10187,7 +10186,7 @@ function normBuildTissuList(filter) {
       list.appendChild(hdr);
     }
 
-    const isSelected = state.fournisseur === 'norm' && state.modele === tissu.nom;
+    const isSelected = state.fournisseur === 'norm' && state.modele === tissu.nom && (!state.normCollection || state.normCollection === tissu.collection);
 
     const row = document.createElement('div');
     row.style.cssText = `
@@ -10237,7 +10236,7 @@ function normBuildTissuList(filter) {
 
     row.appendChild(badges);
     row.onclick = () => {
-      onNormTissuChange(tissu.nom);
+      onNormTissuChange(tissu.nom, tissu.collection);
       normBuildTissuList(document.getElementById('norm-search')?.value || '');
     };
     list.appendChild(row);
@@ -10256,7 +10255,12 @@ function normFilterTissus(val) {
   normBuildTissuList(val);
 }
 
-function onNormTissuChange(nom) {
+// Un tissu Normandie = NOM + COLLECTION : 17 noms existent dans deux collections (ex. MEMPHIS Simplicity 48 $ / Alendel 110 $).
+function normTrouve(nom, coll) {
+  return (coll && NORM_CATALOG.find(t => t.nom === nom && t.collection === coll)) || NORM_CATALOG.find(t => t.nom === nom);
+}
+
+function onNormTissuChange(nom, coll) {
   if (!nom) return;
   if (state.type === 'norm-pret' && typeof SIG_PRET !== 'undefined' && SIG_PRET.some(p => p.nom === nom)) { onNormPretChange(nom); return; }
   state.fournisseur = 'norm';
@@ -10264,7 +10268,8 @@ function onNormTissuChange(nom) {
   state.modele = nom;
   state.options = {};
 
-  const tissu = NORM_CATALOG.find(t => t.nom === nom);
+  const tissu = normTrouve(nom, coll);
+  state.normCollection = tissu ? tissu.collection : (coll || '');
   const badge = document.getElementById('norm-selected');
   if (badge && tissu) {
     badge.innerHTML = `
@@ -10924,8 +10929,8 @@ function buildRailSection(container) {
     courbeTypeSel.id = 'norm-courbe-type';
     [
       { val: '', label: '— Aucune courbe —' },
-      { val: '90', label: 'Courbe 90° — $60/ch' },
-      { val: '45', label: 'Courbe 45° — $60/ch' },
+      { val: '90', label: 'Courbe 90° — $30/ch' },
+      { val: '45', label: 'Courbe 45° — $30/ch' },
     ].forEach(o => {
       const opt = document.createElement('option');
       opt.value = o.val; opt.textContent = o.label;
@@ -11186,7 +11191,7 @@ function buildOptionsNorm() {
   const container = document.getElementById('options-container');
   container.innerHTML = '';
 
-  const tissu = NORM_CATALOG.find(t => t.nom === state.modele);
+  const tissu = normTrouve(state.modele, state.normCollection);
   if (!tissu) return;
 
   function addSel(sectionTitle, id, items, stateKey, onChange) {
@@ -11536,7 +11541,7 @@ function normBuildDoublureList(filter) {
   NORM_CATALOG.filter(normSrcOk).forEach(tissu => {
     if (filter && !tissu.nom.toLowerCase().includes(filter)) return;
     count++;
-    const isSelected = state.options.normDoublureTissu && state.options.normDoublureTissu.nom === tissu.nom;
+    const isSelected = state.options.normDoublureTissu && state.options.normDoublureTissu.nom === tissu.nom && state.options.normDoublureTissu.collection === tissu.collection;
     const row = document.createElement('div');
     row.style.cssText = `display:flex;align-items:center;justify-content:space-between;padding:6px 12px 6px 20px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.03);background:${isSelected ? 'rgba(26,183,183,0.12)' : 'transparent'};`;
     row.onmouseover = () => { if (!isSelected) row.style.background = 'rgba(255,255,255,.06)'; };
@@ -11585,7 +11590,7 @@ function normBuildTissu2List(filter) {
   NORM_CATALOG.filter(normSrcOk).forEach(tissu => {
     if (filter && !tissu.nom.toLowerCase().includes(filter)) return;
     count++;
-    const isSelected = state.options.normTissu2 && state.options.normTissu2.nom === tissu.nom;
+    const isSelected = state.options.normTissu2 && state.options.normTissu2.nom === tissu.nom && state.options.normTissu2.collection === tissu.collection;
     const row = document.createElement('div');
     row.style.cssText = `display:flex;align-items:center;justify-content:space-between;padding:7px 14px 7px 20px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.03);background:${isSelected ? 'rgba(91,155,213,0.12)' : 'transparent'};`;
     row.onmouseover = () => { if (!isSelected) row.style.background = 'rgba(255,255,255,.06)'; };
@@ -11702,7 +11707,7 @@ function buildOptionsRomain() {
   const container = document.getElementById('options-container');
   container.innerHTML = '';
 
-  const tissu = NORM_CATALOG.find(t => t.nom === state.modele);
+  const tissu = normTrouve(state.modele, state.normCollection);
   if (!tissu) return;
 
   const opt = state.options;
@@ -11882,7 +11887,7 @@ function normRomainDoublureList(filter) {
   filter = (filter || '').toLowerCase().trim();
   NORM_CATALOG.filter(normSrcOk).forEach(tissu => {
     if (filter && !tissu.nom.toLowerCase().includes(filter)) return;
-    const isSelected = state.options.romainDoublureTissu && state.options.romainDoublureTissu.nom === tissu.nom;
+    const isSelected = state.options.romainDoublureTissu && state.options.romainDoublureTissu.nom === tissu.nom && state.options.romainDoublureTissu.collection === tissu.collection;
     const row = document.createElement('div');
     row.style.cssText = `display:flex;align-items:center;justify-content:space-between;padding:6px 12px 6px 20px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.03);background:${isSelected ? 'rgba(26,183,183,0.12)' : 'transparent'};`;
     row.onmouseover = () => { if (!isSelected) row.style.background = 'rgba(255,255,255,.06)'; };
@@ -12052,7 +12057,7 @@ function calculatePricePret() {
 function calculatePriceRomain() {
   if (!state.modele || !state.larg || !state.haut) { resetResult(); return; }
 
-  const tissu   = NORM_CATALOG.find(t => t.nom === state.modele);
+  const tissu   = normTrouve(state.modele, state.normCollection);
   if (!tissu) { resetResult(); return; }
 
   const larg     = state.larg;
@@ -12080,7 +12085,7 @@ function calculatePriceRomain() {
 
   // Doublure tissu
   if (opt.romainDoublure === 'oui' && opt.romainDoublureTissu) {
-    const dbl = NORM_CATALOG.find(t => t.nom === opt.romainDoublureTissu.nom) || opt.romainDoublureTissu;
+    const dbl = normTrouve(opt.romainDoublureTissu.nom, opt.romainDoublureTissu.collection) || opt.romainDoublureTissu;
     if (dbl && dbl.pdsf) {
       const piCarresParVergeDbl = (dbl.largeur * 36) / 144;
       const vergesDbl = Math.ceil(piCarres / piCarresParVergeDbl);
@@ -12179,7 +12184,7 @@ function round05(val) {
 
 // ── Calculer le prix Normandie ──
 function calculatePriceNorm() {
-  const tissu = NORM_CATALOG.find(t => t.nom === state.modele);
+  const tissu = normTrouve(state.modele, state.normCollection);
   if (!tissu) { resetResult(); return; }
   const codeCoul = (document.getElementById('norm-code-couleur')?.value || '').trim();
 
@@ -12338,7 +12343,7 @@ function calculatePriceNorm() {
 
   // ── TISSU DE DOUBLURE ──
   if (doublure && opt.normDoublureTissu) {
-    const dblTissu = NORM_CATALOG.find(t => t.nom === opt.normDoublureTissu.nom) || opt.normDoublureTissu;
+    const dblTissu = normTrouve(opt.normDoublureTissu.nom, opt.normDoublureTissu.collection) || opt.normDoublureTissu;
     if (dblTissu && dblTissu.pdsf) {
       // Calcul verges doublure — même logique que tissu principal
       const hautDbl   = hautTissu; // même surplus
@@ -12402,7 +12407,7 @@ function calculatePriceNorm() {
         }
       }
       const nbCourbe = acc['ks-courbe'] || 0;
-      if (nbCourbe > 0) breakdown.push({ label: `Courbe × ${nbCourbe}`, pdsf: nbCourbe * 30 });
+      if (nbCourbe > 0) breakdown.push({ label: `Courbe${acc['courbe-type'] ? ' ' + acc['courbe-type'] + '°' : ''} × ${nbCourbe} — $30/ch`, pdsf: nbCourbe * 30 });
 
       const batonType = acc['baton-type'];
       if (batonType) {
@@ -12497,8 +12502,12 @@ function calculatePriceNorm() {
     if (isDouble2) {
       const tissu2Stored = opt.normTissu2;
       // Toujours relire depuis le catalogue pour avoir les bonnes données
-      const tissu2 = NORM_CATALOG.find(t => t.nom === tissu2Stored.nom) || tissu2Stored;
-      if (!tissu2 || !tissu2.pdsf) return;
+      const tissu2 = normTrouve(tissu2Stored.nom, tissu2Stored.collection) || tissu2Stored;
+      if (!tissu2 || !tissu2.pdsf) {   // 2e tissu sans prix : on n'affiche JAMAIS l'ancien prix
+        const _a = document.getElementById('alert-dim');
+        if (_a) { _a.textContent = '⚠ 2e tissu sans prix dans la liste : choisir un autre tissu ou demander le prix à Normandie.'; _a.classList.add('show'); }
+        resetResult(); return;
+      }
 
       const finition2  = NORM_FINITIONS.find(f => f.val === (opt.normTissu2Finition || 'rf60')) || NORM_FINITIONS[0];
       const tete2     = opt.normTissu2Tete   || '3.5-4';
@@ -12546,14 +12555,7 @@ function calculatePriceNorm() {
     breakdown.push({ label: `Crochets métal retour ${retourVal}" (2 côtés)`, pdsf: 12 });
   }
 
-  // ── COURBES KS/DS/CS ──
-  if (['KS','DS','CS'].includes(opt.normRailSys)) {
-    const courbeType = opt.normRailAcc?.['courbe-type'] || '';
-    const courbeQte  = opt.normRailAcc?.['ks-courbe'] || 0;
-    if (courbeType && courbeQte > 0) {
-      breakdown.push({ label: `Courbe ${courbeType}° × ${courbeQte} — $60/ch`, pdsf: courbeQte * 60 });
-    }
-  }
+  // ── COURBES KS/DS/CS : comptées UNE seule fois, dans la section du rail (30 $ ch., liste Royal House 2025) ──
 
   // ── TOTAUX — séparation tissu/confection vs motorisation ──
   // Les items de motorisation ont leur label qui commence par ⚡
@@ -14226,7 +14228,7 @@ function copyResume() {
         var hit = NORM_CATALOG.find(function (t) { return nrm(t.nom) === nrm(tissu); })
                || NORM_CATALOG.find(function (t) { return nrm(t.nom).indexOf(nrm(tissu)) === 0; });
         if (hit && typeof onNormTissuChange === 'function') {
-          try { onNormTissuChange(hit.nom); } catch (e) {}
+          try { onNormTissuChange(hit.nom, hit.collection); } catch (e) {}
           var cc = byId('norm-code-couleur'); if (cc) { cc.value = coul || ''; }
         }
       }
@@ -14298,7 +14300,7 @@ function copyResume() {
     try {
       if (f === 'solr' && saved.modele && typeof solrRestoreTissu === 'function') solrRestoreTissu(saved.type, saved.modele);
       else if (f === 'solr' && saved.tissuNom && typeof onSolrTissuChange === 'function') onSolrTissuChange(saved.tissuNom);
-      else if ((f === 'norm' || f === 'sig') && saved.tissuNom && typeof onNormTissuChange === 'function') onNormTissuChange(saved.tissuNom);
+      else if ((f === 'norm' || f === 'sig') && saved.tissuNom && typeof onNormTissuChange === 'function') onNormTissuChange(saved.tissuNom, saved.normCollection);
       else if (f === 'vtx') {
         var vt = byId('vtx-tissu');
         if (vt && ctrls['vtx-tissu']) { vt.value = ctrls['vtx-tissu'].v; if (typeof onVtxTissuChange === 'function') onVtxTissuChange(); }
