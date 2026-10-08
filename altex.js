@@ -186,7 +186,22 @@ function altexGrille(larg, haut) {
 
 function altexOptionsSysteme() {
   const a = state.altex;
-  return (window.ALTEX.options[a.g + '|' + a.s] || []);
+  return (window.ALTEX.options[a.g + '|' + a.s] || []).filter(o =>
+    (!o.tissus || new RegExp(o.tissus, 'i').test(a.t)) && (!o.sauf || !new RegExp(o.sauf, 'i').test(a.t)));
+}
+
+// Moteurs et contrôles offerts dans CE guide (Meilleure valeur : Motionblinds seulement ; Ambio : sans Somfy Zigbee)
+function altexKitsGuide(liste) {
+  const ok = (window.ALTEX.kitsParGuide || {})[state.altex.g];
+  return ok ? liste.filter(k => ok.includes(k.v)) : liste;
+}
+
+// Coulisses latérales (paire) : prix selon la HAUTEUR, max 96" × 96"
+function altexCoulLat() { const a = state.altex; return (window.ALTEX.coulLat || {})[a.g + '|' + a.s] || null; }
+function altexPrixCoulLat(cl, col, larg, haut) {
+  if (larg > 96 || haut > 96) return null;
+  const H = nextDim(cl.H, haut); if (!H) return null;
+  return cl.P[cl.H.indexOf(H)][col] || null;
 }
 
 function altexPrixOpt(o, larg) {
@@ -222,12 +237,23 @@ function buildOptionsAltex(larg) {
       + altexEsc(lab(o)) + ' <span style="color:var(--text-dim)">' + fmt(p) + '</span></label></div>';
   });
   if (/MOTORIS/.test(a.s)) {
-    html += altexSelectHtml('altex-opt-kit', 'Motorisation (kit)', [{ v: '', l: 'Aucun moteur' }, ...ALTEX_KITS.map(k => ({ v: k.v, l: k.l + ' — +' + k.p + ' $' }))],
+    html += altexSelectHtml('altex-opt-kit', 'Motorisation (kit)', [{ v: '', l: 'Aucun moteur' }, ...altexKitsGuide(ALTEX_KITS).map(k => ({ v: k.v, l: k.l + ' — +' + k.p + ' $' }))],
       opt.altexKit || '', 'state.options.altexKit=this.value;calculatePriceAltex();');
-    html += altexSelectHtml('altex-opt-ctrl', 'Contrôle', [{ v: '', l: 'Aucun' }, ...ALTEX_CTRLS.map(k => ({ v: k.v, l: k.l + ' — +' + k.p + ' $' }))],
+    html += altexSelectHtml('altex-opt-ctrl', 'Contrôle', [{ v: '', l: 'Aucun' }, ...altexKitsGuide(ALTEX_CTRLS).map(k => ({ v: k.v, l: k.l + ' — +' + k.p + ' $' }))],
       opt.altexCtrl || '', 'state.options.altexCtrl=this.value;calculatePriceAltex();');
     html += '<div style="padding:4px 20px 10px;font-size:11px;color:var(--text-dim);">Prix de la toile SANS moteur : le kit s\'ajoute. Vérifier la compatibilité du moteur (couleur de la case dans le guide).</div>';
   }
+  const cl = altexCoulLat();
+  if (cl) {
+    const hautCL = (parseFloat(document.getElementById('inp-haut').value) || 0) + (parseFloat(document.getElementById('frac-haut').value) || 0);
+    html += altexSelectHtml('altex-opt-clat', 'Coulisses latérales (paire) — prix selon la hauteur', [{ v: '', l: 'Aucune' },
+      ...cl.cols.map((t, i) => { const p = altexPrixCoulLat(cl, i, larg, hautCL); return { v: String(i), l: t + ' — ' + fmt(p) }; })],
+      opt.altexCoulLat == null ? '' : String(opt.altexCoulLat), 'state.options.altexCoulLat=this.value===\'\'?null:parseInt(this.value);calculatePriceAltex();');
+    html += '<div style="padding:0 20px 8px;font-size:11px;color:var(--text-dim);">Maximum 96" × 96". ' + (/DISTRICT/.test(state.altex.s)
+      ? 'SCH28 avec fascia, SCH38 avec cassette carrée ; bases Profil ou pochette fermée seulement.'
+      : 'Avec fascia d\'aluminium M ou ML ; base carrée ou pochette fermée seulement.') + ' Guide p. ' + cl.p + '.</div>';
+  }
+  html += '<div style="padding:0 20px 8px;font-size:11px;color:var(--text-dim);">Toiles tandem / multimécanismes : additionner les toiles et valider la faisabilité avec Altex.</div>';
   html += '<div style="padding:4px 20px 12px;"><label style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);display:block;margin-bottom:7px;">Quantité de toiles identiques</label>'
     + '<input type="number" id="altex-qte" min="1" step="1" value="' + (opt.altexQte || 1) + '" oninput="state.options.altexQte=Math.max(1,parseInt(this.value)||1);calculatePriceAltex();" '
     + 'style="width:90px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:DM Mono,monospace;font-size:12px;padding:8px 10px;"></div>';
@@ -263,8 +289,8 @@ function calculatePriceAltex() {
   noteEl.classList.add('show');
 
   show('card-options');
-  if (!document.getElementById('altex-qte') || state._altexOptCle !== [a.g, a.s, a.ty, c.L].join('|')) {
-    buildOptionsAltex(larg); state._altexOptCle = [a.g, a.s, a.ty, c.L].join('|');
+  if (!document.getElementById('altex-qte') || state._altexOptCle !== [a.g, a.s, a.ty, c.L, c.H, a.t].join('|')) {
+    buildOptionsAltex(larg); state._altexOptCle = [a.g, a.s, a.ty, c.L, c.H, a.t].join('|');
   }
 
   const opt = state.options, ops = altexOptionsSysteme();
@@ -274,14 +300,26 @@ function calculatePriceAltex() {
   const ajout = (label, p) => { if (p > 0) { pdsf += p; lignes.push({ label, pdsf: p }); } };
   const lab = l => l.replace(/\s*•\s*BF\b/, ' (bronze foncé)');
   const parNom = l => ops.find(o => o.l === l);
+  const nonOffertes = [];
   [['altexDiss', a.ty === 'Rouleau apparent' ? 'Dissimulation' : 'Aluminium'], ['altexBase', 'Base'], ['altexCoul', 'Coulisse du bas']].forEach(([k, t]) => {
     const o = opt[k] && parNom(opt[k]);
-    if (o) { const p = altexPrixOpt(o, larg); if (p) { ajout(lab(o.l), p); specs.push(t + ' : ' + lab(o.l)); } }
+    if (opt[k] && !o) { nonOffertes.push(opt[k]); return; }
+    if (o) { const p = altexPrixOpt(o, larg); if (p) { ajout(lab(o.l), p); specs.push(t + ' : ' + lab(o.l)); } else nonOffertes.push(lab(o.l)); }
   });
   Object.keys(opt.altexAutres || {}).forEach(l => {
     const o = opt.altexAutres[l] && parNom(l);
-    if (o) { const p = altexPrixOpt(o, larg); if (p) { ajout(lab(o.l), p); specs.push(lab(o.l)); } }
+    if (o) { const p = altexPrixOpt(o, larg); if (p) { ajout(lab(o.l), p); specs.push(lab(o.l)); } else nonOffertes.push(lab(o.l)); }
   });
+  const clat = altexCoulLat();
+  if (clat && opt.altexCoulLat != null) {
+    const p = altexPrixCoulLat(clat, opt.altexCoulLat, larg, haut);
+    const t = 'Coulisses latérales (paire) ' + clat.cols[opt.altexCoulLat];
+    if (p) { ajout(t, p); specs.push(t); } else nonOffertes.push(t + ' (max 96" × 96")');
+  }
+  if (nonOffertes.length) {
+    alertEl.textContent = '⚠ Option non offerte à ' + larg + '" × ' + haut + '" : ' + nonOffertes.join(', ') + ' — retire-la ou change les mesures.';
+    alertEl.classList.add('show'); resetResult(); state.lastResult = null; return;
+  }
   const kit = ALTEX_KITS.find(k => k.v === opt.altexKit);
   if (kit) { ajout('Moteur ' + kit.l + ' [' + kit.v + ']', kit.p); specs.push('Moteur : ' + kit.l); }
   const ctrl = ALTEX_CTRLS.find(k => k.v === opt.altexCtrl);

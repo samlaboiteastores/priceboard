@@ -14065,7 +14065,7 @@ function copyResume() {
       config: (typeof window.lbasCaptureConfig === 'function') ? window.lbasCaptureConfig() : null
     };
     try {
-      window.parent.postMessage(payload, '*');
+      window.parent.postMessage(payload, 'https://tkl.tekstil.ca');
       var b = document.getElementById('devis-add-btn');
       if (b) {
         var old = _editId ? '💾 &nbsp;Mettre à jour la ligne' : b.innerHTML;
@@ -14098,7 +14098,7 @@ function copyResume() {
       supplier_ref: 'priceboard'
     };
     try {
-      window.parent.postMessage(payload, '*');
+      window.parent.postMessage(payload, 'https://tkl.tekstil.ca');
       var b = document.getElementById('svc-devis-add-btn');
       if (b) {
         var old = b.innerHTML;
