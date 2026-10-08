@@ -21,23 +21,25 @@ const eliteEsc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&':
 
 // Entêtes : supplément (clé de elite.json.supp), couleurs, mécanismes compatibles, support des toiles liées
 const ELITE_ENTETES = [
-  { v: 'OR',     l: 'Open Roll (Z-125 / Z-150, sans entête)', s: null,                     coul: ['Blanc', 'Noir'], meca: ['MOT', 'CG', 'SD', 'FM', 'WC', 'ET'], lie: 125 },
-  { v: 'ORV',    l: 'Open Roll + cantonnière Deluxe (PVC, insertion de tissu)', s: 'Deluxe Valance', coul: ['Blanc', 'Noir'], meca: ['MOT', 'CG', 'SD', 'FM', 'WC', 'ET'], lie: 125 },
-  { v: 'SL102',  l: 'Caisson SL102', s: 'SL102 Headrail',                                  coul: ['Blanc'], meca: ['MOT', 'CG', 'SD', 'WC', 'PW', 'ET'] },
-  { v: 'SL102V', l: 'Caisson SL102 + cantonnière', s: 'SL102 + Valance',                   coul: ['Blanc'], meca: ['MOT', 'CG', 'SD', 'WC', 'PW', 'ET'] },
-  { v: 'Z300',   l: 'Fascia Z-300', s: 'Z-300 Fascia',                                    coul: ['Blanc', 'Noir', 'Anodisé'], meca: ['MOT', 'CG', 'SD', 'FM', 'WC', 'PW', 'ET'], lie: 125, fascia: true },
-  { v: 'Z400',   l: 'Fascia Z-400', s: 'Z-400 Fascia',                                    coul: ['Blanc', 'Noir', 'Anodisé'], meca: ['MOT', 'CG', 'SD', 'WC', 'ET'], lie: 125, fascia: true },
-  { v: 'Z550',   l: 'Fascia Z-550', s: 'Z-550 Fascia',                                    coul: ['Blanc', 'Noir', 'Anodisé'], meca: ['MOT', 'CG', 'WC', 'ET'], fascia: true },
-  { v: 'S300',   l: 'Cassette S-300', s: 'S-300 Cassette',                                coul: ['Blanc', 'Noir', 'Anodisé'], meca: ['MOT', 'CG', 'SD', 'FM', 'WC', 'PW', 'ET'], lie: 150 },
-  { v: 'S325',   l: 'Cassette S-325', s: 'S-325 Cassette',                                coul: ['Blanc', 'Noir', 'Anodisé'], meca: ['MOT', 'CG', 'SD', 'FM', 'WC', 'PW', 'ET'], lie: 150 },
-  { v: 'V80',    l: 'Cassette V-80', s: 'V-80 Cassette',                                  coul: ['Blanc', 'Noir', 'Anodisé'], meca: ['MOT', 'CG', 'SD', 'FM', 'WC', 'PW', 'ET'], lie: 150 },
-  { v: 'M7E',    l: 'Cassette M7 apparente', s: 'M7 Exposed',                             coul: ['Blanc', 'Lin', 'Anodisé', 'Noir'], meca: ['MOT', 'CG', 'SD', 'FM', 'WC', 'PW', 'ET'], lie: 150, max: 120 },
-  { v: 'M7EP',   l: 'Cassette M7 apparente + plaque de fond', s: 'M7 Exposed + Bottom Cover Plate', coul: ['Blanc', 'Lin', 'Anodisé', 'Noir'], meca: ['MOT', 'CG', 'SD', 'FM', 'WC', 'PW', 'ET'], lie: 150, max: 120 },
-  { v: 'M7F',    l: 'Cassette M7 recouverte de tissu', s: 'M7 Fabric Wrapped',            coul: ['Blanc', 'Lin', 'Anodisé', 'Noir'], meca: ['MOT', 'CG', 'SD', 'FM', 'WC', 'PW', 'ET'], lie: 150, max: 120 },
-  { v: 'TW150',  l: 'Double — Open Roll Z-150 Twin (2 toiles)', s: null, fixe: 125,       coul: ['Blanc'], meca: ['MOT', 'CG', 'SD', 'WC', 'ET'], twin: true },
-  { v: 'TW550',  l: 'Double — Fascia Z-550 Twin (2 toiles)', s: 'Z-550 Twin Fascia',     coul: ['Blanc', 'Noir', 'Anodisé'], meca: ['MOT', 'CG', 'WC', 'ET'], twin: true, fascia: true },
-  { v: 'TW550S', l: 'Double — Fascia Z-550 Twin Slim (2 toiles)', s: 'Z-550 Twin Slim Fascia', coul: ['Blanc', 'Noir', 'Anodisé'], meca: ['MOT', 'CG', 'WC', 'ET'], twin: true, fascia: true },
-  { v: 'V90',    l: 'Double — Cassette V-90 Twin (2 toiles)', s: 'V-90 Cassette',        coul: ['Blanc', 'Anodisé', 'Albâtre', 'Espresso', 'Noir'], meca: ['MOT', 'CG', 'SD'], twin: true, max: 78 },
+  { v: 'OR',     l: 'Open Roll (Z-125 / Z-150, sans entête)', s: null,                     coul: ['Blanc', 'Noir'], meca: ['MOT-S', 'MOT-E', 'CG', 'SD', 'FM', 'WC', 'ET'], lie: 125 },
+  { v: 'ORV',    l: 'Open Roll + cantonnière Deluxe (PVC, insertion de tissu)', s: 'Deluxe Valance', coul: ['Blanc', 'Noir'], meca: ['MOT-S', 'MOT-E', 'CG', 'SD', 'FM', 'WC', 'ET'], lie: 125 },
+  { v: 'SL102',  l: 'Caisson SL102', s: 'SL102 Headrail',                                  coul: ['Blanc'], meca: ['MOT-S', 'MOT-E', 'CG', 'SD', 'WC', 'PW', 'ET'] },
+  { v: 'SL102V', l: 'Caisson SL102 + cantonnière', s: 'SL102 + Valance',                   coul: ['Blanc'], meca: ['MOT-S', 'MOT-E', 'CG', 'SD', 'WC', 'PW', 'ET'] },
+  { v: 'Z300',   l: 'Fascia Z-300', s: 'Z-300 Fascia',                                    coul: ['Blanc', 'Noir', 'Anodisé'], meca: ['MOT-S', 'MOT-E', 'CG', 'SD', 'FM', 'WC', 'PW', 'ET'], lie: 125, fascia: true },
+  { v: 'Z400',   l: 'Fascia Z-400', s: 'Z-400 Fascia',                                    coul: ['Blanc', 'Noir', 'Anodisé'], meca: ['MOT-S', 'MOT-E', 'CG', 'SD', 'WC', 'ET'], lie: 125, fascia: true },
+  { v: 'Z550',   l: 'Fascia Z-550', s: 'Z-550 Fascia',                                    coul: ['Blanc', 'Noir', 'Anodisé'], meca: ['MOT-S', 'MOT-E', 'CG', 'WC', 'ET'], fascia: true },
+  { v: 'S300',   l: 'Cassette S-300', s: 'S-300 Cassette',                                coul: ['Blanc', 'Noir', 'Anodisé'], meca: ['MOT-S', 'MOT-E', 'CG', 'SD', 'FM', 'WC', 'PW', 'ET'], lie: 150 },
+  { v: 'S325',   l: 'Cassette S-325', s: 'S-325 Cassette',                                coul: ['Blanc', 'Noir', 'Anodisé'], meca: ['MOT-S', 'MOT-E', 'CG', 'SD', 'FM', 'WC', 'PW', 'ET'], lie: 150 },
+  { v: 'V80',    l: 'Cassette V-80', s: 'V-80 Cassette',                                  coul: ['Blanc', 'Noir', 'Anodisé'], meca: ['MOT-S', 'MOT-E', 'CG', 'SD', 'FM', 'WC', 'PW', 'ET'], lie: 150 },
+  { v: 'M7E',    l: 'Cassette M7 apparente', s: 'M7 Exposed',                             coul: ['Blanc', 'Lin', 'Anodisé', 'Noir'], meca: ['MOT-S', 'MOT-E', 'CG', 'SD', 'FM', 'WC', 'PW', 'ET'], lie: 150, max: 120 },
+  { v: 'M7EP',   l: 'Cassette M7 apparente + plaque de fond', s: 'M7 Exposed + Bottom Cover Plate', coul: ['Blanc', 'Lin', 'Anodisé', 'Noir'], meca: ['MOT-S', 'MOT-E', 'CG', 'SD', 'FM', 'WC', 'PW', 'ET'], lie: 150, max: 120 },
+  { v: 'M7F',    l: 'Cassette M7 recouverte de tissu', s: 'M7 Fabric Wrapped',            coul: ['Blanc', 'Lin', 'Anodisé', 'Noir'], meca: ['MOT-S', 'MOT-E', 'CG', 'SD', 'FM', 'WC', 'PW', 'ET'], lie: 150, max: 120 },
+  { v: 'TW150',  l: 'Double — Open Roll Z-150 Twin (2 toiles)', s: null, fixe: 125,       coul: ['Blanc'], meca: ['MOT-S', 'MOT-E', 'CG', 'SD', 'WC', 'ET'], twin: true },
+  { v: 'TW550',  l: 'Double — Fascia Z-550 Twin (2 toiles)', s: 'Z-550 Twin Fascia',     coul: ['Blanc', 'Noir', 'Anodisé'], meca: ['MOT-S', 'MOT-E', 'CG', 'WC', 'ET'], twin: true, fascia: true },
+  { v: 'TW550S', l: 'Double — Fascia Z-550 Twin Slim (2 toiles)', s: 'Z-550 Twin Slim Fascia', coul: ['Blanc', 'Noir', 'Anodisé'], meca: ['MOT-S', 'MOT-E', 'CG', 'WC', 'ET'], twin: true, fascia: true },
+  { v: 'C550P',  l: 'Commercial — Fascia Z-550 Pro (simple, double ou Slim Line)', soum: true, coul: ['Blanc', 'Anodisé', 'Espresso'], meca: ['MOT-S', 'MOT-E', 'CG', 'SD', 'WC'] },
+  { v: 'C700T',  l: 'Commercial — Fascia Z-700 Twin', soum: true, coul: ['Blanc', 'Anodisé', 'Espresso'], meca: ['MOT-S', 'MOT-E', 'CG', 'SD', 'WC'] },
+  { v: 'V90',    l: 'Double — Cassette V-90 Twin (2 toiles)', s: 'V-90 Cassette',        coul: ['Blanc', 'Anodisé', 'Albâtre', 'Espresso', 'Noir'], meca: ['MOT-S', 'MOT-E', 'CG', 'SD'], twin: true, max: 78 },
 ];
 // Mécanismes (prix MSRP par toile ; limites des pages de la liste Roller 2026)
 const ELITE_MECAS = [
@@ -47,7 +49,8 @@ const ELITE_MECAS = [
   { v: 'WC', l: 'WandControl™ (baguette)', p: 185, min: 8, pc: 50, pasCoul: true },
   { v: 'PW', l: 'ProWand™ (baguette 2-en-1)', p: 185, min: 27, maxL: 92, maxH: 108 },
   { v: 'ET', l: 'E-Touch™ by Rollease (moteur à baguette rechargeable)', p: 443, min: 21, pc: 70 },
-  { v: 'MOT', l: 'Motorisé — Somfy ou E-Motion™ (Smart Shades)', p: 0 },
+  { v: 'MOT-S', l: 'Motorisé — Somfy (RTS, Zigbee, filaire)', p: 0 },
+  { v: 'MOT-E', l: 'Motorisé — E-Motion™ (BASICS ou 2.0, moteurs Elite)', p: 0 },
 ];
 // Motorisation Smart Shades (liste Elite 10-2024, MSRP) : famille = protocole ; alim = alimentations offertes
 const ELITE_MOTEURS = [
@@ -211,13 +214,14 @@ function eliteMoteurProbleme(m, larg, ent) {
 }
 function eliteMotorisationHtml(larg, ent) {
   const opt = state.options;
-  if (opt.eliteMeca !== 'MOT') return '';
-  let h = eliteEtiquette('elite-opt-moteur', 'Moteur') + '<div>' + eliteSelect('elite-opt-moteur', [{ v: '', l: '— Choisir —' }, ...ELITE_MOTEURS.map(m => {
+  if (!/^MOT/.test(opt.eliteMeca)) return '';
+  const famille = m => opt.eliteMeca === 'MOT-E' ? /^EM/.test(m.f) : !/^EM/.test(m.f);
+  let h = eliteEtiquette('elite-opt-moteur', 'Moteur') + '<div>' + eliteSelect('elite-opt-moteur', [{ v: '', l: '— Choisir —' }, ...ELITE_MOTEURS.filter(famille).map(m => {
     const pb = eliteMoteurProbleme(m, larg, ent);
     const petit = m.petit && larg < m.petit.max;
     return { v: m.v, l: m.l + ' — +' + (petit ? m.petit.p : m.p) + ' $' + (petit ? ' (' + m.petit.l + ')' : '') + (pb ? ' ⚠ ' + pb : ''), off: !!pb };
   })], opt.eliteMoteur || '', 'state.options.eliteMoteur=this.value;delete state.options.eliteAlim;delete state.options.eliteCtrl;state._eliteOptCle=null;calculatePriceElite();') + '</div>';
-  const mot = ELITE_MOTEURS.find(m => m.v === opt.eliteMoteur);
+  const mot = ELITE_MOTEURS.filter(famille).find(m => m.v === opt.eliteMoteur);
   if (mot) {
     const al = ELITE_ALIMS[mot.alim] || [];
     if (al.length) h += eliteEtiquette('elite-opt-alim', 'Alimentation' + (/liion/.test(mot.alim) ? ' (au moins un chargeur par installation)' : mot.alim === '24v' || mot.alim === 'em12' ? ' (électricien requis)' : ''))
@@ -273,6 +277,7 @@ function buildOptionsElite(larg, haut) {
 
   // Entête (+ toile arrière pour les doubles)
   let en = eliteSelect('elite-opt-entete', ELITE_ENTETES.map(e => {
+    if (e.soum) return { v: e.v, l: e.l + ' — prix sur soumission Elite' };
     const p = e.s ? eliteSupp(e.s, e.twin ? larg : largTot) : (e.fixe || 0);
     const off = (e.twin && N > 1) || (N > 1 && !e.lie) || (e.max && larg > e.max) || p == null;
     return { v: e.v, l: e.l + ' — ' + eliteFmt(p) + (e.max ? ' (max ' + e.max + '")' : ''), off };
@@ -311,7 +316,7 @@ function buildOptionsElite(larg, haut) {
   html += eliteSection('Mécanisme & Motorisation', eliteSelect('elite-opt-meca', ELITE_MECAS.map(m => {
     const pb = eliteMecaProbleme(m, larg, haut, ent);
     return { v: m.v, l: m.l + ' — ' + eliteFmt(m.p) + (pb ? ' ⚠ ' + pb : ''), off: !!pb && m.v !== opt.eliteMeca };
-  }), opt.eliteMeca, 'state.options.eliteMeca=this.value;calculatePriceElite();')
+  }), opt.eliteMeca, 'state.options.eliteMeca=this.value;delete state.options.eliteMoteur;state._eliteOptCle=null;calculatePriceElite();')
     + eliteMotorisationHtml(larg, ent));
 
   // Côté contrôle, enroulement, multiple toiles
@@ -336,6 +341,7 @@ function buildOptionsElite(larg, haut) {
     { k: 'manivelle', l: 'Manivelle FreeMotion™', p: 53, si: 'FM' },
     { k: 'chargeur', l: 'Chargeur E-Touch™ (câble USB-C 4 m + bloc)', p: 122, si: 'ET' },
     { k: 'panneau', l: 'Panneau de fermeture (pochette au plafond)', s: 'Closure Panel' },
+    { k: 'ressort', l: 'Spring Assist (aide-ressort, grandes toiles ex. 96 × 96)', p: 105, si: 'CG' },
   ].filter(a => !a.si || a.si === opt.eliteMeca);
   opt.eliteAcc = opt.eliteAcc || {};
   html += eliteSection('Accessoires', acc.map(a => {
@@ -381,6 +387,7 @@ function calculatePriceElite() {
     if (i === 0) { state.largTip = c.L; state.hautTip = c.H; }
     ajout(`${t.nom} (groupe ${t.g}) ${c.L}"×${c.H}"${N > 1 ? ' — toile ' + (i + 1) : ''}`, c.v);
   }
+  if (ent.soum) return bloquer(ent.l + ' : prix sur soumission seulement — demander une soumission au service des soumissions d\'Elite (liste Roller, section commerciale).');
   if (ent.max && (ent.twin ? larg : largTot) > ent.max) return bloquer(`${ent.l} : largeur maximum ${ent.max}"${N > 1 ? ' au total' : ''}`);
   // Double : 2e toile à la même mesure
   let arr = null;
@@ -417,8 +424,8 @@ function calculatePriceElite() {
   if (pbm) return bloquer(meca.l.split(' (')[0] + ' : ' + pbm + ' — choisir un autre mécanisme');
   if (meca.p) ajout(meca.l.split(' (')[0], meca.p * (ent.twin ? 2 : 1));
   const moto = [];
-  if (meca.v === 'MOT') {
-    const mot = ELITE_MOTEURS.find(m => m.v === opt.eliteMoteur);
+  if (/^MOT/.test(meca.v)) {
+    const mot = ELITE_MOTEURS.find(m => m.v === opt.eliteMoteur && (meca.v === 'MOT-E') === /^EM/.test(m.f));
     if (!mot) return bloquer('Motorisé : choisir le moteur.');
     const pbmo = eliteMoteurProbleme(mot, Math.min(...largs), ent);
     if (pbmo) return bloquer(mot.l + ' : ' + pbmo);
@@ -432,11 +439,12 @@ function calculatePriceElite() {
   }
   // Accessoires
   const accTxt = [];
-  const ACC = { perche: ['Perche télescopique + poignée', 53], manivelle: ['Manivelle FreeMotion™', 53], chargeur: ['Chargeur E-Touch™', 122], panneau: ['Panneau de fermeture', null] };
+  const ACC = { ressort: ['Spring Assist (aide-ressort)', 105], perche: ['Perche télescopique + poignée', 53], manivelle: ['Manivelle FreeMotion™', 53], chargeur: ['Chargeur E-Touch™', 122], panneau: ['Panneau de fermeture', null] };
   Object.keys(opt.eliteAcc || {}).forEach(k => {
     if (!opt.eliteAcc[k] || !ACC[k]) return;
     if (k === 'manivelle' && opt.eliteMeca !== 'FM') return;
     if (k === 'chargeur' && opt.eliteMeca !== 'ET') return;
+    if (k === 'ressort' && opt.eliteMeca !== 'CG') return;
     const p = ACC[k][1] != null ? ACC[k][1] : eliteSupp('Closure Panel', largTot);
     if (p == null) return;
     ajout(ACC[k][0], p); accTxt.push(ACC[k][0]);

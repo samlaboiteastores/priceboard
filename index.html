@@ -993,6 +993,45 @@
               </div>
             </div>
           </div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Elite — Paramètres</span>
+              <span class="card-badge">Actif</span>
+            </div>
+            <div class="card-body">
+              <div class="admin-row">
+                <div>
+                  <div class="admin-label">% Coût / MSRP</div>
+                  <div style="font-size:10px;color:var(--text-dim);margin-top:2px">22,5 % = 77,5 % de rabais sur la liste</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px">
+                  <input type="number" class="admin-input" id="admin-pct-elite" value="22.5" min="1" max="99" step="0.5" onchange="saveAdminSettings()">
+                  <span style="color:var(--text-dim);font-size:12px">%</span>
+                </div>
+              </div>
+              <div class="admin-row">
+                <div><div class="admin-label">Multiplicateur de vente</div></div>
+                <div style="display:flex;align-items:center;gap:6px">
+                  <input type="number" class="admin-input" id="admin-multi-elite" value="2.0" min="1" max="10" step="0.1" onchange="saveAdminSettings()">
+                  <span style="color:var(--text-dim);font-size:12px">×</span>
+                </div>
+              </div>
+              <div class="admin-row">
+                <div>
+                  <div class="admin-label">Multiplicateur motorisation</div>
+                  <div style="font-size:10px;color:var(--text-dim);margin-top:2px">Moteurs Somfy et E-Motion, alimentations, contrôles</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px">
+                  <input type="number" class="admin-input" id="admin-multi-somfy-elite" value="1.5" min="1" max="10" step="0.1" onchange="saveAdminSettings()">
+                  <span style="color:var(--text-dim);font-size:12px">×</span>
+                </div>
+              </div>
+              <div class="admin-row">
+                <div class="admin-label">Marge brute résultante (toile)</div>
+                <div id="admin-marge-elite" style="color:var(--green);font-size:13px">—</div>
+              </div>
+            </div>
+          </div>
 
           <div class="card">
             <div class="card-header">
@@ -3212,6 +3251,7 @@ function loadSettings() {
   if (!settings.vtx)  settings.vtx  = { pct: 100, multi: 1.0 };
   if (!settings.altex) settings.altex = { multi: 2.0 };
   if (!settings.elite) settings.elite = { pct: 22.5, multi: 2.0, multiSomfy: 1.5 };   // Elite : 77,5 % de rabais sur la liste (MSRP)
+  if (document.getElementById('admin-pct-elite')) { document.getElementById('admin-pct-elite').value = settings.elite.pct; document.getElementById('admin-multi-elite').value = settings.elite.multi; document.getElementById('admin-multi-somfy-elite').value = settings.elite.multiSomfy || 1.5; }
   if (document.getElementById('admin-multi-altex')) document.getElementById('admin-multi-altex').value = settings.altex.multi;
   if (!settings.svc)  settings.svc  = { multi: 1.35 };
   document.getElementById('admin-pct-vp').value = settings.vp.pct;
@@ -3257,6 +3297,10 @@ function saveAdminSettings() {
   settings.vtx.multi = parseFloat(document.getElementById('admin-multi-vtx').value) || 1.0;
   if (!settings.altex) settings.altex = {};
   settings.altex.multi = parseFloat((document.getElementById('admin-multi-altex') || {}).value) || 2.0;
+  if (!settings.elite) settings.elite = {};
+  settings.elite.pct = parseFloat((document.getElementById('admin-pct-elite') || {}).value) || 22.5;
+  settings.elite.multi = parseFloat((document.getElementById('admin-multi-elite') || {}).value) || 2.0;
+  settings.elite.multiSomfy = parseFloat((document.getElementById('admin-multi-somfy-elite') || {}).value) || 1.5;
   if (!settings.svc) settings.svc = {};
   settings.svc.multi = parseFloat(document.getElementById('admin-multi-svc').value) || 1.35;
   localStorage.setItem('lbas_settings', JSON.stringify(settings));
@@ -3273,10 +3317,15 @@ function saveAdminSettings() {
   }
   else if (state.fournisseur === 'vtx') calculatePriceVtx();
   else if (state.fournisseur === 'altex') calculatePriceAltex();
+  else if (state.fournisseur === 'elite') calculatePriceElite();
   else calculatePrice();
 }
 
 function updateAdminMarge() {
+  if (document.getElementById('admin-marge-elite') && settings.elite) {
+    const mE = settings.elite.multi || 2.0;
+    document.getElementById('admin-marge-elite').textContent = ((mE - 1) / mE * 100).toFixed(1) + '%';
+  }
   if (document.getElementById('admin-pct-altex')) {
     const fA = window.LBAS_ALTEX_FACTEUR;
     const mA = (settings.altex && settings.altex.multi) || 2.0;
