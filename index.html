@@ -548,15 +548,19 @@
                   <label>Fournisseur</label>
                   <select id="sel-fournisseur" onchange="onFournisseurChange()">
                     <option value="">— Sélectionner —</option>
-                    <option value="vp">VP Stores</option>
-                    <option value="pd">Persienne Design</option>
-                    <option value="sbm">SBM Canada</option>
-                    <option value="solr">SOL-R</option>
-                    <option value="norm">Draperie Normandie</option>
-                    <option value="sig">Signature Textiles</option>
-                    <option value="altex">Altex — Toiles à rouleau</option>
-                    <option value="elite">Elite — Stores</option>
-                    <option value="vtx">Verotex — Rideau Séparateur</option>
+                    <optgroup label="Stores">
+                      <option value="vp">VP Stores</option>
+                      <option value="pd">Persienne Design</option>
+                      <option value="sbm">SBM Canada</option>
+                      <option value="solr">SOL-R</option>
+                      <option value="altex">Altex — Toiles à rouleau</option>
+                      <option value="elite">Elite — Stores</option>
+                    </optgroup>
+                    <optgroup label="Rideaux">
+                      <option value="norm">Draperie Normandie</option>
+                      <option value="sig">Signature Textiles</option>
+                      <option value="vtx">Verotex — Rideau Séparateur</option>
+                    </optgroup>
                   </select>
                 </div>
                 <div class="form-row" id="row-type" style="display:none">
