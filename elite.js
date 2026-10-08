@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════
-// ELITE (Solarfective) — Toiles à rouleau (liste Roller SS 05-2026, prix MSRP)
+// ELITE (Solarfective) — Toiles à rouleau (liste Roller SS 05-2026, prix MSRP) ; romains et cellulaires : section en fin de fichier
 // Gabarit VP : 1 Produit (Type → Modèle = tissu → Couleur) · 2 Dimensions · 3 Options (Entête · Couleur de la
 // quincaillerie · Base · Coulisses · Mécanisme & Motorisation · Côté contrôle · Enroulement · Multiple toiles · Accessoires).
 // Coût = MSRP × settings.elite.pct (22,5 % : 77,5 % de rabais sur la liste) ; vente = coût × multi.
@@ -128,7 +128,7 @@ function eliteOnFournisseur() {
    'row-altex', 'card-dim', 'card-options'].forEach(hide);
   resetResult();
   const sel = document.getElementById('sel-type');
-  sel.innerHTML = '<option value="">— Sélectionner —</option><option value="elite-TR">Toile à rouleau</option>';
+  sel.innerHTML = '<option value="">— Sélectionner —</option><option value="elite-TR">Toile à rouleau</option><option value="elite-RO">Store romain (kit, tissu de façade non inclus)</option><option value="elite-CE">Store cellulaire (nid d’abeille)</option>';
   sel.value = '';
   show('row-type');
   return eliteCharger().catch(e => {
@@ -143,6 +143,7 @@ function eliteOnType() {
   hide('row-couleur'); hide('row-tissu-nom'); hide('row-tissu-couleur'); hide('card-dim'); hide('card-options');
   resetResult();
   if (!state.type) { hide('row-modele'); return; }
+  if (state.type !== 'elite-TR') return eliteRcOnType();
   eliteCharger().then(() => {
     const T = window.ELITE.tissus;
     const opts = (hl) => T.filter(t => !!t.hl === hl).sort((a, b) => a.nom.localeCompare(b.nom, 'fr'))
@@ -156,6 +157,7 @@ function eliteOnType() {
 }
 
 function eliteOnModele() {
+  if (state.type && state.type !== 'elite-TR') return eliteRcOnModele();
   const v = document.getElementById('sel-modele').value;
   if (!v) { hide('row-tissu-couleur'); hide('card-dim'); hide('card-options'); resetResult(); return; }
   state.elite = Object.assign(state.elite || {}, { t: v });
@@ -356,6 +358,7 @@ function buildOptionsElite(larg, haut) {
 
 // ── Calcul ──────────────────────────────────────────────
 function calculatePriceElite() {
+  if (state.type && state.type !== 'elite-TR') return calculatePriceEliteRc();
   const e = state.elite || {}, t = eliteTissu(e.t);
   if (!window.ELITE || !t) { resetResult(); return; }
   const larg = (parseFloat(document.getElementById('inp-larg').value) || 0) + (parseFloat(document.getElementById('frac-larg').value) || 0);
@@ -496,9 +499,10 @@ window.eliteRestore = function (saved, ctrls) {
   eliteCharger().then(() => {
     const e = saved.elite || {};
     if (!e.t) return;
-    const sel = document.getElementById('sel-type'); sel.value = 'elite-TR';
+    const sel = document.getElementById('sel-type'); sel.value = saved.type || 'elite-TR';
     eliteOnType();
     setTimeout(() => {
+      state.couleur = saved.couleur || '';
       state.options = JSON.parse(JSON.stringify(saved.options || {}));
       state.tissuCouleur = saved.tissuCouleur || '';
       ['inp-larg', 'inp-haut', 'frac-larg', 'frac-haut', 'inp-larg2', 'inp-haut2', 'frac-larg2', 'frac-haut2', 'inp-larg3', 'inp-haut3', 'frac-larg3', 'frac-haut3']
@@ -506,6 +510,378 @@ window.eliteRestore = function (saved, ctrls) {
       state.elite = { t: e.t };
       document.getElementById('sel-modele').value = e.t;
       eliteOnModele();
-    }, 0);
+    }, saved.type && saved.type !== 'elite-TR' ? 50 : 0);
   });
 };
+
+// ══════════════════════════════════════════════════════
+// ELITE — Stores romains (Roman Shade Kit FW2024) et stores cellulaires (Cellular FW2024), prix MSRP.
+// Même gabarit VP : 1 Produit (Type → Modèle → Couleur) · 2 Dimensions · 3 Options.
+// Motorisation : liste Smart Shades 10-2024 (Somfy, E-Motion™ BASICS et 2.0) au multiplicateur motorisation.
+// ══════════════════════════════════════════════════════
+const ELITE_RO_MECAS = [
+  { v: 'CG', l: 'ChainGuard™ (chaînette, incluse)', p: 0 },
+  { v: 'SD', l: 'SpringDrive™ (sans cordon, poignée au bas)', p: 79 },
+  { v: 'WC', l: 'WandControl™ (baguette)', p: 184 },
+  { v: 'ET', l: 'E-Touch™ by Rollease (moteur à baguette rechargeable)', p: 443 },
+  { v: 'MOT-S', l: 'Motorisé — Somfy (Sonesse 28, 30, 40)', p: 0 },
+  { v: 'MOT-E', l: 'Motorisé — E-Motion™ (MIQO 25/28/35 ou BASICS)', p: 0 },
+];
+// Moteurs compatibles du romain (liste Roman Shades p. 3) : tous les modèles Sonesse 28/30/40, MIQO 25/28/35, BASICS Li-ion
+const eliteRoMoteurOk = m => /^(S28|SU30|S30|S40|MQ|EMB$)/.test(m.v);
+const ELITE_CE_MECAS = [
+  { v: 'CL', l: 'Sans cordon (Cordless)', p: 0 },
+  { v: 'DN', l: 'Jour/Nuit sans cordon (Day/Night : 2 tissus sur un store)', p: 0 },
+  { v: 'MOT-S', l: 'Motorisé — Somfy TL25 WireFree (RTS ou Zigbee)', p: 0 },
+  { v: 'MOT-E', l: 'Motorisé — E-Motion™ (BASICS Cellular ou MIQO Cellular)', p: 0 },
+  { v: 'CAFE', l: 'Cordless Cafe — sur soumission Elite', soum: true },
+  { v: 'CLOOP', l: 'Boucle continue (Continuous Loop) — sur soumission Elite', soum: true },
+];
+// Moteurs cellulaires (Smart Shades p. 4, 15, 16) ; req = bloc-piles obligatoire (1 par moteur)
+const ELITE_CE_MOTEURS = [
+  { v: 'TL25-RTS', f: 'RTS', l: 'Somfy TL25 WireFree 12 V — RTS', p: 714, min: 22, alim: 'tl25', req: { l: 'Bloc-piles Li-ion rechargeable Somfy (1 par moteur)', p: 367 } },
+  { v: 'TL25-Z', f: 'ZIG', l: 'Somfy TL25 WireFree 12 V — Zigbee', p: 873, min: 22, alim: 'tl25', req: { l: 'Bloc-piles Li-ion rechargeable Somfy (1 par moteur)', p: 367 } },
+  { v: 'EMBC', f: 'EMB', l: 'E-Motion™ BASICS Cellular Li-ion (bloc-piles et chargeur inclus)', p: 476, min: 22, alim: 'embc' },
+  { v: 'MQC', f: 'EM2', l: 'E-Motion™ 2.0 MIQO Cellular 12 V', p: 492, min: 22, alim: 'mqc', req: { l: 'Bloc-piles Li-ion rechargeable E-Motion™ pour cellulaire (1 par moteur)', p: 386 } },
+];
+const ELITE_CE_ALIMS = {
+  tl25: [{ v: 'CH203', l: 'Chargeur + câble magnétique rigide (au moins un par installation)', p: 203 }, { v: 'SOL547', l: 'Panneau solaire TL25 (recharge en continu)', p: 547 },
+    { v: 'EXT101', l: 'Rallonge 96" pour bloc-piles ou panneau solaire', p: 101 }],
+  embc: [{ v: 'EMB47', l: 'Chargeur USB-C BASICS supplémentaire', p: 47 }, { v: 'EMB93', l: 'Bloc-piles cellulaire BASICS supplémentaire', p: 93 }],
+  mqc: [{ v: 'EM91', l: 'Chargeur USB + câble 4 m (au moins un par installation)', p: 91 }, { v: 'EM542', l: 'Panneau solaire (recharge en continu)', p: 542 },
+    { v: 'EM41', l: 'Rallonge 96" pour bloc-piles', p: 41 }, { v: 'EM22', l: 'Rallonge de câble de recharge 48"', p: 22 }],
+};
+const ELITE_CE_RAILS = { '001': 'White', '002': 'Alabaster', '006': 'Beige', '012': 'Mocha', '023': 'Sky', '091': 'Anodized', '025': 'Pewter' };
+const ELITE_CE_FORMES = [
+  { v: 'R', l: 'Rectangulaire' },
+  { v: 'ARC', l: 'Arche parfaite (fixe, sans gabarit) — aucun supplément', minL: 18, maxL: 84, minH: 9, maxH: 48 },
+  { v: 'QARC', l: 'Quart d\'arche (fixe, sans gabarit) — aucun supplément', minL: 9, maxL: 50 },
+];
+
+function eliteRc() { return state.type === 'elite-RO' ? window.ELITE.romain : window.ELITE.cellulaire; }
+// couleurs offertes : liste « Current Fabric Status » du tissu, sinon le tableau de coordination complet
+function eliteCeCouleurs(t) { return ((t && t.coul) || Object.keys(window.ELITE.cellulaire.couleurs).filter(c => c !== 'Creme')).slice().sort((a, b) => a.localeCompare(b, 'fr')); }
+function eliteCeTissu(v) { return (window.ELITE.cellulaire.tissus || []).find(t => t.id === v); }
+function eliteRcGrille(L, H, P, larg, haut) {
+  const c = L.findIndex(x => x >= larg - 1e-9), r = H.findIndex(x => x >= haut - 1e-9);
+  if (c < 0 || r < 0) return null;
+  return { v: P[r][c], L: L[c], H: H[r] };
+}
+function eliteCePrix(t, larg, haut) { const C = window.ELITE.cellulaire; return eliteRcGrille(C.L, C.H, C.grilles[t.g], larg, haut); }
+
+// ── 1 — Produit ─────────────────────────────────────────
+function eliteRcOnType() {
+  hide('row-tissu-nom'); hide('row-tissu-couleur'); hide('row-couleur'); hide('card-dim'); hide('card-options');
+  eliteCharger().then(() => {
+    const sel = document.getElementById('sel-modele');
+    if (state.type === 'elite-RO') {
+      sel.innerHTML = '<option value="">— Sélectionner —</option>'
+        + '<option value="LF">Doublure filtrante (Light Filtering) — blanche</option>'
+        + '<option value="BO">Doublure opaque (Blackout) — blanche</option>';
+    } else {
+      const T = window.ELITE.cellulaire.tissus;
+      const grp = {};
+      T.forEach(t => (grp[t.cell] = grp[t.cell] || []).push(t));
+      sel.innerHTML = '<option value="">— Sélectionner —</option>' + Object.keys(grp).map(c => '<optgroup label="Cellule ' + eliteEsc(c) + '">'
+        + grp[c].map(t => '<option value="' + eliteEsc(t.id) + '">' + eliteEsc(t.nom + ' — groupe ' + t.g) + '</option>').join('') + '</optgroup>').join('');
+    }
+    sel.value = '';
+    show('row-modele');
+  });
+}
+
+function eliteRcOnModele() {
+  const v = document.getElementById('sel-modele').value;
+  if (!v) { hide('row-couleur'); hide('card-dim'); hide('card-options'); resetResult(); return; }
+  state.elite = Object.assign(state.elite || {}, { t: v });
+  const selC = document.getElementById('sel-couleur');
+  if (state.type === 'elite-RO') {
+    state.modele = v === 'BO' ? 'Kit romain — doublure opaque' : 'Kit romain — doublure filtrante';
+    selC.innerHTML = '<option value="Blanc">Blanc (entête et doublure : blanc seulement)</option>';
+    state.couleur = 'Blanc';
+  } else {
+    const t = eliteCeTissu(v);
+    state.modele = t ? t.nom : v;
+    const L = eliteCeCouleurs(t);
+    selC.innerHTML = '<option value="">— Sélectionner —</option>' + L.map(n => '<option value="' + eliteEsc(n) + '">' + eliteEsc(n) + '</option>').join('');
+    if (!L.includes(state.couleur)) state.couleur = '';
+  }
+  selC.value = state.couleur || '';
+  if (!selC._eliteRc) { selC._eliteRc = true; selC.addEventListener('change', () => { if (state.fournisseur === 'elite' && state.type !== 'elite-TR') { state._eliteOptCle = null; calculatePriceElite(); } }); }
+  state.tissuNom = state.modele;
+  show('row-couleur');
+  show('card-dim');
+  state._eliteOptCle = null;
+  onDimChange();
+}
+
+// ── Motorisation (moteur · alimentation · contrôle) ─────
+function eliteRcMoteurs() {
+  const opt = state.options;
+  if (state.type === 'elite-RO') return ELITE_MOTEURS.filter(eliteRoMoteurOk).filter(m => opt.eliteMeca === 'MOT-E' ? /^EM/.test(m.f) : !/^EM/.test(m.f));
+  return ELITE_CE_MOTEURS.filter(m => opt.eliteMeca === 'MOT-E' ? /^EM/.test(m.f) : !/^EM/.test(m.f));
+}
+function eliteRcAlims(mot) { return (state.type === 'elite-CE' ? ELITE_CE_ALIMS[mot.alim] : ELITE_ALIMS[mot.alim]) || []; }
+function eliteRcMotorisationHtml(larg) {
+  const opt = state.options;
+  if (!/^MOT/.test(opt.eliteMeca)) return '';
+  const M = eliteRcMoteurs();
+  let h = eliteEtiquette('elite-opt-moteur', 'Moteur') + '<div>' + eliteSelect('elite-opt-moteur', [{ v: '', l: '— Choisir —' }, ...M.map(m => {
+    const pb = larg < m.min ? 'largeur minimum ' + m.min + '"' : null;
+    const petit = m.petit && larg < m.petit.max;
+    return { v: m.v, l: m.l + ' — +' + (petit ? m.petit.p : m.p) + ' $' + (petit ? ' (' + m.petit.l + ')' : '') + (m.req ? ' + bloc-piles ' + m.req.p + ' $' : '') + (pb ? ' ⚠ ' + pb : ''), off: !!pb };
+  })], opt.eliteMoteur || '', 'state.options.eliteMoteur=this.value;delete state.options.eliteAlim;delete state.options.eliteCtrl;state._eliteOptCle=null;calculatePriceElite();') + '</div>';
+  const mot = M.find(m => m.v === opt.eliteMoteur);
+  if (mot) {
+    if (mot.req) h += eliteNote('Inclus d\'office : ' + mot.req.l + ' — +' + mot.req.p + ' $.');
+    const al = eliteRcAlims(mot);
+    if (al.length) h += eliteEtiquette('elite-opt-alim', 'Alimentation' + (/^(liion|liionz|tl25|mqc)$/.test(mot.alim) ? ' (au moins un chargeur par installation)' : mot.alim === '24v' || mot.alim === 'em12' ? ' (électricien requis)' : ''))
+      + '<div>' + eliteSelect('elite-opt-alim', [{ v: '', l: /^(emb|embc)$/.test(mot.alim) ? 'Chargeur inclus avec le moteur' : 'Aucune (déjà sur place)' }, ...al.map(a => ({ v: a.v, l: a.l + ' — +' + a.p + ' $' }))],
+        opt.eliteAlim || '', 'state.options.eliteAlim=this.value;calculatePriceElite();') + '</div>';
+    const ct = ELITE_CTRLS[mot.f] || [];
+    h += eliteEtiquette('elite-opt-ctrl', 'Contrôle (télécommande, interrupteur)') + '<div>' + eliteSelect('elite-opt-ctrl',
+      [{ v: '', l: ct.length ? 'Aucun (déjà sur place)' : 'Contrôles filaires : sur demande (liste Smart Shades p. 9-10)' }, ...ct.map(c => ({ v: c.v, l: c.l + ' — +' + c.p + ' $' }))],
+      opt.eliteCtrl || '', 'state.options.eliteCtrl=this.value;calculatePriceElite();') + '</div>';
+    if (mot.note) h += eliteNote('⚠ ' + mot.note + ' (liste Smart Shades).');
+    if (mot.f === 'ZIG') h += eliteNote('Somfy Zigbee : compte TaHoma Pro obligatoire pour commander.');
+  }
+  return h + eliteNote('Motorisation au multiplicateur motorisation (×' + ((settings.elite && settings.elite.multiSomfy) || 1.5) + '). Préciser les canaux sur la commande.');
+}
+function eliteRadio(id, l, coche, onch, off) {
+  return '<div style="display:flex;align-items:center;gap:10px;margin-top:6px"><input type="checkbox" id="' + id + '"' + (coche ? ' checked' : '') + (off ? ' disabled' : '')
+    + ' style="width:14px;height:14px;accent-color:var(--gold);cursor:pointer" onchange="' + onch + '">'
+    + '<label for="' + id + '" style="font-size:12px;color:var(--text-mid);cursor:pointer">' + eliteEsc(l) + '</label></div>';
+}
+
+// ── 3 — Options ─────────────────────────────────────────
+function buildOptionsEliteRc(larg, haut) {
+  const opt = state.options, RO = state.type === 'elite-RO';
+  let html = '';
+  if (RO) {
+    html += eliteSection('Pose (obligatoire à la commande)', eliteSelect('elite-opt-pose', [{ v: '', l: '— Choisir —' }, { v: 'mur', l: 'Au mur (Wall mount)' }, { v: 'plafond', l: 'Au plafond (Ceiling mount)' }],
+      opt.elitePose || '', 'state.options.elitePose=this.value;calculatePriceElite();'));
+    html += eliteSection('Tissu de façade (fourni par notre atelier)', eliteEtiquette('elite-opt-poids', 'Poids du tissu de façade (oz/vg² ou g/m²) — exigé par Elite à la commande')
+      + '<div><input type="text" id="elite-opt-poids" value="' + eliteEsc(opt.elitePoids || '') + '" placeholder="ex. 9 oz/vg²" oninput="state.options.elitePoids=this.value.trim();calculatePriceElite();"></div>'
+      + eliteNote('Le kit Elite comprend : entête SL102 avec doublure sur tube, supports, barre de bas PVC, tiges de fibre de verre (aux 8"), ruban, attaches et embouts blancs. Le tissu de façade n\'est pas inclus.'));
+    if (!ELITE_RO_MECAS.some(m => m.v === opt.eliteMeca)) opt.eliteMeca = 'CG';
+    html += eliteSection('Mécanisme & Motorisation', eliteSelect('elite-opt-meca', ELITE_RO_MECAS.map(m => ({ v: m.v, l: m.l + ' — ' + eliteFmt(m.p) })), opt.eliteMeca,
+      'state.options.eliteMeca=this.value;delete state.options.eliteMoteur;state._eliteOptCle=null;calculatePriceElite();')
+      + eliteRcMotorisationHtml(larg) + eliteNote('Le poids total permis dépend du mécanisme et du tissu de façade.'));
+    if (!opt.eliteCote) opt.eliteCote = 'droit';
+    html += eliteSection('Côté contrôle', eliteSelect('elite-opt-cote', [{ v: 'droit', l: 'Contrôle droit' }, { v: 'gauche', l: 'Contrôle gauche' }], opt.eliteCote,
+      'state.options.eliteCote=this.value;calculatePriceElite();'));
+    opt.elitePieces = opt.elitePieces || {};
+    const P = [{ k: 'clips', l: 'Attaches de plastique (sac de 30) — 15 $ net / sac' }, { k: 'ruban', l: 'Ruban (au pied) — 1 $ net / pi' }, { k: 'tige', l: 'Tige de fibre de verre (au pied) — 2 $ net / pi' }];
+    html += eliteSection('Pièces supplémentaires (prix net Elite)', P.map(p => eliteEtiquette('elite-pc-' + p.k, p.l)
+      + '<div><input type="number" min="0" step="1" id="elite-pc-' + p.k + '" value="' + (opt.elitePieces[p.k] || '') + '" placeholder="0" oninput="state.options.elitePieces[\'' + p.k + '\']=parseFloat(this.value)||0;calculatePriceElite();"></div>').join(''));
+  } else {
+    const t = eliteCeTissu(state.elite.t);
+    if (!ELITE_CE_MECAS.some(m => m.v === opt.eliteMeca)) opt.eliteMeca = 'CL';
+    // Forme
+    if (!opt.eliteForme) opt.eliteForme = 'R';
+    html += eliteSection('Forme', eliteSelect('elite-opt-forme', ELITE_CE_FORMES.map(f => ({ v: f.v, l: f.l + (f.maxL ? ' (' + f.minL + '"–' + f.maxL + '" de large' + (f.maxH ? ', ' + f.minH + '"–' + f.maxH + '" de haut' : '') + ')' : '') })),
+      opt.eliteForme, 'state.options.eliteForme=this.value;state._eliteOptCle=null;calculatePriceElite();')
+      + (opt.eliteForme !== 'R' ? eliteNote('Arches : stores fixes (aucun mécanisme), prix du store régulier. Délai 3 à 4 semaines.') : ''));
+    // Mécanisme & Motorisation (seulement pour les rectangulaires)
+    if (opt.eliteForme === 'R') {
+      let m = eliteSelect('elite-opt-meca', ELITE_CE_MECAS.map(x => ({ v: x.v, l: x.l + (x.soum ? '' : ' — ' + eliteFmt(x.p)) })), opt.eliteMeca,
+        'state.options.eliteMeca=this.value;delete state.options.eliteMoteur;state._eliteOptCle=null;calculatePriceElite();');
+      if (opt.eliteMeca === 'DN') {
+        const T = window.ELITE.cellulaire.tissus;
+        m += eliteEtiquette('elite-opt-dn', 'Tissu de la 2e section (Jour/Nuit : habituellement filtrant en haut, opaque en bas)') + '<div>' + eliteSelect('elite-opt-dn',
+          [{ v: '', l: '— Choisir —' }, ...T.map(x => ({ v: x.id, l: x.nom + ' — groupe ' + x.g }))], opt.eliteDn || '', 'state.options.eliteDn=this.value;delete state.options.eliteDnCoul;state._eliteOptCle=null;calculatePriceElite();') + '</div>'
+          + eliteEtiquette('elite-opt-dn-coul', 'Couleur de la 2e section') + '<div>' + eliteSelect('elite-opt-dn-coul',
+          [{ v: '', l: '— Choisir —' }, ...eliteCeCouleurs(eliteCeTissu(opt.eliteDn)).map(c => ({ v: c, l: c }))], opt.eliteDnCoul || '',
+          'state.options.eliteDnCoul=this.value;calculatePriceElite();') + '</div>'
+          + eliteNote('Prix Jour/Nuit = deux stores (un de chaque tissu) à la même mesure. Minimum 28" × 10".');
+      }
+      m += eliteRcMotorisationHtml(larg);
+      html += eliteSection('Mécanisme & Motorisation', m);
+    }
+    // Couleur de la quincaillerie
+    const coord = (window.ELITE.cellulaire.couleurs[state.couleur] || '');
+    if (!opt.eliteRail) opt.eliteRail = 'coord';
+    html += eliteSection('Couleur de la quincaillerie', eliteSelect('elite-opt-rail', [{ v: 'coord', l: coord ? 'Coordonnée au tissu (#' + coord + ' ' + ELITE_CE_RAILS[coord] + ')' : 'Coordonnée : absente du tableau Elite — choisir ci-dessous', off: !coord },
+      ...Object.keys(ELITE_CE_RAILS).map(k => ({ v: k, l: '#' + k + ' ' + ELITE_CE_RAILS[k] }))], opt.eliteRail, 'state.options.eliteRail=this.value;calculatePriceElite();'));
+    // Pose
+    if (!opt.elitePose) opt.elitePose = 'int';
+    html += eliteSection('Pose', eliteSelect('elite-opt-pose', [{ v: 'int', l: 'Intérieure (mesure serrée : Elite déduit 3/8")' }, { v: 'ext', l: 'Extérieure (mesure finie)' },
+      { v: 'lat', l: 'Supports latéraux (max 48" ; Elite déduit 1/2")' }], opt.elitePose, 'state.options.elitePose=this.value;calculatePriceElite();'));
+    // Multi-stores (une seule entête)
+    if (!opt.eliteMultiple) opt.eliteMultiple = '1x1';
+    const multOk = opt.eliteForme === 'R';
+    html += eliteSection('Multi-stores (une entête continue)', eliteSelect('elite-opt-multiple', [
+      { v: '1x1', l: '1 store / 1 entête' },
+      { v: '2x1', l: '2 stores / 1 entête (2-on-1) — +125 $', off: !multOk },
+      { v: '3x1', l: '3 stores / 1 entête (3-on-1) — +175 $', off: !multOk },
+    ], opt.eliteMultiple, 'state.options.eliteMultiple=this.value;state._eliteOptCle=null;calculatePriceElite();')
+      + eliteNote('Chaque store à sa mesure et contrôlé séparément ; largeur combinée maximum 120". Recommandé au-delà de 84" de hauteur.'));
+    // Tissu ignifuge + accessoires
+    opt.eliteAcc = opt.eliteAcc || {};
+    html += eliteSection('Accessoires et particularités',
+      eliteRadio('elite-acc-perche', 'Perche télescopique — +50 $', opt.eliteAcc.perche, "state.options.eliteAcc.perche=this.checked;calculatePriceElite();")
+      + eliteRadio('elite-acc-fr', 'Tissu ignifuge (FR) — sur soumission (9/16" seulement : Cotton, Winter White, Fawn, Pongee)', opt.eliteAcc.fr, "state.options.eliteAcc.fr=this.checked;calculatePriceElite();", !(t && /^9\/16/.test(t.nom))));
+  }
+  document.getElementById('options-container').innerHTML = html;
+}
+
+// ── Calcul ──────────────────────────────────────────────
+function calculatePriceEliteRc() {
+  const RO = state.type === 'elite-RO', e = state.elite || {};
+  if (!window.ELITE || !e.t) { resetResult(); return; }
+  const t = RO ? null : eliteCeTissu(e.t);
+  if (!RO && !t) { resetResult(); return; }
+  const larg = (parseFloat(document.getElementById('inp-larg').value) || 0) + (parseFloat(document.getElementById('frac-larg').value) || 0);
+  const haut = (parseFloat(document.getElementById('inp-haut').value) || 0) + (parseFloat(document.getElementById('frac-haut').value) || 0);
+  if (!larg || !haut) { hide('card-options'); resetResult(); return; }
+  const alertEl = document.getElementById('alert-dim'), noteEl = document.getElementById('note-dim');
+  const opt = state.options;
+  if (RO) opt.eliteMultiple = '1x1';
+  const N = eliteN();
+  multiDimsUI(N, 'Store', 'même entête');
+  const largs = eliteLargeurs(larg), hauts = eliteHauteurs(haut), largTot = largs.reduce((a, b) => a + b, 0);
+  show('card-options');
+  const cle = [state.type, e.t, state.couleur, larg, haut, N, opt.eliteMeca, opt.eliteMoteur, opt.eliteForme, opt.eliteDn].join('|');
+  if (state._eliteOptCle !== cle) { buildOptionsEliteRc(larg, haut); state._eliteOptCle = cle; }
+
+  const bloquer = msg => { alertEl.textContent = '⚠ ' + msg; alertEl.classList.add('show'); resetResult(); state.lastResult = null; };
+  const breakdown = [];
+  let pdsf = 0, pdsfMoto = 0;
+  const ajout = (label, p) => { pdsf += p; breakdown.push({ label, pdsf: p }); };
+  const ajoutM = (label, p) => { pdsfMoto += p; breakdown.push({ label, pdsf: p, somfy: true }); };
+  const cfg = settings.elite || { pct: 22.5, multi: 2.0, multiSomfy: 1.5 };
+  const resume = [];
+  let mecaL = '', moto = [], titreGrille = '';
+  const mecas = RO ? ELITE_RO_MECAS : ELITE_CE_MECAS;
+  const meca = mecas.find(m => m.v === opt.eliteMeca) || mecas[0];
+  const fixe = !RO && opt.eliteForme && opt.eliteForme !== 'R';
+
+  if (RO) {
+    if (larg > 78) return bloquer('Kit romain : largeur maximum 78" — au-delà, plusieurs stores sont requis.');
+    if (haut > 78) return bloquer('Kit romain : hauteur maximum 78".');
+    const R = window.ELITE.romain, c = eliteRcGrille(R.L, R.H, R.P, larg, haut);
+    if (!c) return bloquer('Kit romain non offert à ' + larg + '" × ' + haut + '"');
+    state.largTip = c.L; state.hautTip = c.H;
+    ajout(`Kit romain Elite, doublure ${e.t} blanche ${c.L}"×${c.H}"`, c.v);
+    if (!opt.elitePose) return bloquer('Kit romain : choisir la pose (mur ou plafond) — Elite l\'exige à la commande.');
+    titreGrille = `Grille kit romain (doublure LF et BO), ${c.L}" × ${c.H}" · liste Roman Shades Elite FW2024`;
+  } else {
+    if (!state.couleur) return bloquer('Choisir la couleur du tissu.');
+    if ((!opt.eliteRail || opt.eliteRail === 'coord') && !window.ELITE.cellulaire.couleurs[state.couleur]) return bloquer('La couleur ' + state.couleur + ' n’est pas au tableau de coordination Elite : choisir la couleur de la quincaillerie.');
+    const forme = ELITE_CE_FORMES.find(f => f.v === opt.eliteForme) || ELITE_CE_FORMES[0];
+    if (forme.minL && larg < forme.minL) return bloquer(forme.l.split(' (')[0] + ' : largeur minimum ' + forme.minL + '"');
+    if (forme.maxL && larg > forme.maxL) return bloquer(forme.l.split(' (')[0] + ' : largeur maximum ' + forme.maxL + '"');
+    if (forme.minH && haut < forme.minH) return bloquer(forme.l.split(' (')[0] + ' : hauteur minimum ' + forme.minH + '"');
+    if (forme.maxH && haut > forme.maxH) return bloquer(forme.l.split(' (')[0] + ' : hauteur maximum ' + forme.maxH + '"');
+    if (!fixe && meca.soum) return bloquer(meca.l.split(' — ')[0] + ' : prix sur soumission seulement — demander une soumission à Elite.');
+    if (opt.eliteAcc && opt.eliteAcc.fr) return bloquer('Tissu ignifuge (FR) : prix sur soumission seulement — demander une soumission à Elite.');
+    if (N > 1 && largTot > 120) return bloquer('Multi-stores : largeur combinée maximum 120" (actuellement ' + largTot + '")');
+    if (opt.elitePose === 'lat' && largTot > 48) return bloquer('Supports latéraux : largeur maximum 48"');
+    const mot = !fixe && /^MOT/.test(meca.v);
+    const bo = t.op === 'BO';
+    // limites selon le mécanisme
+    const lim = fixe ? null : mot ? { minL: 22, minH: 18, maxL: bo ? 108 : 120, maxH: bo ? 108 : 120, nom: 'Motorisé' + (bo ? ' (opaque)' : ' (filtrant)') }
+      : meca.v === 'DN' ? { minL: 28, minH: 10, maxL: 96, maxH: 84, nom: 'Jour/Nuit sans cordon' } : { minL: 12, minH: 10, maxL: 96, maxH: 84, nom: 'Sans cordon' };
+    let dn = null;
+    if (meca.v === 'DN' && !fixe) {
+      dn = eliteCeTissu(opt.eliteDn);
+      if (!dn) return bloquer('Jour/Nuit : choisir le tissu de la 2e section.');
+      if (!opt.eliteDnCoul) return bloquer('Jour/Nuit : choisir la couleur de la 2e section.');
+    }
+    for (let i = 0; i < N; i++) {
+      const L = largs[i], H = hauts[i], nom = N > 1 ? ' — store ' + (i + 1) : '';
+      if (lim) {
+        if (L < lim.minL || H < lim.minH) return bloquer(`${lim.nom} : minimum ${lim.minL}" × ${lim.minH}"${nom}`);
+        if (L > lim.maxL) return bloquer(`${lim.nom} : largeur maximum ${lim.maxL}"${nom}` + (!mot && L <= 120 ? ' (96" à 120" : motorisé seulement)' : ''));
+        if (H > lim.maxH) return bloquer(`${lim.nom} : hauteur maximum ${lim.maxH}"${nom}`);
+      }
+      if (L > t.larg) return bloquer(`${t.nom} : largeur maximum ${t.larg}" (largeur du tissu)`);
+      const c = eliteCePrix(t, L, H);
+      if (!c) return bloquer(`Non offert à ${L}" × ${H}" (grille Elite : jusqu'à 120" × 120")`);
+      if (i === 0) { state.largTip = c.L; state.hautTip = c.H; }
+      ajout(`${t.nom} (groupe ${t.g}) ${c.L}"×${c.H}"${nom}`, c.v);
+      if (dn) {
+        if (L > dn.larg) return bloquer(`${dn.nom} : largeur maximum ${dn.larg}"`);
+        const c2 = eliteCePrix(dn, L, H);
+        if (!c2) return bloquer(`2e section non offerte à ${L}" × ${H}"`);
+        ajout(`Jour/Nuit — 2e section ${dn.nom} (groupe ${dn.g}) ${c2.L}"×${c2.H}"${nom}`, c2.v);
+      }
+    }
+    if (N === 2) ajout('Multi-stores 2-on-1 (entête continue)', 125);
+    if (N === 3) ajout('Multi-stores 3-on-1 (entête continue)', 175);
+    if (opt.eliteAcc && opt.eliteAcc.perche) ajout('Perche télescopique', 50);
+    titreGrille = `Grille groupe ${t.g}, ${state.largTip}" × ${state.hautTip}" · liste Cellular Elite FW2024`;
+  }
+  // Mécanisme / motorisation
+  if (!fixe) {
+    if (meca.p) ajout(meca.l.split(' (')[0], meca.p);
+    mecaL = meca.l.split(' (')[0];
+    if (/^MOT/.test(meca.v)) {
+      const mot = eliteRcMoteurs().find(m => m.v === opt.eliteMoteur);
+      if (!mot) return bloquer('Motorisé : choisir le moteur.');
+      const lmin = Math.min(...largs);
+      if (lmin < mot.min) return bloquer(mot.l + ' : largeur minimum ' + mot.min + '"');
+      const petit = mot.petit && lmin < mot.petit.max;
+      ajoutM((petit ? mot.petit.l.split(' (')[0] : mot.l) + (N > 1 ? ' ×' + N : ''), (petit ? mot.petit.p : mot.p) * N);
+      moto.push('Moteur : ' + mot.l + (N > 1 ? ' (×' + N + ')' : ''));
+      if (mot.req) { ajoutM(mot.req.l + (N > 1 ? ' ×' + N : ''), mot.req.p * N); moto.push('Bloc-piles : ' + mot.req.l); }
+      const al = eliteRcAlims(mot).find(a => a.v === opt.eliteAlim);
+      if (al) { ajoutM(al.l, al.p); moto.push('Alimentation : ' + al.l); }
+      const ct = (ELITE_CTRLS[mot.f] || []).find(c => c.v === opt.eliteCtrl);
+      if (ct) { ajoutM(ct.l, ct.p); moto.push('Contrôle : ' + ct.l); }
+    }
+  }
+  // Pièces du romain (prix NET : converties en MSRP équivalent pour que le coût = le net)
+  const pcTxt = [];
+  if (RO && opt.elitePieces) {
+    const PC = { clips: ['Attaches de plastique (sac de 30)', 15, 'sac'], ruban: ['Ruban', 1, 'pi'], tige: ['Tige de fibre de verre', 2, 'pi'] };
+    Object.keys(PC).forEach(k => {
+      const q = opt.elitePieces[k] || 0; if (q <= 0) return;
+      ajout(`${PC[k][0]} × ${q} ${PC[k][2]} (net ${PC[k][1] * q} $)`, Math.round(PC[k][1] * q / cfg.pct * 10000) / 100);
+      pcTxt.push(`${PC[k][0]} × ${q} ${PC[k][2]}`);
+    });
+  }
+  alertEl.classList.remove('show');
+  const badge = document.getElementById('badge-dim'); if (badge) badge.textContent = `${state.largTip}" × ${state.hautTip}"`;
+  noteEl.textContent = 'ℹ ' + titreGrille + (!RO && haut > 3 * larg ? ' · ⚠ Elite déconseille une hauteur de plus de 3 fois la largeur (le bas peut pencher)' : '');
+  noteEl.classList.add('show');
+
+  const pdsfStore = Math.round(pdsf * 100) / 100, pdsfSomfy = Math.round(pdsfMoto * 100) / 100;
+  const pdsfTotal = Math.round((pdsfStore + pdsfSomfy) * 100) / 100;
+  const coutStore = Math.round(pdsfStore * cfg.pct) / 100, coutSomfy = Math.round(pdsfSomfy * cfg.pct) / 100;
+  const venteStore = Math.round(coutStore * cfg.multi * 100) / 100, venteSomfy = Math.round(coutSomfy * (cfg.multiSomfy || 1.5) * 100) / 100;
+  const cout = Math.round((coutStore + coutSomfy) * 100) / 100;
+  const vente = Math.round((venteStore + venteSomfy) * 100) / 100;
+  const marge = vente > 0 ? Math.round((vente - cout) / vente * 1000) / 10 : 0;
+
+  if (RO) {
+    resume.push('Type de produit : Store romain (kit Elite, tissu de façade non inclus)', 'Modèle : ' + state.modele, 'Couleur : Blanc',
+      'Pose : ' + (opt.elitePose === 'plafond' ? 'Au plafond' : 'Au mur'), opt.elitePoids ? 'Poids du tissu de façade : ' + opt.elitePoids : '',
+      'Mécanisme : ' + mecaL, ...moto, 'Côté contrôle : ' + (opt.eliteCote === 'gauche' ? 'Contrôle gauche' : 'Contrôle droit'),
+      pcTxt.length ? 'Pièces : ' + pcTxt.join(', ') : '');
+  } else {
+    const coord = window.ELITE.cellulaire.couleurs[state.couleur];
+    const rail = opt.eliteRail && opt.eliteRail !== 'coord' ? opt.eliteRail : coord;
+    const forme = ELITE_CE_FORMES.find(f => f.v === opt.eliteForme) || ELITE_CE_FORMES[0];
+    const dn = opt.eliteMeca === 'DN' && !fixe ? eliteCeTissu(opt.eliteDn) : null;
+    resume.push('Type de produit : Store cellulaire', 'Modèle : ' + t.nom + ' — groupe ' + t.g, 'Couleur : ' + state.couleur,
+      'Forme : ' + forme.l.split(' (')[0], fixe ? 'Mécanisme : Fixe (arche)' : 'Mécanisme : ' + mecaL,
+      dn ? 'Jour/Nuit — 2e section : ' + dn.nom + ' — ' + opt.eliteDnCoul : '', ...moto,
+      'Couleur de la quincaillerie : #' + rail + ' ' + ELITE_CE_RAILS[rail] + (opt.eliteRail === 'coord' || !opt.eliteRail ? ' (coordonnée)' : ''),
+      'Pose : ' + ({ int: 'Intérieure', ext: 'Extérieure', lat: 'Supports latéraux' }[opt.elitePose] || 'Intérieure'),
+      'Multi-stores : ' + (N > 1 ? N + ' stores / 1 entête' : '1 store / 1 entête'),
+      opt.eliteAcc && opt.eliteAcc.perche ? 'Accessoires : Perche télescopique' : '');
+  }
+  state.eliteResume = resume.filter(x => x && !/:\s*$/.test(x));
+  state.tissuCouleur = state.couleur || '';
+  state.pdsf = pdsfTotal;
+  const nomType = RO ? 'Store romain' : 'Store cellulaire';
+  renderResult({ pdsfStore, pdsfSomfy, pdsfTotal, cout, coutStore, coutSomfy, vente, venteStore, venteSomfy, marge, breakdown }, {
+    cfg,
+    fournisseur: 'Elite · ' + nomType,
+    produit: RO ? state.modele : t.nom,
+    detail: `${state.largTip}" × ${state.hautTip}"${state.couleur ? '<br>' + eliteEsc(state.couleur) : ''}`,
+    titre: 'Détail MSRP — liste ' + (RO ? 'Roman Shades' : 'Cellular') + ' Elite FW2024',
+  });
+  state.lastResult.desc = state.eliteResume.join(' | ');
+}
