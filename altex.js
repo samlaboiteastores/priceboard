@@ -75,6 +75,8 @@ function altexCouleursComposantes() {
 const ALTEX_COULEURS_BATONS = ['Blanc mat', 'Clair anodisé', 'Acier inoxydable', 'Noir mat'];
 function altexABatons() { return /BÂTONS|TWIN PULL/.test(state.altex.s || ''); }
 function altexChaines() { const a = state.altex; return (window.ALTEX.chaines || {})[a.g + '|' + a.s] || null; }
+// Kits offerts selon l'application : résidentiel (gaine de sécurité obligatoire au Canada) ou commercial
+function altexKitsChaine(ch) { return state.options.altexMarche === 'com' ? ch.com : ch.kits; }
 // Bronze foncé offert seulement si le guide a des options « • BF » pour ce système
 function altexCouleursAlu() {
   return altexOptionsSysteme().some(o => /•\s*BF\b/.test(o.l)) ? ALTEX_COULEURS_ALU : ALTEX_COULEURS_ALU.filter(c => c !== ALTEX_BF);
@@ -310,9 +312,14 @@ function buildOptionsAltex(larg, haut) {
   let meca = altexSelect('altex-opt-meca', systemes.map(s => ({ v: s, l: altexSys(s) })), a.s, 'altexSetMecanisme(this.value)');
   const ch = altexChaines();
   if (ch) {
-    if (!ch.kits.some(k => k.kit === opt.altexChaine)) opt.altexChaine = ch.kits[0].kit;
-    meca += '<label for="altex-opt-chaine" style="font-size:11px;color:var(--text-dim);display:block;margin:10px 0 5px">Type de chaînette (résidentiel, gaine de sécurité incluse)</label><div>'
-      + altexSelect('altex-opt-chaine', ch.kits.map(k => ({ v: k.kit, l: k.t + ' [' + k.kit + '] — ' + (k.p ? (k.p > 0 ? '+' : '') + k.p + ' $' : 'incluse') })), opt.altexChaine,
+    if (opt.altexMarche !== 'com') opt.altexMarche = 'res';
+    const kitsCh = altexKitsChaine(ch);
+    if (!kitsCh.some(k => k.kit === opt.altexChaine)) opt.altexChaine = kitsCh[0].kit;
+    meca += '<label for="altex-opt-marche" style="font-size:11px;color:var(--text-dim);display:block;margin:10px 0 5px">Application de la chaînette</label><div>'
+      + altexSelect('altex-opt-marche', [{ v: 'res', l: 'Résidentiel (gaine de sécurité obligatoire)' }, { v: 'com', l: 'Commercial' }], opt.altexMarche,
+        'state.options.altexMarche=this.value;delete state.options.altexChaine;state._altexOptCle=null;calculatePriceAltex();') + '</div>';
+    meca += '<label for="altex-opt-chaine" style="font-size:11px;color:var(--text-dim);display:block;margin:10px 0 5px">Type de chaînette (guide p. ' + (opt.altexMarche === 'com' ? ch.pc : ch.p) + ')</label><div>'
+      + altexSelect('altex-opt-chaine', kitsCh.map(k => ({ v: k.kit, l: k.t + ' [' + k.kit + '] — ' + (k.p ? (k.p > 0 ? '+' : '') + k.p + ' $' : 'incluse') })), opt.altexChaine,
         'state.options.altexChaine=this.value;calculatePriceAltex();') + '</div>';
   }
   if (altexABatons()) {
@@ -368,7 +375,7 @@ function calculatePriceAltex() {
   if (!larg || !haut) { hide('card-options'); resetResult(); return; }
   const alertEl = document.getElementById('alert-dim'), noteEl = document.getElementById('note-dim');
   const r = altexGrille(larg, haut);
-  const cle = [a.g, a.t, a.s, a.e, larg, haut, state.options.altexAlu, state.options.altexCoulLat].join('|');
+  const cle = [a.g, a.t, a.s, a.e, larg, haut, state.options.altexAlu, state.options.altexCoulLat, state.options.altexMarche].join('|');
   if (!r.c) {
     const g = r.g;
     alertEl.textContent = g ? `⚠ Non offert à ${larg}" × ${haut}" pour ce tissu / mécanisme / entête (grille : ${g.L[0]}"–${g.L[g.L.length - 1]}" × ${g.H[0]}"–${g.H[g.H.length - 1]}"; « - » = non disponible). Guide p. ${g.p}.`
@@ -421,8 +428,12 @@ function calculatePriceAltex() {
     if (p) { ajout(t, p); spec.clat = t; } else nonOffertes.push(t + ' (max 96" × 96")');
   }
   // Type de chaînette (ajustement $/mécanisme du guide)
-  const chs = altexChaines(), kitCh = chs && chs.kits.find(k => k.kit === opt.altexChaine);
-  if (kitCh) { if (kitCh.p) ajout('Chaînette ' + kitCh.t + ' [' + kitCh.kit + ']', kitCh.p); spec.chaine = kitCh.t + ' [' + kitCh.kit + ']'; }
+  const chs = altexChaines(), kitCh = chs && altexKitsChaine(chs).find(k => k.kit === opt.altexChaine);
+  if (kitCh) {
+    const t = 'Chaînette ' + (opt.altexMarche === 'com' ? 'commerciale ' : '') + kitCh.t + ' [' + kitCh.kit + ']';
+    if (kitCh.p) ajout(t, kitCh.p);
+    spec.chaine = (opt.altexMarche === 'com' ? 'commercial, ' : '') + kitCh.t + ' [' + kitCh.kit + ']';
+  }
   // Moteur + contrôle (même multiplicateur que la toile)
   const kit = ALTEX_KITS.find(k => k.v === opt.altexKit);
   if (kit && /MOTORIS/.test(a.s)) { ajout('Moteur ' + kit.l + ' [' + kit.v + ']', kit.p); spec.kit = kit.l; }
