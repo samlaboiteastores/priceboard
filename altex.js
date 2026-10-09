@@ -91,13 +91,13 @@ const ALTEX_MOTEURS = [
   { v: 'S40R-Z', pr: 'ZIG', l: 'Somfy Sonesse 40 Zigbee rechargeable (composantes USB-C)', p: { D: 1345, A: 1345 }, min: { D: 30, A: 28 }, alim: 'usbc' },
   { v: 'S30-24-Z', pr: 'ZIG', l: 'Somfy Sonesse 30 Zigbee 24 V (branché)', p: { D: 1053, A: 1053 }, min: { D: 23, A: 22 }, alim: '24v' },
   { v: 'S40-120-Z', pr: 'ZIG', l: 'Somfy Sonesse 40 Zigbee 120 V (branché, électricien requis)', p: { D: 1251, A: 1251 }, min: { D: 26, A: 22 }, br: 'S40Z', std: '411' },
-  { v: 'MB-CM45-PO', pr: 'MB', l: 'Motionblinds Pull CM-45 PO (sans télécommande)', p: { D: 234, A: 234, X: 234 }, alim: 'mb', abs: true },
-  { v: 'MB-CM45-B', pr: 'MB', l: 'Motionblinds Bluetooth CM-45', p: { D: 315, A: 315, X: 315 }, alim: 'mb' },
-  { v: 'MB-CM03-B', pr: 'MB', l: 'Motionblinds Bluetooth CM-03', p: { D: 588, A: 588, X: 588 }, alim: 'mb' },
-  { v: 'MB-CM05-B', pr: 'MB', l: 'Motionblinds Bluetooth CM-05', p: { D: 857, A: 857, X: 857 }, alim: 'mb' },
-  { v: 'MB-CM06-B', pr: 'MB', l: 'Motionblinds Bluetooth CM-06', p: { D: 774, A: 774, X: 774 }, alim: 'mb' },
-  { v: 'MB-CM03-E', pr: 'MB', l: 'Motionblinds Eve CM-03', p: { D: 677, A: 677, X: 677 }, alim: 'mb' },
-  { v: 'MB-CM06-E', pr: 'MB', l: 'Motionblinds Eve CM-06', p: { D: 958, A: 958, X: 958 }, alim: 'mb' },
+  { v: 'MB-CM45-PO', pr: 'MB', l: 'Motionblinds Pull CM-45 PO (sans télécommande)', p: { D: 234, A: 234, X: 234 }, min: { D: 22, A: 22, X: 22 }, alim: 'mb', abs: true },
+  { v: 'MB-CM45-B', pr: 'MB', l: 'Motionblinds Bluetooth CM-45', p: { D: 315, A: 315, X: 315 }, min: { D: 22, A: 22, X: 22 }, alim: 'mb' },
+  { v: 'MB-CM03-B', pr: 'MB', l: 'Motionblinds Bluetooth CM-03', p: { D: 588, A: 588, X: 588 }, min: { D: 25, A: 25, X: 25 }, alim: 'mb' },
+  { v: 'MB-CM05-B', pr: 'MB', l: 'Motionblinds Bluetooth CM-05', p: { D: 857, A: 857, X: 857 }, min: { D: 31, A: 31, X: 31 }, alim: 'mb' },
+  { v: 'MB-CM06-B', pr: 'MB', l: 'Motionblinds Bluetooth CM-06', p: { D: 774, A: 774, X: 774 }, min: { D: 32, A: 32, X: 32 }, alim: 'mb' },
+  { v: 'MB-CM03-E', pr: 'MB', l: 'Motionblinds Eve CM-03', p: { D: 677, A: 677, X: 677 }, min: { D: 25, A: 25, X: 25 }, alim: 'mb' },
+  { v: 'MB-CM06-E', pr: 'MB', l: 'Motionblinds Eve CM-06', p: { D: 958, A: 958, X: 958 }, min: { D: 32, A: 32, X: 32 }, alim: 'mb' },
 ];
 const ALTEX_ALIMS = {
   piles: [['CH56', 'Chargeur Li-ion V2 [9025166] (obligatoire pour recharger)', 56], ['SOL309', 'Panneau solaire Li-ion [9027294]', 309], ['ADM29', 'Adaptateur magnétique [9028562] (1 par moteur)', 29],
@@ -124,7 +124,15 @@ const ALTEX_CTRLS_PR = {
 };
 // moteur contenu dans chaque kit (même largeur minimum que le moteur à la carte)
 const ALTEX_KIT_MOTEUR = { 'K-S30i-U': 'S30U-RTS', 'K-S28i': 'S28R-RTS', 'K-S30': 'S30-24-RTS', 'K-S40': 'S40-120-RTS',
-  'K-S30i-U-Z': 'S30U-Z', 'K-S28i-Z': 'S28R-Z', 'K-S30-Z': 'S30-24-Z', 'K-S40-Z': 'S40-120-Z' };
+  'K-S30i-U-Z': 'S30U-Z', 'K-S28i-Z': 'S28R-Z', 'K-S30-Z': 'S30-24-Z', 'K-S40-Z': 'S40-120-Z',
+  'K-CM-45-B': 'MB-CM45-B', 'K-CM-03-B': 'MB-CM03-B', 'K-CM-05-B': 'MB-CM05-B', 'K-CM-06-B': 'MB-CM06-B', 'K-CM-03-E': 'MB-CM03-E', 'K-CM-06-E': 'MB-CM06-E', 'K-CM-45': 'MB-CM45-PO' };
+// Faisabilité : couleur de la case du guide (altex.json grilles[].K, une lettre par case) → moteurs assez puissants et compatibles.
+// c crème · b bleu pâle · B bleu · r rose · m mauve · t turquoise · p pêche · j jaune (pages moteurs 340-367, identiques dans les 4 guides)
+const ALTEX_COUL_NOM = { c: 'crème', b: 'bleu pâle', B: 'bleu', r: 'rose', m: 'mauve', t: 'turquoise', p: 'pêche', j: 'jaune' };
+const ALTEX_COUL_MOT = { S28: 'cb', S30: 'cbB', S40: 'cbBr', CM45: 'cmtj', CM03: 'cbpmt', CM05: 'cbB', CM06: 'cbBr' };
+function altexFamMoteur(v) { return /^S28/.test(v) ? 'S28' : /^S30/.test(v) ? 'S30' : /^S(40|50)/.test(v) ? 'S40' : /CM45/.test(v) ? 'CM45' : /CM03/.test(v) ? 'CM03' : /CM05/.test(v) ? 'CM05' : /CM06/.test(v) ? 'CM06' : null; }
+function altexMoteursCase(k) { return Object.keys(ALTEX_COUL_MOT).filter(f => ALTEX_COUL_MOT[f].includes(k)); }
+const ALTEX_FAM_NOM = { S28: 'Sonesse 28', S30: 'Sonesse 30', S40: 'Sonesse 40/50', CM45: 'CM-45', CM03: 'CM-03', CM05: 'CM-05', CM06: 'CM-06' };
 function altexKitProbleme(k, larg) { const m = ALTEX_MOTEURS.find(x => x.v === ALTEX_KIT_MOTEUR[k]); return m ? altexMoteurProbleme(m, larg) : null; }
 // protocole d'un kit « motorisation simplifiée »
 const altexPrKit = k => /^K-CM/.test(k) ? 'MB' : /-Z$/.test(k) ? 'ZIG' : 'RTS';
@@ -137,6 +145,8 @@ function altexMoteurProbleme(m, larg) {
   if (m.abs && c !== 'A') return 'Absolute 2.0 seulement';
   if (state.altex.g === 'V' && m.pr !== 'MB') return 'Meilleure valeur : Motionblinds seulement';
   if (state.altex.g === 'A' && m.pr === 'ZIG') return 'pas offert dans ce guide';
+  const k = state.altex._k, fam = altexFamMoteur(m.v);
+  if (k && fam && !ALTEX_COUL_MOT[fam].includes(k)) return 'pas compatible ou pas assez puissant pour ce store (case ' + ALTEX_COUL_NOM[k] + ' du guide)';
   return null;
 }
 function altexSelectGroupes(id, groupes, val, onch) {
@@ -272,8 +282,8 @@ function altexAppliquerEntete() {
 function altexCase(g, larg, haut) {
   const L = nextDim(g.L, larg), H = nextDim(g.H, haut);
   if (!L || !H) return null;
-  const v = g.P[g.H.indexOf(H)][g.L.indexOf(L)];
-  return v ? { v, L, H } : null;
+  const r = g.H.indexOf(H), c = g.L.indexOf(L), v = g.P[r][c];
+  return v ? { v, L, H, k: g.K ? g.K[r][c] : null } : null;
 }
 
 function altexGrille(larg, haut) {
@@ -490,7 +500,8 @@ function calculatePriceAltex() {
   if (!larg || !haut) { hide('card-options'); resetResult(); return; }
   const alertEl = document.getElementById('alert-dim'), noteEl = document.getElementById('note-dim');
   const r = altexGrille(larg, haut);
-  const cle = [a.g, a.t, a.s, a.e, larg, haut, state.options.altexAlu, state.options.altexCoulLat, state.options.altexMarche, state.options.altexKit].join('|');
+  a._k = r.c ? r.c.k : null;
+  const cle = [a.g, a.t, a.s, a.e, larg, haut, a._k, state.options.altexAlu, state.options.altexCoulLat, state.options.altexMarche, state.options.altexKit].join('|');
   if (!r.c) {
     const g = r.g;
     alertEl.textContent = g ? `⚠ Non offert à ${larg}" × ${haut}" pour ce tissu / mécanisme / entête (grille : ${g.L[0]}"–${g.L[g.L.length - 1]}" × ${g.H[0]}"–${g.H[g.H.length - 1]}"; « - » = non disponible). Guide p. ${g.p}.`
@@ -503,7 +514,8 @@ function calculatePriceAltex() {
   const { g, c } = r;
   state.largTip = c.L; state.hautTip = c.H;
   const badge = document.getElementById('badge-dim'); if (badge) badge.textContent = `${c.L}" × ${c.H}"`;
-  noteEl.textContent = `ℹ Grille utilisée : ${c.L}" × ${c.H}"${g.f ? ' · ' + g.f : ''} · guide p. ${g.p}`;
+  noteEl.textContent = `ℹ Grille utilisée : ${c.L}" × ${c.H}"${g.f ? ' · ' + g.f : ''} · guide p. ${g.p}`
+    + (c.k ? ` · case ${ALTEX_COUL_NOM[c.k]} → moteurs possibles : ${altexMoteursCase(c.k).map(f => ALTEX_FAM_NOM[f]).join(', ')}` : '');
   noteEl.classList.add('show');
   show('card-options');
   if (state._altexOptCle !== cle) { buildOptionsAltex(larg, haut); state._altexOptCle = cle; }
@@ -581,9 +593,11 @@ function calculatePriceAltex() {
     alertEl.classList.add('show'); resetResult(); state.lastResult = null; return;
   }
 
+  // Transport : gratuit sous 120 po ; 120 à 144 po de largeur finie = 75 $ NET par toile (guide p. 7)
+  const f = window.LBAS_ALTEX_FACTEUR;
+  if (larg >= 120 && f) ajout('Surcharge de transport Altex — toile de 120 à 144 po (75 $ net)', Math.round(75 / f * 100) / 100);
   // Prix : PDSF du guide → coût (facteur confidentiel reçu d'Odoo) → vente (multiplicateur des Paramètres)
   const pdsfTotal = Math.round(pdsf * 100) / 100;
-  const f = window.LBAS_ALTEX_FACTEUR;
   const multi = (settings.altex && settings.altex.multi) || 2.0;
   const cout = f ? Math.round(pdsfTotal * f * 100) / 100 : 0;
   const vente = f ? Math.round(cout * multi * 100) / 100 : 0;
@@ -609,6 +623,7 @@ function calculatePriceAltex() {
     spec.ctrl ? 'Contrôle : ' + spec.ctrl : '',
     'Côté contrôle : ' + (opt.altexCote === 'gauche' ? 'Contrôle gauche' : 'Contrôle droit'),
     acc.length ? 'Accessoires : ' + acc.join(', ') : '',
+    larg >= 120 ? 'Transport : surcharge Altex 120–144 po (75 $ net)' : '',
   ].filter(x => x && !/:\s*$/.test(x));
   state.altexResume = resume;
   state.pdsf = pdsfTotal;
