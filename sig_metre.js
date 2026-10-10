@@ -127,38 +127,112 @@ function sigmOptions() {
     if (o.sigmFilet) h += sigmSelect('sigm-trous', 'Trous du filet', SIGM_FILET_TROUS.map(x => ({ v: x, l: x })), o.sigmTrous || SIGM_FILET_TROUS[0], "state.options.sigmTrous=this.value;" + on);
     h += sigmSelect('sigm-oe', 'Œillets (en haut, 1 par chariot)', SIGM_OEILLETS.map(x => ({ v: x, l: x })), o.sigmOe || SIGM_OEILLETS[0], "state.options.sigmOe=this.value;" + on);
     h += sigmSelect('sigm-oe-coul', 'Couleur des œillets', SIGM_OEILLET_COUL.map(x => ({ v: x, l: x })), o.sigmOeCoul || SIGM_OEILLET_COUL[0], "state.options.sigmOeCoul=this.value;" + on);
-    if (!o.sigmRail) o.sigmRail = 'medi';
-    h += sigmSelect('sigm-rail', 'Rail', [{ v: 'medi', l: 'Meditrack (toutes les pièces calculées)' }, { v: 'aucun', l: 'Aucun rail (rail existant)' }], o.sigmRail, "state.options.sigmRail=this.value;state._sigmOptCle=null;" + on);
-    if (o.sigmRail === 'medi') {
-      if (!o.sigmPose) o.sigmPose = 'plafond';
-      h += sigmSelect('sigm-pose', 'Installation du rail', [{ v: 'plafond', l: 'Directement au plafond (supports de plafond)' }, { v: 'mur', l: 'Plafond + supports de mur aux 2 bouts' },
-        { v: 'susp', l: 'Suspendu (poteaux / tubes de suspension)' }], o.sigmPose, "state.options.sigmPose=this.value;state._sigmOptCle=null;" + on);
-      if (o.sigmPose === 'susp') {
-        if (o.sigmDescente == null) o.sigmDescente = 24;
-        h += sigmNombre('sigm-descente', 'Descente sous le plafond (po)', o.sigmDescente, "state.options.sigmDescente=parseFloat(this.value)||0;" + on, 'Jusqu\'à 24" : poteau de suspension fixe. Plus de 24" : tube de suspension au pied + support de plafond + adaptateur.');
-      }
-      h += sigmNombre('sigm-courbes', 'Courbes 90° (24" × 24")', o.sigmCourbes || 0, "state.options.sigmCourbes=Math.max(0,parseInt(this.value)||0);" + on);
-    }
+    h += sigRailHtml(o, { defaut: 'medi', on });
   } else {
     if (!SIGM_AMPLEURS_DECO.includes(o.sigmFin)) o.sigmFin = 'rf100';
     h += sigmSelect('sigm-fin', 'Confection', SIGM_AMPLEURS_DECO.map(v => NORM_FINITIONS.find(f => f.val === v)).map(f => ({ v: f.val, l: f.label })), o.sigmFin, "state.options.sigmFin=this.value;" + on);
     h += sigmSelect('sigm-div', 'Panneaux', SIG_DIVISIONS, o.sigmDiv || 'demi', "state.options.sigmDiv=this.value;" + on);
     const D = sigmTissus(true).sort((x, y) => x.nom.localeCompare(y.nom, 'fr'));
     h += sigmSelect('sigm-doub', 'Doublure (liste p. 11)', [{ v: '', l: 'Aucune doublure' }, ...D.map(d => ({ v: d.nom, l: sigmNomPropre(d.nom) + ' (' + d.largeur + '")' }))], o.sigmDoub || '', "state.options.sigmDoub=this.value;" + on);
-    if (o.sigmRail == null) o.sigmRail = 'AKS';
-    h += sigmSelect('sigm-rail', 'Rail — trousse Ripple Fold assemblée (chariots détachables, crans d\'arrêt, supports)', [
-      { v: 'AKS', l: 'AKS aluminium' }, { v: 'ADS', l: 'ADS aluminium' }, { v: 'CRS', l: 'CRS 28 mm décoratif (plafond, jusqu\'à 16 pi)' }, { v: 'aucun', l: 'Aucun rail' }],
-      o.sigmRail, "state.options.sigmRail=this.value;state._sigmOptCle=null;" + on);
-    if (o.sigmRail !== 'aucun') {
-      if (o.sigmRail === 'CRS') o.sigmPose = 'plafond';
-      if (!o.sigmPose) o.sigmPose = 'plafond';
-      if (o.sigmRail !== 'CRS') h += sigmSelect('sigm-pose', 'Installation du rail', [{ v: 'plafond', l: 'Au plafond (supports de plafond)' }, { v: 'mur', l: 'Au mur (supports Smart Klick 3" à 4½")' }], o.sigmPose, "state.options.sigmPose=this.value;" + on);
-      const R = NORM_RAILS.SIG_K_RF, couls = R.couleurs || ['Blanc'];
-      h += sigmSelect('sigm-rail-coul', 'Couleur du rail', couls.map(c => ({ v: c, l: c })), o.sigmRailCoul || couls[0], "state.options.sigmRailCoul=this.value;" + on);
-    }
+    h += sigRailHtml(o, { defaut: 'AKS', on });
   }
   h += '<div style="padding:6px 20px 12px;display:flex;align-items:center;gap:8px;font-size:12px;"><input type="number" min="1" step="1" id="sigm-qte" value="' + (o.sigmQte || 1) + '" oninput="state.options.sigmQte=Math.max(1,parseInt(this.value)||1);' + on + '" style="width:60px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px;"> <label for="sigm-qte">Quantité (rideaux identiques)</label></div>';
   document.getElementById('options-container').innerHTML = h;
+}
+
+// ── RAILS SIGNATURE — bloc commun à tous les types (Sam 2026-10-09) ────────────
+const SIG_RAILS_CHOIX = [
+  { v: 'aucun', l: 'Aucun rail (rail existant)' },
+  { v: 'ads-liste', l: 'Rail ADS de la liste (inclus dans la grille : chariots, capuchons, supports)', grille: true },
+  { v: 'AKS', l: 'AKS aluminium — trousse Ripple Fold assemblée (plafond ou mur)' },
+  { v: 'ADS', l: 'ADS aluminium — trousse Ripple Fold assemblée (plafond ou mur)' },
+  { v: 'CRS', l: 'CRS 28 mm décoratif — trousse Ripple Fold assemblée (plafond, jusqu\'à 16 pi)' },
+  { v: 'arch', l: 'Architex — Ripple Fold, chariots à billes détachables (plafond ou mur)' },
+  { v: 'medi', l: 'Meditrack — rail médical (plafond, mur ou suspendu)' },
+];
+const SIG_RAILS_PIED = ['SIG_AKS', 'SIG_ADS', 'SIG_AKS_ENC', 'SIG_CRS', 'SIG_ARCH', 'SIG_MEDI'];
+function sigRailHtml(o, ctx) {
+  const on = ctx.on, opts = SIG_RAILS_CHOIX.filter(c => !c.grille || ctx.grille)
+    .concat(SIG_RAILS_PIED.filter(k => NORM_RAILS[k]).map(k => ({ v: 'pied:' + k, l: 'Au pied, pièces au choix : ' + NORM_RAILS[k].label.replace(/^Signature — /, '') })));
+  if (!opts.some(x => x.v === o.sigmRail)) o.sigmRail = ctx.defaut;
+  const r = o.sigmRail, set = (k, recon) => "state.options." + k + "=this.value;" + (recon ? "state._sigmOptCle=null;state._sigOptCle=null;" + (ctx.rebuild || '') : '') + on;
+  let h = sigmSelect('sigm-rail', 'Rail', opts, r, set('sigmRail', true));
+  if (r === 'AKS' || r === 'ADS' || r === 'arch') {
+    if (!['plafond', 'mur'].includes(o.sigmPose)) o.sigmPose = 'plafond';
+    h += sigmSelect('sigm-pose', 'Installation du rail', [{ v: 'plafond', l: 'Au plafond (supports de plafond)' }, { v: 'mur', l: r === 'arch' ? 'Au mur (supports ajustables 2" à 4½")' : 'Au mur (supports Smart Klick 3" à 4½")' }], o.sigmPose, set('sigmPose'));
+  }
+  if (r === 'medi') {
+    if (!['plafond', 'mur', 'susp'].includes(o.sigmPose)) o.sigmPose = 'plafond';
+    h += sigmSelect('sigm-pose', 'Installation du rail', [{ v: 'plafond', l: 'Directement au plafond (supports de plafond)' }, { v: 'mur', l: 'Plafond + supports de mur aux 2 bouts' },
+      { v: 'susp', l: 'Suspendu (poteaux / tubes de suspension)' }], o.sigmPose, set('sigmPose', true));
+    if (o.sigmPose === 'susp') {
+      if (o.sigmDescente == null) o.sigmDescente = 24;
+      h += sigmNombre('sigm-descente', 'Descente sous le plafond (po)', o.sigmDescente, "state.options.sigmDescente=parseFloat(this.value)||0;" + on, 'Jusqu\'à 24" : poteau de suspension fixe. Plus de 24" : tube de suspension au pied + support de plafond + adaptateur.');
+    }
+  }
+  if (r === 'AKS' || r === 'ADS' || r === 'CRS') {
+    const couls = NORM_RAILS.SIG_K_RF.couleurs || ['Blanc'];
+    if (!couls.includes(o.sigmRailCoul)) o.sigmRailCoul = couls[0];
+    h += sigmSelect('sigm-rail-coul', 'Couleur du rail', couls.map(c => ({ v: c, l: c })), o.sigmRailCoul, set('sigmRailCoul'));
+  }
+  if (/^pied:/.test(r)) {
+    const R = NORM_RAILS[r.slice(5)], couls = R.prixParCouleur ? Object.keys(R.prixParCouleur) : (R.couleurs || ['Blanc']);
+    if (!couls.includes(o.sigmRailCoul)) o.sigmRailCoul = couls[0];
+    h += sigmSelect('sigm-rail-coul', 'Couleur du rail', couls.map(c => ({ v: c, l: c })), o.sigmRailCoul, set('sigmRailCoul'));
+    (R.accessoires || []).forEach((acc, i) => {
+      h += '<div style="padding:3px 20px;display:flex;align-items:center;gap:8px;font-size:12px;"><input type="number" min="0" step="1" id="sigm-acc-' + i + '" value="' + ((o.sigmAcc || {})[acc.id] || 0)
+        + '" data-acc="' + sigmEsc(acc.id) + '" oninput="state.options.sigmAcc=state.options.sigmAcc||{};state.options.sigmAcc[this.dataset.acc]=Math.max(0,parseInt(this.value)||0);' + on + '" '
+        + 'style="width:60px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px;"> <label for="sigm-acc-' + i + '">' + sigmEsc(acc.label) + '</label></div>';
+    });
+  }
+  if (r !== 'aucun') h += sigmNombre('sigm-courbes', r === 'medi' ? 'Courbes 90° (24" × 24")' : 'Courbes du rail (supplément par courbe)', o.sigmCourbes || 0, "state.options.sigmCourbes=Math.max(0,parseInt(this.value)||0);" + on);
+  return h;
+}
+// ctx : { fin: 'rf60'…'rf120' (ampleur pour compter les chariots), nbChariots (Meditrack), grille: g (rail ADS de la liste) }
+function sigRailCalcul(o, larg, ctx) {
+  const r = o.sigmRail || 'aucun', L = [], courbes = o.sigmCourbes || 0;
+  if (r === 'aucun') return { lignes: L, txt: 'Aucun rail' };
+  const add = (label, v) => { if (v > 0) L.push({ label, pdsf: Math.round(v * 100) / 100 }); };
+  const kitCh = () => { const T = sigmTrousse(larg, ctx.fin || 'rf100', { rail: 'AKS', pose: 'plafond' }); return T.err ? Math.ceil(larg / 2) : T.k.ch; };
+  if (r === 'ads-liste') {
+    const g = ctx.grille, RL = g && (g.railL || g.L), L2 = RL && nextDim(RL, larg), v = L2 ? g.rail[RL.indexOf(L2)] : null;
+    if (v) { add(`Rail ADS ${L2}" (chariots, capuchons, supports inclus)`, v); if (courbes) add(`Courbe(s) × ${courbes}`, courbes * 20); return { lignes: L, txt: `Rail ADS (liste) ${L2}"` }; }
+    const T = sigmTrousse(larg, ctx.fin || 'rf100', { rail: 'ADS', pose: 'plafond' });
+    if (T.err) return { err: T.err };
+    add(`Trousse Ripple Fold ${T.variante} — ${T.k.pi} pi : ${T.k.sup} supports, ${T.k.ch} chariots détachables${T.extra}`, T.k.prix);
+    return { lignes: L, txt: `Trousse ADS ${T.k.pi} pi` };
+  }
+  if (r === 'AKS' || r === 'ADS' || r === 'CRS') {
+    const T = sigmTrousse(larg, ctx.fin || 'rf100', { rail: r, pose: o.sigmPose });
+    if (T.err) return { err: T.err };
+    const coul = o.sigmRailCoul || 'Blanc';
+    add(`Trousse Ripple Fold ${T.variante} — ${T.k.pi} pi : ${T.k.sup} supports, ${T.k.ch} chariots détachables, crans d'arrêt (${coul})${T.extra}`, T.k.prix);
+    if (courbes) add(`Courbe(s) du rail × ${courbes}`, courbes * 20);
+    return { lignes: L, txt: `Trousse Ripple Fold ${T.variante} ${T.k.pi} pi (${T.k.sup} supports, ${T.k.ch} chariots détachables) — ${coul}` };
+  }
+  if (r === 'arch') {
+    const R = NORM_RAILS.SIG_ARCH, pi = Math.ceil(larg / 12), sup = Math.max(3, Math.ceil(pi / 2)), ch = kitCh(), a = id => sigmAcc('SIG_ARCH', id).prix.blanc;
+    add(`Rail Architex blanc — ${pi} pi`, pi * R.prixBlanc);
+    if (o.sigmPose === 'mur') add(`Support ajustable 2" à 4½" × ${sup}`, sup * a('sig-arch-sup-aj'));
+    else add(`Support de plafond × ${sup}`, sup * a('sig-arch-sup-plaf'));
+    add(`Chariot à billes détachable (Ripple Fold) × ${ch}`, ch * a('sig-arch-billes-det'));
+    add('Capuchon / cran d\'arrêt × 2', 2 * a('sig-arch-capuchon'));
+    if (courbes) add(`Rail courbé 90° 2 pi × 2 pi × ${courbes}`, courbes * a('sig-arch-courbe'));
+    return { lignes: L, txt: `Architex ${pi} pi — ${o.sigmPose === 'mur' ? 'au mur' : 'au plafond'}, ${sup} supports, ${ch} chariots à billes détachables${courbes ? ', ' + courbes + ' courbe(s)' : ''}` };
+  }
+  if (r === 'medi') {
+    const nb = ctx.nbChariots || (Math.ceil(larg * ((NORM_FINITIONS.find(f => f.val === ctx.fin) || { multi: 2.5 }).multi) / 6) + 1);
+    const M = sigmMeditrack(larg, nb, o);
+    return { lignes: M.lignes, txt: M.txt };
+  }
+  if (/^pied:/.test(r)) {
+    const R = NORM_RAILS[r.slice(5)], coul = o.sigmRailCoul || (R.couleurs || ['Blanc'])[0], blanc = /blanc/i.test(coul), pi = Math.ceil(larg / 12);
+    add(`${R.label.replace(/^Signature — /, '')} — ${pi} pi (${coul})`, pi * normPrixRailC(R, coul, blanc));
+    (R.accessoires || []).forEach(acc => { const q = (o.sigmAcc || {})[acc.id] || 0; if (q > 0) add(`${acc.label} × ${q}`, q * normPrixAccC(acc, coul, blanc)); });
+    if (courbes) add(`Courbe(s) du rail × ${courbes}`, courbes * 20);
+    return { lignes: L, txt: R.label.replace(/^Signature — /, '') + ' — ' + coul };
+  }
+  return { lignes: L, txt: 'Aucun rail' };
 }
 
 // ── Métrage (règle de Sam : prix au mètre = confection incluse ; inversé = calcul Normandie) ──
@@ -198,14 +272,14 @@ function sigmMeditrack(larg, nbChariots, o) {
 }
 
 // ── Trousse Ripple Fold (rideau décoratif) ──────────────
-function sigmTrousse(larg, fin, o) {
+function sigmTrousse(larg, fin, q) {   // q = { rail: 'AKS'|'ADS'|'CRS', pose: 'plafond'|'mur' }
   const R = NORM_RAILS.SIG_K_RF, pi = Math.ceil(larg / 12);
   const amp = { rf60: 60, rf80: 80, rf100: 100, rf120: 120 }[fin];
   let variante;
-  if (o.sigmRail === 'CRS') variante = Object.keys(R.kits).find(k => /^CRS/.test(k) && k.includes('ampleur ' + amp + ' %'));
+  if (q.rail === 'CRS') variante = Object.keys(R.kits).find(k => /^CRS/.test(k) && k.includes('ampleur ' + amp + ' %'));
   else {
     const a2 = amp > 100 ? 120 : 100;
-    variante = Object.keys(R.kits).find(k => k.startsWith(o.sigmRail + ' — ampleur ' + a2 + ' %') && (o.sigmPose === 'mur' ? /murs/.test(k) : /plafond/.test(k)));
+    variante = Object.keys(R.kits).find(k => k.startsWith(q.rail + ' — ampleur ' + a2 + ' %') && (q.pose === 'mur' ? /murs/.test(k) : /plafond/.test(k)));
   }
   if (!variante) return { err: 'Trousse introuvable pour ce choix' };
   const liste = R.kits[variante];
@@ -226,7 +300,7 @@ function calculatePriceSigMetre() {
   const haut = (parseFloat(document.getElementById('inp-haut').value) || 0) + (parseFloat(document.getElementById('frac-haut').value) || 0);
   if (!larg || !haut) { resetResult(); return; }
   show('card-options');
-  const cle = [a.t, a.u, state.options.sigmRail, state.options.sigmPose, state.options.sigmFilet].join('|');
+  const cle = [a.t, a.u, state.options.sigmRail, state.options.sigmPose, state.options.sigmFilet, state.options.sigmFin].join('|');
   if (state._sigmOptCle !== cle || !document.getElementById('sigm-qte')) { sigmOptions(); state._sigmOptCle = cle; }
   const o = state.options, sep = a.u === 'sep';
   const alertEl = document.getElementById('alert-dim'), noteEl = document.getElementById('note-dim');
@@ -281,19 +355,11 @@ function calculatePriceSigMetre() {
     }
     ajout(`Œillets ${(o.sigmOe || SIGM_OEILLETS[0]).toLowerCase()} ${(o.sigmOeCoul || SIGM_OEILLET_COUL[0]).toLowerCase()} × ${nbChariots}${oeil ? ' × ' + oeil + ' $' : ' — ⚠ prix par œillet à régler dans ⚙ Paramètres'}`, nbChariots * oeil);
   }
-  // Rail
-  let railTxt = 'Aucun rail';
-  if (sep && o.sigmRail === 'medi') {
-    const M = sigmMeditrack(larg, nbChariots, o);
-    M.lignes.forEach(x => ajout(x.label, x.pdsf));
-    railTxt = M.txt;
-  } else if (!sep && o.sigmRail && o.sigmRail !== 'aucun') {
-    const T = sigmTrousse(larg, o.sigmFin, o);
-    if (T.err) return bloquer(T.err);
-    const coul = o.sigmRailCoul || 'Blanc';
-    ajout(`Trousse Ripple Fold ${T.variante} — ${T.k.pi} pi : ${T.k.sup} supports, ${T.k.ch} chariots détachables, crans d'arrêt (${coul})${T.extra}`, T.k.prix);
-    railTxt = `Trousse Ripple Fold ${T.variante} ${T.k.pi} pi (${T.k.sup} supports, ${T.k.ch} chariots détachables) — ${coul}`;
-  }
+  // Rail (bloc commun Signature)
+  const RR = sigRailCalcul(o, larg, { fin: sep ? null : o.sigmFin, nbChariots: sep ? nbChariots : null });
+  if (RR.err) return bloquer(RR.err);
+  RR.lignes.forEach(x => ajout(x.label, x.pdsf));
+  const railTxt = RR.txt;
 
   alertEl.classList.remove('show');
   noteEl.textContent = sep

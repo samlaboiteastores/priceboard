@@ -141,22 +141,9 @@ function sigOptions() {
   h += '<div style="padding:6px 20px;"><label style="display:flex;gap:8px;align-items:center;font-size:12px;cursor:pointer;"><input type="checkbox" id="sig-tete6"' + (o.sigTete6 ? ' checked' : '') + ' onchange="state.options.sigTete6=this.checked;' + on + '"> Tête 6 po (+10 %) <span style="color:var(--text-dim)">— standard : tête 4 po</span></label></div>';
   if (p.type === 'opaque') h += sigSelect('sig-doub', 'Doublure', SIG_DOUBLURES.map(d => ({ v: d.v, l: d.l })), o.sigDoub || '', "state.options.sigDoub=this.value;" + on);
   else h += '<div style="padding:6px 20px;"><label style="display:flex;gap:8px;align-items:center;font-size:12px;cursor:pointer;"><input type="checkbox" id="sig-plomb"' + (o.sigPlomb ? ' checked' : '') + ' onchange="state.options.sigPlomb=this.checked;' + on + '"> Bas plombé <span style="color:var(--text-dim)">— change la hauteur maximale</span></label></div>';
-  // Rails et composantes (tous les tissus)
-  const rails = [{ v: 'ads', l: 'Rail ADS de la liste (chariots, capuchons, supports inclus)' }, { v: '', l: 'Aucun rail' },
-    ...sigRailsAutres().map(k => ({ v: k, l: NORM_RAILS[k].label.replace(/^Signature — /, 'Autre rail : ') + ' (au pied)' }))];
-  h += sigSelect('sig-rail', 'Rails et composantes', rails, o.sigRail == null ? 'ads' : o.sigRail, "state.options.sigRail=this.value;state._sigOptCle=null;" + on);
-  const rk = o.sigRail;
-  if (rk && NORM_RAILS[rk]) {
-    const r = NORM_RAILS[rk];
-    const couls = r.prixParCouleur ? Object.keys(r.prixParCouleur) : (r.couleurs || ['Blanc']);
-    h += sigSelect('sig-rail-coul', 'Couleur du rail', couls.map(c => ({ v: c, l: c })), o.sigRailCoul || couls[0], "state.options.sigRailCoul=this.value;" + on);
-    (r.accessoires || []).forEach((acc, i) => {
-      h += '<div style="padding:3px 20px;display:flex;align-items:center;gap:8px;font-size:12px;"><input type="number" min="0" step="1" id="sig-acc-' + i + '" value="' + ((o.sigAcc || {})[acc.id] || 0)
-        + '" data-acc="' + sigEsc(acc.id) + '" oninput="state.options.sigAcc=state.options.sigAcc||{};state.options.sigAcc[this.dataset.acc]=Math.max(0,parseInt(this.value)||0);' + on + '" '
-        + 'style="width:60px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px;"> <span>' + sigEsc(acc.label) + '</span></div>';
-    });
-  }
-  h += '<div style="padding:6px 20px;display:flex;align-items:center;gap:8px;font-size:12px;"><input type="number" min="0" step="1" id="sig-courbes" value="' + (o.sigCourbes || 0) + '" oninput="state.options.sigCourbes=Math.max(0,parseInt(this.value)||0);' + on + '" style="width:60px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px;"> <span>Courbe(s) dans le rail (+20 $ chacune)</span></div>';
+  // Rails (bloc commun Signature) — anciennes lignes : sigRail 'ads' / SIG_X
+  if (o.sigmRail == null && o.sigRail !== undefined) { o.sigmRail = o.sigRail === 'ads' ? 'ads-liste' : o.sigRail ? 'pied:' + o.sigRail : 'aucun'; o.sigmRailCoul = o.sigRailCoul; o.sigmAcc = o.sigAcc; o.sigmCourbes = o.sigCourbes; }
+  h += sigRailHtml(o, { defaut: 'ads-liste', grille: true, on });
   h += '<div style="padding:6px 20px 12px;display:flex;align-items:center;gap:8px;font-size:12px;"><input type="number" min="1" step="1" id="sig-qte" value="' + (o.sigQte || 1) + '" oninput="state.options.sigQte=Math.max(1,parseInt(this.value)||1);' + on + '" style="width:60px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px;"> <span>Quantité (rideaux identiques)</span></div>';
   document.getElementById('options-container').innerHTML = h;
 }
@@ -170,7 +157,7 @@ function calculatePriceSigGrille() {
   const haut = (parseFloat(document.getElementById('inp-haut').value) || 0) + (parseFloat(document.getElementById('frac-haut').value) || 0);
   if (!larg || !haut) { resetResult(); return; }
   show('card-options');
-  const cle = [a.t, a.st, state.options.sigRail].join('|');
+  const cle = [a.t, a.st, state.options.sigmRail, state.options.sigmPose].join('|');
   if (state._sigOptCle !== cle || !document.getElementById('sig-qte')) { sigOptions(); state._sigOptCle = cle; }
   const o = state.options;
   const alertEl = document.getElementById('alert-dim'), noteEl = document.getElementById('note-dim');
@@ -197,27 +184,10 @@ function calculatePriceSigGrille() {
   if (o.sigTete6) ajout('Tête 6 po (+10 %)', r.v * 0.10);
   const doub = SIG_DOUBLURES.find(d => d.v === (o.sigDoub || ''));
   if (p.type === 'opaque' && doub && doub.pct) ajout(doub.l, r.v * doub.pct / 100);
-  const rail = o.sigRail == null ? 'ads' : o.sigRail;
-  let railTxt = 'Aucun rail';
-  if (rail === 'ads' && g.rail) {
-    const RL = g.railL || g.L, L2 = nextDim(RL, larg);
-    const v = L2 ? g.rail[RL.indexOf(L2)] : null;
-    if (v) { ajout(`Rail ADS ${L2}" (chariots, capuchons, supports inclus)`, v); railTxt = `Rail ADS (liste) ${L2}"`; }
-    else if (hors && typeof sigmTrousse === 'function') {
-      const T = sigmTrousse(larg, a.st === 'RF120' ? 'rf120' : 'rf100', { sigmRail: 'ADS', sigmPose: 'plafond' });
-      if (!T.err) { ajout(`Trousse Ripple Fold ${T.variante} — ${T.k.pi} pi : ${T.k.sup} supports, ${T.k.ch} chariots détachables${T.extra}`, T.k.prix); railTxt = `Trousse ADS ${T.k.pi} pi`; }
-    }
-  } else if (rail && NORM_RAILS[rail]) {
-    const R = NORM_RAILS[rail], coul = o.sigRailCoul || (R.couleurs || ['Blanc'])[0], blanc = /blanc/i.test(coul);
-    const pieds = Math.ceil(larg / 12);
-    ajout(`${R.label.replace(/^Signature — /, '')} — ${pieds} pi (${coul})`, pieds * normPrixRailC(R, coul, blanc));
-    railTxt = R.label.replace(/^Signature — /, '') + ' — ' + coul;
-    (R.accessoires || []).forEach(acc => {
-      const q = (o.sigAcc || {})[acc.id] || 0;
-      if (q > 0) ajout(`${acc.label} × ${q}`, q * normPrixAccC(acc, coul, blanc));
-    });
-  }
-  if (o.sigCourbes) ajout(`Courbe(s) × ${o.sigCourbes}`, o.sigCourbes * 20);
+  const RR = sigRailCalcul(o, larg, { fin: a.st === 'RF120' || a.st === 'W300' ? 'rf120' : 'rf100', grille: g });
+  if (RR.err) { alertEl.textContent = '⚠ ' + RR.err; alertEl.classList.add('show'); resetResult(); state.lastResult = null; return; }
+  RR.lignes.forEach(x => ajout(x.label, x.pdsf));
+  const railTxt = RR.txt;
 
   const qte = Math.max(1, parseInt(o.sigQte) || 1);
   const pdsfTotal = Math.round(pdsf * qte * 100) / 100;
@@ -239,7 +209,7 @@ function calculatePriceSigGrille() {
   if (hors) resume.push('Calcul au mètre : plus large que la grille de la liste (' + hors.r.vg + ' vg' + (hors.r.inverse ? ', tissu inversé' : '') + ')');
   if (p.type === 'opaque') resume.push('Doublure : ' + (doub && doub.pct ? doub.l.replace(/^Doublure /, '').replace(/ \(\+\d+ %\)/, '') : 'Aucune'));
   else if (o.sigPlomb) resume.push('Bas plombé');
-  resume.push('Rail : ' + railTxt + (o.sigCourbes ? ' · ' + o.sigCourbes + ' courbe(s)' : ''));
+  resume.push('Rail : ' + railTxt + (o.sigmCourbes && !/courbe/.test(railTxt) ? ' · ' + o.sigmCourbes + ' courbe(s)' : ''));
   if (qte > 1) resume.push('Quantité : ' + qte);
   state.sigResume = resume;
   state.lastResult = { pdsfTotal, pdsf: pdsfTotal, cout, vente, marge, desc: resume.join(' | ') };

@@ -12058,6 +12058,13 @@ function buildOptionsPret() {
     sel.onchange = () => { opt.pretCouleur = sel.value; calculatePricePret(); };
     cb.appendChild(sel);
   }
+  // Rails Signature (même choix que les autres types)
+  if (typeof sigRailHtml === 'function') {
+    const rs = document.createElement('div'); rs.className = 'section-divider'; rs.textContent = 'Rail'; container.appendChild(rs);
+    const rb = document.createElement('div'); container.appendChild(rb);
+    rb.innerHTML = sigmNombre('pret-rail-larg', 'Largeur du rail (po)', opt.pretRailLarg || '', "state.options.pretRailLarg=parseFloat(this.value)||0;calculatePricePret();", 'Laisser vide si aucun rail.')
+      + sigRailHtml(opt, { defaut: 'aucun', on: 'calculatePricePret();', rebuild: 'buildOptionsPret();' });
+  }
 }
 function calculatePricePret() {
   const p = SIG_PRET.find(x => x.nom === state.modele);
@@ -12065,7 +12072,15 @@ function calculatePricePret() {
   const opt = state.options || {};
   const qte = Math.max(1, opt.pretQte || 1);
   const pu = normPretPrixUnitaire(p, qte);
-  const pdsfTotal = Math.round(pu * qte * 100) / 100;
+  // Rail Signature (optionnel) : chariots = 8 œillets par panneau à œillets
+  let railL = [], railTxt = '';
+  if (typeof sigRailCalcul === 'function' && opt.sigmRail && opt.sigmRail !== 'aucun' && opt.pretRailLarg > 0) {
+    const RR = sigRailCalcul(opt, opt.pretRailLarg, { fin: 'rf100', nbChariots: p.paliers ? null : 8 * qte });
+    if (RR.err) { const al = document.getElementById('alert-dim'); if (al) { al.textContent = '⚠ ' + RR.err; al.classList.add('show'); } }
+    else { railL = RR.lignes; railTxt = RR.txt; }
+  }
+  const pdsfRail = railL.reduce((t, x) => t + x.pdsf, 0);
+  const pdsfTotal = Math.round((pu * qte + pdsfRail) * 100) / 100;
   const pct = getPct(), multi = getMulti();
   const cout = Math.round(pdsfTotal * pct * 100) / 100;
   const vente = Math.round(cout * multi * 100) / 100;
@@ -12073,7 +12088,7 @@ function calculatePricePret() {
   const palier = p.paliers ? (qte >= 24 ? '24 et plus' : qte >= 12 ? '12 et plus' : (qte >= 6 ? '6 à 11' : 'moins de 6 — palier de 6')) : '';
   const coul = p.paliers ? (opt.pretCouleur || 'Blanc') : '';
   state.lastResult = { pdsfStore: pdsfTotal, pdsfSomfy: 0, pdsfTotal, cout, vente, marge,
-    desc: `Panneaux de rideaux prêts à poser Signature Textiles : ${p.nom}${coul ? ' — ' + coul : ''} — ${qte} panneau${qte > 1 ? 'x' : ''}${p.paliers ? '' : ' (8 œillets de 2")'}` };
+    desc: `Panneaux de rideaux prêts à poser Signature Textiles : ${p.nom}${coul ? ' — ' + coul : ''} — ${qte} panneau${qte > 1 ? 'x' : ''}${p.paliers ? '' : ' (8 œillets de 2")'}${railTxt ? ' | Rail : ' + railTxt + ' (' + opt.pretRailLarg + '")' : ''}` };
   const fmtCAD = v => '$ ' + v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
   document.getElementById('result-body').innerHTML = `
     <div class="result-fournisseur">Signature Textiles · Panneaux de rideaux prêts à poser</div>
@@ -12086,7 +12101,7 @@ function calculatePricePret() {
     </div>
     <div class="margin-bar-wrap"><div class="margin-label"><span>Marge brute</span><span style="color:var(--green)">${marge}%</span></div><div class="margin-bar"><div class="margin-fill" style="width:${Math.min(marge, 100)}%"></div></div></div>
     <div class="breakdown"><div class="breakdown-title">Détail — Panneaux prêts à poser</div>
-      <div class="breakdown-item"><span>${qte} × ${p.nom}${coul ? ' — ' + coul : ''}</span><span>${fmtCAD(pdsfTotal)}</span></div>
+      <div class="breakdown-item"><span>${qte} × ${p.nom}${coul ? ' — ' + coul : ''}</span><span>${fmtCAD(Math.round(pu * qte * 100) / 100)}</span></div>${railL.map(x => `<div class="breakdown-item"><span>${x.label}</span><span>${fmtCAD(x.pdsf)}</span></div>`).join('')}
     </div>`;
   show('card-result');
 }
