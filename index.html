@@ -1125,17 +1125,7 @@
                   <span style="color:var(--text-dim);font-size:12px">×</span>
                 </div>
               </div>
-              <div class="admin-row">
-                <div>
-                  <div class="admin-label">Signature — prix par œillet</div>
-                  <div style="font-size:10px;color:var(--text-dim);margin-top:2px">Rideaux séparateurs / médicaux (PDSF, 1 œillet par chariot)</div>
-                </div>
-                <div style="display:flex;align-items:center;gap:6px">
-                  <input type="number" class="admin-input" id="admin-oeillet-sig" value="0" min="0" max="50" step="0.05" onchange="saveAdminSettings()">
-                  <span style="color:var(--text-dim);font-size:12px">$</span>
-                </div>
-              </div>
-              <div class="admin-row">
+                            <div class="admin-row">
                 <div class="admin-label">Marge brute résultante</div>
                 <div id="admin-marge-norm" style="color:var(--green);font-size:13px">—</div>
               </div>
@@ -1144,32 +1134,40 @@
 
           <div class="card">
             <div class="card-header">
-              <span class="card-title">Verotex — Paramètres</span>
+              <span class="card-title">Signature Textiles — Paramètres</span>
               <span class="card-badge">Actif</span>
             </div>
             <div class="card-body">
               <div class="admin-row">
                 <div>
-                  <div class="admin-label">% Coût / Prix vente</div>
-                  <div style="font-size:10px;color:var(--text-dim);margin-top:2px">Prix Verotex = prix de vente direct</div>
+                  <div class="admin-label">% Coût / prix de la liste</div>
+                  <div style="font-size:10px;color:var(--text-dim);margin-top:2px">La liste Signature = prix de détail suggérés ; on paie 50 %</div>
                 </div>
                 <div style="display:flex;align-items:center;gap:6px">
-                  <input type="number" class="admin-input" id="admin-pct-vtx" value="100" min="1" max="100" step="1" onchange="saveAdminSettings()">
+                  <input type="number" class="admin-input" id="admin-pct-sig" value="50" min="1" max="99" step="1" onchange="saveAdminSettings()">
                   <span style="color:var(--text-dim);font-size:12px">%</span>
                 </div>
               </div>
               <div class="admin-row">
-                <div>
-                  <div class="admin-label">Multiplicateur de vente</div>
-                </div>
+                <div><div class="admin-label">Multiplicateur de vente</div></div>
                 <div style="display:flex;align-items:center;gap:6px">
-                  <input type="number" class="admin-input" id="admin-multi-vtx" value="1.0" min="1" max="10" step="0.1" onchange="saveAdminSettings()">
+                  <input type="number" class="admin-input" id="admin-multi-sig" value="2.0" min="1" max="10" step="0.1" onchange="saveAdminSettings()">
                   <span style="color:var(--text-dim);font-size:12px">×</span>
                 </div>
               </div>
               <div class="admin-row">
+                <div>
+                  <div class="admin-label">Prix par œillet</div>
+                  <div style="font-size:10px;color:var(--text-dim);margin-top:2px">Rideaux séparateurs / médicaux (prix de détail, 1 œillet par chariot)</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px">
+                  <input type="number" class="admin-input" id="admin-oeillet-sig" value="0" min="0" max="50" step="0.05" onchange="saveAdminSettings()">
+                  <span style="color:var(--text-dim);font-size:12px">$</span>
+                </div>
+              </div>
+              <div class="admin-row">
                 <div class="admin-label">Marge brute résultante</div>
-                <div id="admin-marge-vtx" style="color:var(--green);font-size:13px">—</div>
+                <div id="admin-marge-sig" style="color:var(--green);font-size:13px">—</div>
               </div>
             </div>
           </div>
@@ -3273,8 +3271,10 @@ function loadSettings() {
   if (!settings.solr) settings.solr = { pct: 32, multi: 2.0, multiSomfy: 1.5 };
   if (!settings.solr.multiSomfy) settings.solr.multiSomfy = 1.5;
   if (!settings.norm) settings.norm = { pct: 50, multi: 2.0, multiSomfy: 1.5 };
-  if (!settings.sig) settings.sig = { oeillet: 0 };
-  if (document.getElementById('admin-oeillet-sig')) document.getElementById('admin-oeillet-sig').value = settings.sig.oeillet || 0;
+  if (!settings.sig) settings.sig = { pct: 50, multi: 2.0, oeillet: 0 };
+  if (settings.sig.pct == null) settings.sig.pct = 50;
+  if (settings.sig.multi == null) settings.sig.multi = 2.0;
+  if (document.getElementById('admin-pct-sig')) { document.getElementById('admin-pct-sig').value = settings.sig.pct; document.getElementById('admin-multi-sig').value = settings.sig.multi; document.getElementById('admin-oeillet-sig').value = settings.sig.oeillet || 0; }
   if (!settings.norm.multiSomfy) settings.norm.multiSomfy = 1.5;
   if (!settings.vtx)  settings.vtx  = { pct: 100, multi: 1.0 };
   if (!settings.altex) settings.altex = { multi: 2.0 };
@@ -3297,8 +3297,6 @@ function loadSettings() {
   document.getElementById('admin-pct-norm').value = settings.norm.pct;
   document.getElementById('admin-multi-norm').value = settings.norm.multi;
   document.getElementById('admin-multi-somfy-norm').value = settings.norm.multiSomfy;
-  document.getElementById('admin-pct-vtx').value  = settings.vtx.pct;
-  document.getElementById('admin-multi-vtx').value = settings.vtx.multi;
   document.getElementById('admin-multi-svc').value = settings.svc?.multi || 1.35;
   updatePDModeButtons();
   updateAdminMarge();
@@ -3321,10 +3319,10 @@ function saveAdminSettings() {
   settings.norm.pct = parseFloat(document.getElementById('admin-pct-norm').value) || 50;
   settings.norm.multi = parseFloat(document.getElementById('admin-multi-norm').value) || 2.0;
   if (!settings.sig) settings.sig = {};
+  settings.sig.pct = parseFloat((document.getElementById('admin-pct-sig') || {}).value) || 50;
+  settings.sig.multi = parseFloat((document.getElementById('admin-multi-sig') || {}).value) || 2.0;
   settings.sig.oeillet = Math.max(0, parseFloat((document.getElementById('admin-oeillet-sig') || {}).value) || 0);
   settings.norm.multiSomfy = parseFloat(document.getElementById('admin-multi-somfy-norm').value) || 1.5;
-  settings.vtx.pct  = parseFloat(document.getElementById('admin-pct-vtx').value)  || 100;
-  settings.vtx.multi = parseFloat(document.getElementById('admin-multi-vtx').value) || 1.0;
   if (!settings.altex) settings.altex = {};
   settings.altex.multi = parseFloat((document.getElementById('admin-multi-altex') || {}).value) || 2.0;
   if (!settings.elite) settings.elite = {};
@@ -3394,6 +3392,10 @@ function updateAdminMarge() {
     const margeV = multiV > 1 ? ((100*pctV*multiV - 100*pctV) / (100*pctV*multiV) * 100).toFixed(1) : '0.0';
     document.getElementById('admin-marge-vtx').textContent = margeV + '%';
   }
+  if (document.getElementById('admin-marge-sig') && settings.sig) {
+    const mS = settings.sig.multi || 2.0;
+    document.getElementById('admin-marge-sig').textContent = ((mS - 1) / mS * 100).toFixed(1) + '%';
+  }
   if (document.getElementById('admin-marge-svc')) {
     const multiS = settings.svc?.multi || 1.35;
     const margeS = ((multiS - 1) / multiS * 100).toFixed(1);
@@ -3405,6 +3407,7 @@ function getPct() {
   if (state.fournisseur === 'pd')   return settings.pd.pct / 100;
   if (state.fournisseur === 'sbm')  return settings.sbm.pct / 100;
   if (state.fournisseur === 'solr') return settings.solr.pct / 100;
+  if (state.fournisseur === 'norm' && state.normSource === 'sig') return ((settings.sig && settings.sig.pct) || 50) / 100;
   if (state.fournisseur === 'norm') return settings.norm.pct / 100;
   if (state.fournisseur === 'vtx')  return (settings.vtx?.pct || 100) / 100;
   return settings.vp.pct / 100;
@@ -3413,6 +3416,7 @@ function getMulti() {
   if (state.fournisseur === 'pd')   return settings.pd.multi;
   if (state.fournisseur === 'sbm')  return settings.sbm.multi;
   if (state.fournisseur === 'solr') return settings.solr.multi;
+  if (state.fournisseur === 'norm' && state.normSource === 'sig') return (settings.sig && settings.sig.multi) || 2.0;
   if (state.fournisseur === 'norm') return settings.norm.multi;
   if (state.fournisseur === 'vtx')  return settings.vtx?.multi || 1.0;
   return settings.vp.multi;
@@ -9980,159 +9984,159 @@ const NORM_CATALOG = [
   { nom: 'ZAMORA', pdsf: 138, largeur: 56, filsPlomb: false, collection: 'Alendel' },
   { nom: 'ZEUS', pdsf: 110, largeur: 128, filsPlomb: false, collection: 'Alendel' },
   { nom: 'ZURICH', pdsf: 102, largeur: 54, filsPlomb: false, collection: 'Alendel' },
-  // ── SIGNATURE TEXTILES — liste de prix « Tissus au mètre » du 15 mai 2022 (bibliothèque Odoo, doc 164). Prix PDF = COÛT/mètre → coût/verge = ×0,9144 arrondi au $ sup ; pdsf = coût × 2.
+  // ── SIGNATURE TEXTILES — liste de prix « Tissus au mètre » du 15 mai 2022 (bibliothèque Odoo, doc 164). Prix PDF = PRIX DE DÉTAIL suggéré au mètre (Sam 2026-10-09) → pdsf/verge = prix × 0,9144 ; coût = % Signature des Paramètres (50 %).
   //    Tissus de rideaux seulement (pas de mèche, ni literie, ni prêt-à-poser). Les doublures sont marquées « (doublure) ».
-  { nom: "ABERCROMBIE F.R.", pdsf: 72, largeur: 118, filsPlomb: true, collection: 'Signature' },
-  { nom: "ADORABLE F.R.", pdsf: 80, largeur: 130, filsPlomb: true, collection: 'Signature' },
-  { nom: "AGADOO F.R.", pdsf: 62, largeur: 130, filsPlomb: true, collection: 'Signature' },
-  { nom: "AGATHE F.R.", pdsf: 68, largeur: 138, filsPlomb: true, collection: 'Signature' },
-  { nom: "ALBA F.R.", pdsf: 108, largeur: 165, filsPlomb: true, collection: 'Signature' },
-  { nom: "ALIAS F.R.", pdsf: 108, largeur: 165, filsPlomb: true, collection: 'Signature' },
-  { nom: "ALLIANCE F.R.", pdsf: 72, largeur: 138, filsPlomb: true, collection: 'Signature' },
-  { nom: "ALLORA F.R.", pdsf: 80, largeur: 130, filsPlomb: true, collection: 'Signature' },
-  { nom: "AMBIANCE F.R.", pdsf: 46, largeur: 130, filsPlomb: true, collection: 'Signature' },
-  { nom: "ANGORA F.R.", pdsf: 86, largeur: 138, filsPlomb: true, collection: 'Signature' },
-  { nom: "ANKA F.R.", pdsf: 66, largeur: 146, filsPlomb: true, collection: 'Signature' },
-  { nom: "ANNA F.R.", pdsf: 62, largeur: 138, filsPlomb: true, collection: 'Signature' },
-  { nom: "ARAMIS F.R.", pdsf: 62, largeur: 130, filsPlomb: true, collection: 'Signature' },
-  { nom: "ATLANTIS F.R.", pdsf: 62, largeur: 130, filsPlomb: true, collection: 'Signature' },
-  { nom: "ATLAS F.R.", pdsf: 66, largeur: 146, filsPlomb: true, collection: 'Signature' },
-  { nom: "AUGUSTA F.R.", pdsf: 80, largeur: 130, filsPlomb: true, collection: 'Signature' },
-  { nom: "AVIGNON F.R.", pdsf: 62, largeur: 130, filsPlomb: true, collection: 'Signature' },
-  { nom: "BATISTE 165\" F.R.", pdsf: 108, largeur: 165, filsPlomb: true, collection: 'Signature' },
-  { nom: "COLLECTION BLANC A19", pdsf: 62, largeur: 110, filsPlomb: false, collection: 'Signature' },
-  { nom: "COLLECTION BLANC A20", pdsf: 62, largeur: 110, filsPlomb: false, collection: 'Signature' },
-  { nom: "COLLECTION BLANC A21", pdsf: 62, largeur: 110, filsPlomb: false, collection: 'Signature' },
-  { nom: "COLLECTION BLANC A22", pdsf: 62, largeur: 110, filsPlomb: false, collection: 'Signature' },
-  { nom: "DATA", pdsf: 154, largeur: 116, filsPlomb: true, collection: 'Signature' },
-  { nom: "DESTINY", pdsf: 126, largeur: 114, filsPlomb: true, collection: 'Signature' },
-  { nom: "DOLLY", pdsf: 108, largeur: 118, filsPlomb: true, collection: 'Signature' },
-  { nom: "EXCELLENCE (doublure)", pdsf: 24, largeur: 60, filsPlomb: false, collection: 'Signature' },
-  { nom: "HARMONIE", pdsf: 66, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "IGOR", pdsf: 72, largeur: 60, filsPlomb: false, collection: 'Signature' },
-  { nom: "IMAGINE", pdsf: 72, largeur: 60, filsPlomb: false, collection: 'Signature' },
-  { nom: "INPUT", pdsf: 72, largeur: 60, filsPlomb: false, collection: 'Signature' },
-  { nom: "IOTA", pdsf: 72, largeur: 60, filsPlomb: false, collection: 'Signature' },
-  { nom: "IRENE", pdsf: 72, largeur: 60, filsPlomb: false, collection: 'Signature' },
-  { nom: "ISMO", pdsf: 72, largeur: 60, filsPlomb: false, collection: 'Signature' },
-  { nom: "IVANA", pdsf: 72, largeur: 60, filsPlomb: false, collection: 'Signature' },
-  { nom: "JABIROU", pdsf: 92, largeur: 57, filsPlomb: false, collection: 'Signature' },
-  { nom: "JACKPOT", pdsf: 92, largeur: 57, filsPlomb: false, collection: 'Signature' },
-  { nom: "JACQUARD D80", pdsf: 92, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JACQUARD D81", pdsf: 92, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JACQUARD D82", pdsf: 92, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JACQUARD D83", pdsf: 92, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JACQUARD D84, D96", pdsf: 116, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JACQUARD D85", pdsf: 92, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JACQUARD D86", pdsf: 92, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JACQUARD D87", pdsf: 92, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JACQUARD D88, D97", pdsf: 138, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JACQUARD D89", pdsf: 138, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JACQUARD D90", pdsf: 92, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JACQUARD D91", pdsf: 92, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JACQUARD D92", pdsf: 92, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JACQUARD D93", pdsf: 92, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JACQUARD D94", pdsf: 92, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JACQUARD D95", pdsf: 128, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JACQUARD D98", pdsf: 128, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JACQUARD E99, E106, E109", pdsf: 92, largeur: 56, filsPlomb: false, collection: 'Signature' },
-  { nom: "JACQUARD E100, E105, E107, E110, E113", pdsf: 92, largeur: 56, filsPlomb: false, collection: 'Signature' },
-  { nom: "JACQUARD E101", pdsf: 92, largeur: 56, filsPlomb: false, collection: 'Signature' },
-  { nom: "JACQUARD E102, E104", pdsf: 92, largeur: 56, filsPlomb: false, collection: 'Signature' },
-  { nom: "JACQUARD E103, E108", pdsf: 92, largeur: 56, filsPlomb: false, collection: 'Signature' },
-  { nom: "JACQUARD E111, E112", pdsf: 92, largeur: 56, filsPlomb: false, collection: 'Signature' },
-  { nom: "JACQUARD S901", pdsf: 88, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JADE", pdsf: 92, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JAKADI", pdsf: 102, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JAMES", pdsf: 92, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JAMMING", pdsf: 92, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JANICE", pdsf: 92, largeur: 57, filsPlomb: false, collection: 'Signature' },
-  { nom: "JARRY", pdsf: 98, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JASON", pdsf: 92, largeur: 57, filsPlomb: false, collection: 'Signature' },
-  { nom: "JATOBA", pdsf: 92, largeur: 57, filsPlomb: false, collection: 'Signature' },
-  { nom: "JET", pdsf: 128, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JETLAG", pdsf: 92, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JIGGER", pdsf: 92, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JINGLE", pdsf: 92, largeur: 57, filsPlomb: false, collection: 'Signature' },
-  { nom: "JOBARIA", pdsf: 92, largeur: 57, filsPlomb: false, collection: 'Signature' },
-  { nom: "JOCKEY", pdsf: 92, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JOLY", pdsf: 92, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JOSIE", pdsf: 92, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JOY", pdsf: 92, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JUKEBOX", pdsf: 92, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JULEP", pdsf: 92, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JULIA", pdsf: 92, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "JUMBO", pdsf: 92, largeur: 57, filsPlomb: false, collection: 'Signature' },
-  { nom: "JUNIOR", pdsf: 92, largeur: 57, filsPlomb: false, collection: 'Signature' },
-  { nom: "JUSTIN", pdsf: 92, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "LADY", pdsf: 92, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "LAUREAT", pdsf: 74, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "LEGEND", pdsf: 66, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "LEONARDO", pdsf: 66, largeur: 55, filsPlomb: false, collection: 'Signature' },
-  { nom: "LIBRA", pdsf: 128, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "LIMOUSINE", pdsf: 50, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "LINCOURT 165\" F.R.", pdsf: 100, largeur: 165, filsPlomb: true, collection: 'Signature' },
-  { nom: "LOIKA", pdsf: 66, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "LORD", pdsf: 66, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "LOTUS 1, 2 & BLANC/WHITE (doublure)", pdsf: 48, largeur: 110, filsPlomb: false, collection: 'Signature' },
-  { nom: "LUCILLE", pdsf: 66, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "MACHO", pdsf: 84, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "MADDY", pdsf: 84, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "MALAVITA", pdsf: 84, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "MARS", pdsf: 84, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "MATHEO", pdsf: 84, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "MAZAR", pdsf: 84, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "MEETING", pdsf: 84, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "MELBOURNE", pdsf: 84, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "MEZZO", pdsf: 84, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "MILES", pdsf: 84, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "MIYUKI", pdsf: 84, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "MONALISA", pdsf: 84, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "MONASTIC", pdsf: 84, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "MURMURE", pdsf: 84, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "MYOTO", pdsf: 84, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "NEIGE F.R.", pdsf: 100, largeur: 165, filsPlomb: true, collection: 'Signature' },
-  { nom: "NITAL (doublure)", pdsf: 36, largeur: 60, filsPlomb: false, collection: 'Signature' },
-  { nom: "NITAL F.R. (doublure)", pdsf: 54, largeur: 60, filsPlomb: false, collection: 'Signature' },
-  { nom: "NITAL 110 (doublure)", pdsf: 72, largeur: 110, filsPlomb: false, collection: 'Signature' },
-  { nom: "NIXNIX (doublure)", pdsf: 26, largeur: 60, filsPlomb: false, collection: 'Signature' },
-  { nom: "NOLITE (doublure)", pdsf: 34, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "NOLITE F.R. (doublure)", pdsf: 38, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "PALETTE", pdsf: 54, largeur: 60, filsPlomb: false, collection: 'Signature' },
-  { nom: "PARABOLA", pdsf: 54, largeur: 60, filsPlomb: false, collection: 'Signature' },
-  { nom: "PATSY", pdsf: 54, largeur: 60, filsPlomb: false, collection: 'Signature' },
-  { nom: "PUCHY", pdsf: 54, largeur: 60, filsPlomb: false, collection: 'Signature' },
-  { nom: "SANS SOLEIL (doublure)", pdsf: 36, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "SANS SOLEIL F.R. (doublure)", pdsf: 46, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "SANS SOLEIL 110 (doublure)", pdsf: 72, largeur: 110, filsPlomb: false, collection: 'Signature' },
-  { nom: "SANS SOLEIL F.R. 110 (doublure)", pdsf: 84, largeur: 110, filsPlomb: false, collection: 'Signature' },
-  { nom: "SATEEN LINING (doublure)", pdsf: 28, largeur: 60, filsPlomb: false, collection: 'Signature' },
-  { nom: "SEDUCTION B20, B21, B22, B23", pdsf: 154, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "SEDUCTION B24, B25, B26, B27", pdsf: 154, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "SEDUCTION C30, C31", pdsf: 228, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "SEDUCTION C32, C33, C34", pdsf: 154, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "SEDUCTION C35, C36", pdsf: 154, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "SEDUCTION C37, C38, C39, C40", pdsf: 130, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "SHANTUNG (doublure)", pdsf: 36, largeur: 60, filsPlomb: false, collection: 'Signature' },
-  { nom: "TALISMAN I.F.R.", pdsf: 82, largeur: 72, filsPlomb: false, collection: 'Signature' },
-  { nom: "TANDEM", pdsf: 88, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "TARZAN F.R.", pdsf: 92, largeur: 60, filsPlomb: false, collection: 'Signature' },
-  { nom: "TENOR I.F.R.", pdsf: 82, largeur: 72, filsPlomb: false, collection: 'Signature' },
-  { nom: "TEXAS BLACKOUT", pdsf: 130, largeur: 56, filsPlomb: false, collection: 'Signature' },
-  { nom: "THAILAND", pdsf: 66, largeur: 59, filsPlomb: false, collection: 'Signature' },
-  { nom: "THERMOSUEDE (doublure)", pdsf: 24, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "TIBET BLACKOUT", pdsf: 130, largeur: 56, filsPlomb: false, collection: 'Signature' },
-  { nom: "TOBAGO", pdsf: 68, largeur: 60, filsPlomb: false, collection: 'Signature' },
-  { nom: "TONUS F.R. BLACKOUT", pdsf: 92, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "TRANQUIL I.F.R.", pdsf: 88, largeur: 82, filsPlomb: false, collection: 'Signature' },
-  { nom: "TRANSIT", pdsf: 88, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "TRIDENT BLACKOUT", pdsf: 130, largeur: 56, filsPlomb: false, collection: 'Signature' },
-  { nom: "TRINIDAD", pdsf: 68, largeur: 60, filsPlomb: false, collection: 'Signature' },
-  { nom: "TRIXIE", pdsf: 88, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "TUDOR", pdsf: 88, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "VELOURS F.R.", pdsf: 166, largeur: 54, filsPlomb: false, collection: 'Signature' },
-  { nom: "VISTA I.F.R.", pdsf: 52, largeur: 118, filsPlomb: false, collection: 'Signature' },
-  { nom: "VOILE 165\" F.R.", pdsf: 100, largeur: 165, filsPlomb: true, collection: 'Signature' },
+  { nom: "ABERCROMBIE F.R.", pdsf: 35.66, largeur: 118, filsPlomb: true, collection: 'Signature' },
+  { nom: "ADORABLE F.R.", pdsf: 39.32, largeur: 130, filsPlomb: true, collection: 'Signature' },
+  { nom: "AGADOO F.R.", pdsf: 30.18, largeur: 130, filsPlomb: true, collection: 'Signature' },
+  { nom: "AGATHE F.R.", pdsf: 33.83, largeur: 138, filsPlomb: true, collection: 'Signature' },
+  { nom: "ALBA F.R.", pdsf: 53.04, largeur: 165, filsPlomb: true, collection: 'Signature' },
+  { nom: "ALIAS F.R.", pdsf: 53.04, largeur: 165, filsPlomb: true, collection: 'Signature' },
+  { nom: "ALLIANCE F.R.", pdsf: 35.66, largeur: 138, filsPlomb: true, collection: 'Signature' },
+  { nom: "ALLORA F.R.", pdsf: 39.32, largeur: 130, filsPlomb: true, collection: 'Signature' },
+  { nom: "AMBIANCE F.R.", pdsf: 22.86, largeur: 130, filsPlomb: true, collection: 'Signature' },
+  { nom: "ANGORA F.R.", pdsf: 42.98, largeur: 138, filsPlomb: true, collection: 'Signature' },
+  { nom: "ANKA F.R.", pdsf: 32, largeur: 146, filsPlomb: true, collection: 'Signature' },
+  { nom: "ANNA F.R.", pdsf: 30.18, largeur: 138, filsPlomb: true, collection: 'Signature' },
+  { nom: "ARAMIS F.R.", pdsf: 30.18, largeur: 130, filsPlomb: true, collection: 'Signature' },
+  { nom: "ATLANTIS F.R.", pdsf: 30.18, largeur: 130, filsPlomb: true, collection: 'Signature' },
+  { nom: "ATLAS F.R.", pdsf: 32, largeur: 146, filsPlomb: true, collection: 'Signature' },
+  { nom: "AUGUSTA F.R.", pdsf: 39.32, largeur: 130, filsPlomb: true, collection: 'Signature' },
+  { nom: "AVIGNON F.R.", pdsf: 30.18, largeur: 130, filsPlomb: true, collection: 'Signature' },
+  { nom: "BATISTE 165\" F.R.", pdsf: 53.04, largeur: 165, filsPlomb: true, collection: 'Signature' },
+  { nom: "COLLECTION BLANC A19", pdsf: 30.18, largeur: 110, filsPlomb: false, collection: 'Signature' },
+  { nom: "COLLECTION BLANC A20", pdsf: 30.18, largeur: 110, filsPlomb: false, collection: 'Signature' },
+  { nom: "COLLECTION BLANC A21", pdsf: 30.18, largeur: 110, filsPlomb: false, collection: 'Signature' },
+  { nom: "COLLECTION BLANC A22", pdsf: 30.18, largeur: 110, filsPlomb: false, collection: 'Signature' },
+  { nom: "DATA", pdsf: 76.81, largeur: 116, filsPlomb: true, collection: 'Signature' },
+  { nom: "DESTINY", pdsf: 62.18, largeur: 114, filsPlomb: true, collection: 'Signature' },
+  { nom: "DOLLY", pdsf: 53.04, largeur: 118, filsPlomb: true, collection: 'Signature' },
+  { nom: "EXCELLENCE (doublure)", pdsf: 11.43, largeur: 60, filsPlomb: false, collection: 'Signature' },
+  { nom: "HARMONIE", pdsf: 32, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "IGOR", pdsf: 35.66, largeur: 60, filsPlomb: false, collection: 'Signature' },
+  { nom: "IMAGINE", pdsf: 35.66, largeur: 60, filsPlomb: false, collection: 'Signature' },
+  { nom: "INPUT", pdsf: 35.66, largeur: 60, filsPlomb: false, collection: 'Signature' },
+  { nom: "IOTA", pdsf: 35.66, largeur: 60, filsPlomb: false, collection: 'Signature' },
+  { nom: "IRENE", pdsf: 35.66, largeur: 60, filsPlomb: false, collection: 'Signature' },
+  { nom: "ISMO", pdsf: 35.66, largeur: 60, filsPlomb: false, collection: 'Signature' },
+  { nom: "IVANA", pdsf: 35.66, largeur: 60, filsPlomb: false, collection: 'Signature' },
+  { nom: "JABIROU", pdsf: 45.72, largeur: 57, filsPlomb: false, collection: 'Signature' },
+  { nom: "JACKPOT", pdsf: 45.72, largeur: 57, filsPlomb: false, collection: 'Signature' },
+  { nom: "JACQUARD D80", pdsf: 45.72, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JACQUARD D81", pdsf: 45.72, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JACQUARD D82", pdsf: 45.72, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JACQUARD D83", pdsf: 45.72, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JACQUARD D84, D96", pdsf: 57.15, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JACQUARD D85", pdsf: 45.72, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JACQUARD D86", pdsf: 45.72, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JACQUARD D87", pdsf: 45.72, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JACQUARD D88, D97", pdsf: 68.58, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JACQUARD D89", pdsf: 68.58, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JACQUARD D90", pdsf: 45.72, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JACQUARD D91", pdsf: 45.72, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JACQUARD D92", pdsf: 45.72, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JACQUARD D93", pdsf: 45.72, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JACQUARD D94", pdsf: 45.72, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JACQUARD D95", pdsf: 63.09, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JACQUARD D98", pdsf: 63.09, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JACQUARD E99, E106, E109", pdsf: 45.72, largeur: 56, filsPlomb: false, collection: 'Signature' },
+  { nom: "JACQUARD E100, E105, E107, E110, E113", pdsf: 45.72, largeur: 56, filsPlomb: false, collection: 'Signature' },
+  { nom: "JACQUARD E101", pdsf: 45.72, largeur: 56, filsPlomb: false, collection: 'Signature' },
+  { nom: "JACQUARD E102, E104", pdsf: 45.72, largeur: 56, filsPlomb: false, collection: 'Signature' },
+  { nom: "JACQUARD E103, E108", pdsf: 45.72, largeur: 56, filsPlomb: false, collection: 'Signature' },
+  { nom: "JACQUARD E111, E112", pdsf: 45.72, largeur: 56, filsPlomb: false, collection: 'Signature' },
+  { nom: "JACQUARD S901", pdsf: 43.43, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JADE", pdsf: 45.72, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JAKADI", pdsf: 50.29, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JAMES", pdsf: 45.72, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JAMMING", pdsf: 45.72, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JANICE", pdsf: 45.72, largeur: 57, filsPlomb: false, collection: 'Signature' },
+  { nom: "JARRY", pdsf: 48.46, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JASON", pdsf: 45.72, largeur: 57, filsPlomb: false, collection: 'Signature' },
+  { nom: "JATOBA", pdsf: 45.72, largeur: 57, filsPlomb: false, collection: 'Signature' },
+  { nom: "JET", pdsf: 63.09, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JETLAG", pdsf: 45.72, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JIGGER", pdsf: 45.72, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JINGLE", pdsf: 45.72, largeur: 57, filsPlomb: false, collection: 'Signature' },
+  { nom: "JOBARIA", pdsf: 45.72, largeur: 57, filsPlomb: false, collection: 'Signature' },
+  { nom: "JOCKEY", pdsf: 45.72, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JOLY", pdsf: 45.72, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JOSIE", pdsf: 45.72, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JOY", pdsf: 45.72, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JUKEBOX", pdsf: 45.72, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JULEP", pdsf: 45.72, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JULIA", pdsf: 45.72, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "JUMBO", pdsf: 45.72, largeur: 57, filsPlomb: false, collection: 'Signature' },
+  { nom: "JUNIOR", pdsf: 45.72, largeur: 57, filsPlomb: false, collection: 'Signature' },
+  { nom: "JUSTIN", pdsf: 45.72, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "LADY", pdsf: 45.72, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "LAUREAT", pdsf: 36.58, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "LEGEND", pdsf: 32, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "LEONARDO", pdsf: 32, largeur: 55, filsPlomb: false, collection: 'Signature' },
+  { nom: "LIBRA", pdsf: 63.09, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "LIMOUSINE", pdsf: 24.69, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "LINCOURT 165\" F.R.", pdsf: 49.38, largeur: 165, filsPlomb: true, collection: 'Signature' },
+  { nom: "LOIKA", pdsf: 32, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "LORD", pdsf: 32.92, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "LOTUS 1, 2 & BLANC/WHITE (doublure)", pdsf: 23.04, largeur: 110, filsPlomb: false, collection: 'Signature' },
+  { nom: "LUCILLE", pdsf: 32, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "MACHO", pdsf: 41.15, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "MADDY", pdsf: 41.15, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "MALAVITA", pdsf: 41.15, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "MARS", pdsf: 41.15, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "MATHEO", pdsf: 41.15, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "MAZAR", pdsf: 41.15, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "MEETING", pdsf: 41.15, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "MELBOURNE", pdsf: 41.15, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "MEZZO", pdsf: 41.15, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "MILES", pdsf: 41.15, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "MIYUKI", pdsf: 41.15, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "MONALISA", pdsf: 41.15, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "MONASTIC", pdsf: 41.15, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "MURMURE", pdsf: 41.15, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "MYOTO", pdsf: 41.15, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "NEIGE F.R.", pdsf: 49.38, largeur: 165, filsPlomb: true, collection: 'Signature' },
+  { nom: "NITAL (doublure)", pdsf: 17.83, largeur: 60, filsPlomb: false, collection: 'Signature' },
+  { nom: "NITAL F.R. (doublure)", pdsf: 26.52, largeur: 60, filsPlomb: false, collection: 'Signature' },
+  { nom: "NITAL 110 (doublure)", pdsf: 35.66, largeur: 110, filsPlomb: false, collection: 'Signature' },
+  { nom: "NIXNIX (doublure)", pdsf: 12.62, largeur: 60, filsPlomb: false, collection: 'Signature' },
+  { nom: "NOLITE (doublure)", pdsf: 16, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "NOLITE F.R. (doublure)", pdsf: 18.38, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "PALETTE", pdsf: 26.52, largeur: 60, filsPlomb: false, collection: 'Signature' },
+  { nom: "PARABOLA", pdsf: 26.52, largeur: 60, filsPlomb: false, collection: 'Signature' },
+  { nom: "PATSY", pdsf: 26.52, largeur: 60, filsPlomb: false, collection: 'Signature' },
+  { nom: "PUCHY", pdsf: 26.52, largeur: 60, filsPlomb: false, collection: 'Signature' },
+  { nom: "SANS SOLEIL (doublure)", pdsf: 17.83, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "SANS SOLEIL F.R. (doublure)", pdsf: 22.86, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "SANS SOLEIL 110 (doublure)", pdsf: 35.66, largeur: 110, filsPlomb: false, collection: 'Signature' },
+  { nom: "SANS SOLEIL F.R. 110 (doublure)", pdsf: 41.15, largeur: 110, filsPlomb: false, collection: 'Signature' },
+  { nom: "SATEEN LINING (doublure)", pdsf: 13.72, largeur: 60, filsPlomb: false, collection: 'Signature' },
+  { nom: "SEDUCTION B20, B21, B22, B23", pdsf: 76.35, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "SEDUCTION B24, B25, B26, B27", pdsf: 76.35, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "SEDUCTION C30, C31", pdsf: 113.39, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "SEDUCTION C32, C33, C34", pdsf: 76.35, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "SEDUCTION C35, C36", pdsf: 76.35, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "SEDUCTION C37, C38, C39, C40", pdsf: 64.01, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "SHANTUNG (doublure)", pdsf: 17.37, largeur: 60, filsPlomb: false, collection: 'Signature' },
+  { nom: "TALISMAN I.F.R.", pdsf: 40.51, largeur: 72, filsPlomb: false, collection: 'Signature' },
+  { nom: "TANDEM", pdsf: 43.89, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "TARZAN F.R.", pdsf: 45.72, largeur: 60, filsPlomb: false, collection: 'Signature' },
+  { nom: "TENOR I.F.R.", pdsf: 40.51, largeur: 72, filsPlomb: false, collection: 'Signature' },
+  { nom: "TEXAS BLACKOUT", pdsf: 64.01, largeur: 56, filsPlomb: false, collection: 'Signature' },
+  { nom: "THAILAND", pdsf: 32, largeur: 59, filsPlomb: false, collection: 'Signature' },
+  { nom: "THERMOSUEDE (doublure)", pdsf: 11.52, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "TIBET BLACKOUT", pdsf: 64.01, largeur: 56, filsPlomb: false, collection: 'Signature' },
+  { nom: "TOBAGO", pdsf: 33.56, largeur: 60, filsPlomb: false, collection: 'Signature' },
+  { nom: "TONUS F.R. BLACKOUT", pdsf: 45.72, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "TRANQUIL I.F.R.", pdsf: 43.89, largeur: 82, filsPlomb: false, collection: 'Signature' },
+  { nom: "TRANSIT", pdsf: 43.89, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "TRIDENT BLACKOUT", pdsf: 64.01, largeur: 56, filsPlomb: false, collection: 'Signature' },
+  { nom: "TRINIDAD", pdsf: 33.56, largeur: 60, filsPlomb: false, collection: 'Signature' },
+  { nom: "TRIXIE", pdsf: 43.89, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "TUDOR", pdsf: 43.89, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "VELOURS F.R.", pdsf: 82.3, largeur: 54, filsPlomb: false, collection: 'Signature' },
+  { nom: "VISTA I.F.R.", pdsf: 25.33, largeur: 118, filsPlomb: false, collection: 'Signature' },
+  { nom: "VOILE 165\" F.R.", pdsf: 49.38, largeur: 165, filsPlomb: true, collection: 'Signature' },
 ];
 
 // Multiplicateurs ripplefold / plis
@@ -10491,15 +10495,15 @@ const NORM_RAILS = {
 };
 
 // ── Rails SIGNATURE TEXTILES (liste de prix mai 2022, pages 58-72) — prix = PDSF (coût × 2) ──
-NORM_RAILS['SIG_AKS'] = { "label": "Signature — AKS aluminium", "generique": true, "fournisseur": "sig", "prixBlanc": 6.6, "prixCouleur": 8.3, "couleurs": [ "Blanc", "Ivoire / Gris / Noir" ], "accessoires": [ { "id": "sig-sup-2", "label": "Support mural 2\" (AKS/ADS)", "prix": { "blanc": 6, "couleur": 6 }, "unite": "ch", "qte": true }, { "id": "sig-sup-3", "label": "Support mural 3\" (AKS/ADS)", "prix": { "blanc": 6.8, "couleur": 6.8 }, "unite": "ch", "qte": true }, { "id": "sig-sup-4", "label": "Support mural 4\" (AKS/ADS)", "prix": { "blanc": 7.2, "couleur": 7.2 }, "unite": "ch", "qte": true }, { "id": "sig-sup-5", "label": "Support mural 5\" (AKS/ADS)", "prix": { "blanc": 9, "couleur": 9 }, "unite": "ch", "qte": true }, { "id": "sig-sup-6", "label": "Support mural 6\" (AKS/ADS)", "prix": { "blanc": 10, "couleur": 10 }, "unite": "ch", "qte": true }, { "id": "sig-sup-6d", "label": "Support mural double 6\" (AKS/ADS)", "prix": { "blanc": 12, "couleur": 12 }, "unite": "ch", "qte": true }, { "id": "sig-sup-sk", "label": "Support mural Smart Klick 3\"–4½\" (AKS/ADS)", "prix": { "blanc": 8.8, "couleur": 9 }, "unite": "ch", "qte": true }, { "id": "sig-sup-skd", "label": "Support mural double Smart Klick 2½\"–4\" et 6\"–7\" (AKS/ADS)", "prix": { "blanc": 16.4, "couleur": 20 }, "unite": "ch", "qte": true }, { "id": "sig-sup-hd3", "label": "Support mural heavy duty 3\" (AKS/ADS)", "prix": { "blanc": 18, "couleur": 18 }, "unite": "ch", "qte": true }, { "id": "sig-sup-hd6d", "label": "Support mural heavy duty 6\" double (AKS/ADS)", "prix": { "blanc": 24.5, "couleur": 24.5 }, "unite": "ch", "qte": true }, { "id": "sig-sup-plaf", "label": "Support plafond Smart Klick — joint plafond (AKS/ADS)", "prix": { "blanc": 5.2, "couleur": 5.2 }, "unite": "ch", "qte": true }, { "id": "sig-chariot-maitre", "label": "Chariot maître (AKS/ADS)", "prix": { "blanc": 7, "couleur": 7 }, "unite": "ch", "qte": true }, { "id": "sig-chariots-10", "label": "Chariots friction — bande de 10 (AKS/ADS)", "prix": { "blanc": 6, "couleur": 6 }, "unite": "bande", "qte": true }, { "id": "sig-chariot-arret", "label": "Chariot d'arrêt / freinage (AKS/ADS)", "prix": { "blanc": 1, "couleur": 1 }, "unite": "ch", "qte": true }, { "id": "sig-chariot-maitre-3snap", "label": "Chariot maître 3 snaps sans entrecroisement (G ou D)", "prix": { "blanc": 19.5, "couleur": 19.5 }, "unite": "ch", "qte": true }, { "id": "sig-chariot-maitre-cov", "label": "Chariot maître entrecroisé (MCOV / MCUN)", "prix": { "blanc": 15.9, "couleur": 15.9 }, "unite": "ch", "qte": true }, { "id": "sig-joint-mural", "label": "Joint mural / éclisse avec clé Allen (AKS/ADS)", "prix": { "blanc": 14, "couleur": 14 }, "unite": "ch", "qte": true }, { "id": "sig-courbe", "label": "Courbe — supplément par courbe de rail", "prix": { "blanc": 40, "couleur": 40 }, "unite": "ch", "qte": true }, { "id": "sig-ruban-snap-rouleau", "label": "Ruban à boutons pression 4¼\" — rouleau de 100 verges", "prix": { "blanc": 560, "couleur": 560 }, "unite": "rouleau", "qte": true }, { "id": "sig-ruban-snap-vg", "label": "Ruban à boutons pression 4¼\" — à la verge", "prix": { "blanc": 6.4, "couleur": 6.4 }, "unite": "vg", "qte": true }, { "id": "sig-ruban-wave", "label": "Ruban transparent rideau Wave — rouleau de 100 verges", "prix": { "blanc": 520, "couleur": 520 }, "unite": "rouleau", "qte": true }, { "id": "sig-wave-crochets", "label": "Crochets rideau Wave — par 100", "prix": { "blanc": 12, "couleur": 12 }, "unite": "100", "qte": true }, { "id": "sig-wave-chariots", "label": "Chariots Wave espacement 2⅛\" — à l'unité", "prix": { "blanc": 0.7, "couleur": 0.7 }, "unite": "ch", "qte": true }, { "id": "sig-bag-36a", "label": "Baguette 36\" acrylique clair", "prix": { "blanc": 18, "couleur": 18 }, "unite": "ch", "qte": true }, { "id": "sig-bag-48a", "label": "Baguette 48\" acrylique clair", "prix": { "blanc": 21, "couleur": 21 }, "unite": "ch", "qte": true }, { "id": "sig-bag-36f", "label": "Baguette 36\" fibre de verre", "prix": { "blanc": 15.2, "couleur": 15.2 }, "unite": "ch", "qte": true }, { "id": "sig-bag-48f", "label": "Baguette 48\" fibre de verre", "prix": { "blanc": 18, "couleur": 18 }, "unite": "ch", "qte": true }, { "id": "sig-bag-48h", "label": "Baguette 48\" pour handicapés", "prix": { "blanc": 80, "couleur": 80 }, "unite": "ch", "qte": true }, { "id": "sig-bag-poignee", "label": "Poignée pour baguette fibre de verre", "prix": { "blanc": 21, "couleur": 21 }, "unite": "ch", "qte": true }, { "id": "sig-aks-cap", "label": "Capuchon AKS", "prix": { "blanc": 2.2, "couleur": 2.2 }, "unite": "ch", "qte": true }, { "id": "sig-aks-cap-plat", "label": "Capuchon plat AKS", "prix": { "blanc": 2.8, "couleur": 2.8 }, "unite": "ch", "qte": true }, { "id": "sig-cap-torsion", "label": "Arrêt de bout à torsion", "prix": { "blanc": 2.4, "couleur": 2.4 }, "unite": "ch", "qte": true } ] };
-NORM_RAILS['SIG_ADS'] = { "label": "Signature — ADS aluminium", "generique": true, "fournisseur": "sig", "prixBlanc": 8.6, "prixCouleur": 8.8, "couleurs": [ "Blanc", "Ivoire / Gris / Noir" ], "accessoires": [ { "id": "sig-sup-2", "label": "Support mural 2\" (AKS/ADS)", "prix": { "blanc": 6, "couleur": 6 }, "unite": "ch", "qte": true }, { "id": "sig-sup-3", "label": "Support mural 3\" (AKS/ADS)", "prix": { "blanc": 6.8, "couleur": 6.8 }, "unite": "ch", "qte": true }, { "id": "sig-sup-4", "label": "Support mural 4\" (AKS/ADS)", "prix": { "blanc": 7.2, "couleur": 7.2 }, "unite": "ch", "qte": true }, { "id": "sig-sup-5", "label": "Support mural 5\" (AKS/ADS)", "prix": { "blanc": 9, "couleur": 9 }, "unite": "ch", "qte": true }, { "id": "sig-sup-6", "label": "Support mural 6\" (AKS/ADS)", "prix": { "blanc": 10, "couleur": 10 }, "unite": "ch", "qte": true }, { "id": "sig-sup-6d", "label": "Support mural double 6\" (AKS/ADS)", "prix": { "blanc": 12, "couleur": 12 }, "unite": "ch", "qte": true }, { "id": "sig-sup-sk", "label": "Support mural Smart Klick 3\"–4½\" (AKS/ADS)", "prix": { "blanc": 8.8, "couleur": 9 }, "unite": "ch", "qte": true }, { "id": "sig-sup-skd", "label": "Support mural double Smart Klick 2½\"–4\" et 6\"–7\" (AKS/ADS)", "prix": { "blanc": 16.4, "couleur": 20 }, "unite": "ch", "qte": true }, { "id": "sig-sup-hd3", "label": "Support mural heavy duty 3\" (AKS/ADS)", "prix": { "blanc": 18, "couleur": 18 }, "unite": "ch", "qte": true }, { "id": "sig-sup-hd6d", "label": "Support mural heavy duty 6\" double (AKS/ADS)", "prix": { "blanc": 24.5, "couleur": 24.5 }, "unite": "ch", "qte": true }, { "id": "sig-sup-plaf", "label": "Support plafond Smart Klick — joint plafond (AKS/ADS)", "prix": { "blanc": 5.2, "couleur": 5.2 }, "unite": "ch", "qte": true }, { "id": "sig-chariot-maitre", "label": "Chariot maître (AKS/ADS)", "prix": { "blanc": 7, "couleur": 7 }, "unite": "ch", "qte": true }, { "id": "sig-chariots-10", "label": "Chariots friction — bande de 10 (AKS/ADS)", "prix": { "blanc": 6, "couleur": 6 }, "unite": "bande", "qte": true }, { "id": "sig-chariot-arret", "label": "Chariot d'arrêt / freinage (AKS/ADS)", "prix": { "blanc": 1, "couleur": 1 }, "unite": "ch", "qte": true }, { "id": "sig-chariot-maitre-3snap", "label": "Chariot maître 3 snaps sans entrecroisement (G ou D)", "prix": { "blanc": 19.5, "couleur": 19.5 }, "unite": "ch", "qte": true }, { "id": "sig-chariot-maitre-cov", "label": "Chariot maître entrecroisé (MCOV / MCUN)", "prix": { "blanc": 15.9, "couleur": 15.9 }, "unite": "ch", "qte": true }, { "id": "sig-joint-mural", "label": "Joint mural / éclisse avec clé Allen (AKS/ADS)", "prix": { "blanc": 14, "couleur": 14 }, "unite": "ch", "qte": true }, { "id": "sig-courbe", "label": "Courbe — supplément par courbe de rail", "prix": { "blanc": 40, "couleur": 40 }, "unite": "ch", "qte": true }, { "id": "sig-ruban-snap-rouleau", "label": "Ruban à boutons pression 4¼\" — rouleau de 100 verges", "prix": { "blanc": 560, "couleur": 560 }, "unite": "rouleau", "qte": true }, { "id": "sig-ruban-snap-vg", "label": "Ruban à boutons pression 4¼\" — à la verge", "prix": { "blanc": 6.4, "couleur": 6.4 }, "unite": "vg", "qte": true }, { "id": "sig-ruban-wave", "label": "Ruban transparent rideau Wave — rouleau de 100 verges", "prix": { "blanc": 520, "couleur": 520 }, "unite": "rouleau", "qte": true }, { "id": "sig-wave-crochets", "label": "Crochets rideau Wave — par 100", "prix": { "blanc": 12, "couleur": 12 }, "unite": "100", "qte": true }, { "id": "sig-wave-chariots", "label": "Chariots Wave espacement 2⅛\" — à l'unité", "prix": { "blanc": 0.7, "couleur": 0.7 }, "unite": "ch", "qte": true }, { "id": "sig-bag-36a", "label": "Baguette 36\" acrylique clair", "prix": { "blanc": 18, "couleur": 18 }, "unite": "ch", "qte": true }, { "id": "sig-bag-48a", "label": "Baguette 48\" acrylique clair", "prix": { "blanc": 21, "couleur": 21 }, "unite": "ch", "qte": true }, { "id": "sig-bag-36f", "label": "Baguette 36\" fibre de verre", "prix": { "blanc": 15.2, "couleur": 15.2 }, "unite": "ch", "qte": true }, { "id": "sig-bag-48f", "label": "Baguette 48\" fibre de verre", "prix": { "blanc": 18, "couleur": 18 }, "unite": "ch", "qte": true }, { "id": "sig-bag-48h", "label": "Baguette 48\" pour handicapés", "prix": { "blanc": 80, "couleur": 80 }, "unite": "ch", "qte": true }, { "id": "sig-bag-poignee", "label": "Poignée pour baguette fibre de verre", "prix": { "blanc": 21, "couleur": 21 }, "unite": "ch", "qte": true }, { "id": "sig-ads-cap", "label": "Capuchon ADS", "prix": { "blanc": 2.4, "couleur": 2.4 }, "unite": "ch", "qte": true }, { "id": "sig-ads-cap-plat", "label": "Capuchon plat ADS", "prix": { "blanc": 2.8, "couleur": 2.8 }, "unite": "ch", "qte": true }, { "id": "sig-cap-torsion", "label": "Arrêt de bout à torsion", "prix": { "blanc": 2.4, "couleur": 2.4 }, "unite": "ch", "qte": true } ] };
-NORM_RAILS['SIG_AKS_ENC'] = { "label": "Signature — AKS à encastrer (19 pi)", "generique": true, "fournisseur": "sig", "prixBlanc": 8.5, "prixCouleur": 8.5, "couleurs": [ "Blanc", "Noir" ], "accessoires": [ { "id": "sig-chariot-maitre", "label": "Chariot maître (AKS/ADS)", "prix": { "blanc": 7, "couleur": 7 }, "unite": "ch", "qte": true }, { "id": "sig-chariots-10", "label": "Chariots friction — bande de 10 (AKS/ADS)", "prix": { "blanc": 6, "couleur": 6 }, "unite": "bande", "qte": true }, { "id": "sig-chariot-arret", "label": "Chariot d'arrêt / freinage (AKS/ADS)", "prix": { "blanc": 1, "couleur": 1 }, "unite": "ch", "qte": true }, { "id": "sig-aks-cap", "label": "Capuchon AKS", "prix": { "blanc": 2.2, "couleur": 2.2 }, "unite": "ch", "qte": true }, { "id": "sig-joint-mural", "label": "Joint mural / éclisse avec clé Allen (AKS/ADS)", "prix": { "blanc": 14, "couleur": 14 }, "unite": "ch", "qte": true } ] };
-NORM_RAILS['SIG_CRS'] = { "label": "Signature — CRS décoratif 28 mm (19 pi)", "generique": true, "fournisseur": "sig", "prixBlanc": 22, "prixCouleur": 28, "couleurs": [ "Blanc", "Argent", "Or", "Bronze", "Noir" ], "prixParCouleur": { "Blanc": 22, "Argent": 28, "Or": 28, "Bronze": 22, "Noir": 22 }, "accessoires": [ { "id": "sig-crs-sup-8d", "label": "Support mural double 8\" (CRS)", "prix": { "blanc": 90, "couleur": 94, "par": { "Blanc": 90, "Argent": 94, "Or": 90, "Bronze": 90, "Noir": 94 } }, "unite": "ch", "qte": true }, { "id": "sig-crs-sup-6d", "label": "Support mural double 6\" (CRS)", "prix": { "blanc": 70, "couleur": 78, "par": { "Blanc": 70, "Argent": 78, "Or": 70, "Bronze": 70, "Noir": 78 } }, "unite": "ch", "qte": true }, { "id": "sig-crs-sup-6", "label": "Support mural 6\" (CRS)", "prix": { "blanc": 62, "couleur": 66, "par": { "Blanc": 62, "Argent": 66, "Or": 62, "Bronze": 62, "Noir": 66 } }, "unite": "ch", "qte": true }, { "id": "sig-crs-sup-3", "label": "Support mural 3\" (CRS)", "prix": { "blanc": 48, "couleur": 50, "par": { "Blanc": 48, "Argent": 50, "Or": 48, "Bronze": 48, "Noir": 50 } }, "unite": "ch", "qte": true }, { "id": "sig-crs-sup-ext", "label": "Support extension (CRS)", "prix": { "blanc": 32, "couleur": 36, "par": { "Blanc": 32, "Argent": 36, "Or": 32, "Bronze": 32, "Noir": 36 } }, "unite": "ch", "qte": true }, { "id": "sig-crs-sup-plaf", "label": "Support plafond (CRS)", "prix": { "blanc": 17, "couleur": 19, "par": { "Blanc": 17, "Argent": 17, "Or": 17, "Bronze": 19, "Noir": 19 } }, "unite": "ch", "qte": true }, { "id": "sig-crs-cap-gd", "label": "Grand capuchon (CRS)", "prix": { "blanc": 39, "couleur": 43, "par": { "Blanc": 39, "Argent": 43, "Or": 39, "Bronze": 39, "Noir": 43 } }, "unite": "ch", "qte": true }, { "id": "sig-crs-cap-pt", "label": "Petit capuchon (CRS)", "prix": { "blanc": 24, "couleur": 28, "par": { "Blanc": 24, "Argent": 28, "Or": 24, "Bronze": 24, "Noir": 28 } }, "unite": "ch", "qte": true }, { "id": "sig-crs-twist", "label": "Arrêt de bout à torsion (CRS)", "prix": { "blanc": 2.6, "couleur": 2.6 }, "unite": "ch", "qte": true }, { "id": "sig-crs-cap-noir", "label": "Arrêt de bout (noir) (CRS)", "prix": { "blanc": 1.8, "couleur": 1.8 }, "unite": "ch", "qte": true }, { "id": "sig-crs-chariot", "label": "Chariots pour plis français (CRS)", "prix": { "blanc": 0.56, "couleur": 0.56 }, "unite": "ch", "qte": true }, { "id": "sig-crs-joint", "label": "Joint de rail (CRS)", "prix": { "blanc": 24, "couleur": 24 }, "unite": "ch", "qte": true }, { "id": "sig-crs-90", "label": "Joint de rail 90° (CRS)", "prix": { "blanc": 24, "couleur": 24 }, "unite": "ch", "qte": true } ] };
-NORM_RAILS['SIG_ARCH'] = { "label": "Signature — Architex (plafond ou mural)", "generique": true, "fournisseur": "sig", "prixBlanc": 9, "prixCouleur": 9, "couleurs": [ "Blanc" ], "accessoires": [ { "id": "sig-arch-sup-plaf", "label": "Support plafond pour rail mural (Architex)", "prix": { "blanc": 3, "couleur": 3 }, "unite": "ch", "qte": true }, { "id": "sig-arch-sup-aj", "label": "Support ajustable 2\"–4½\" (Architex)", "prix": { "blanc": 7.7, "couleur": 7.7 }, "unite": "ch", "qte": true }, { "id": "sig-arch-sup-dbl", "label": "Support double ajustable 2\"–7\" (Architex)", "prix": { "blanc": 16.8, "couleur": 16.8 }, "unite": "ch", "qte": true }, { "id": "sig-arch-courbe", "label": "Rail courbé 90° 2 pi × 2 pi (Architex)", "prix": { "blanc": 100, "couleur": 100 }, "unite": "ch", "qte": true }, { "id": "sig-arch-fric", "label": "Chariot à friction standard (Architex)", "prix": { "blanc": 0.72, "couleur": 0.72 }, "unite": "ch", "qte": true }, { "id": "sig-arch-billes", "label": "Chariot à billes 16 mm (Architex)", "prix": { "blanc": 1.6, "couleur": 1.6 }, "unite": "ch", "qte": true }, { "id": "sig-arch-billes-j", "label": "Chariot à billes avec crochet en J (Architex)", "prix": { "blanc": 2.4, "couleur": 2.4 }, "unite": "ch", "qte": true }, { "id": "sig-arch-retour-aj", "label": "Retour ajustable (Architex)", "prix": { "blanc": 14.6, "couleur": 14.6 }, "unite": "ch", "qte": true }, { "id": "sig-arch-ecrou", "label": "Écrou et boulon pour rail, sens unique (Architex)", "prix": { "blanc": 1.8, "couleur": 1.8 }, "unite": "ch", "qte": true }, { "id": "sig-arch-capuchon", "label": "Capuchon / cran d'arrêt plis français ou ondulés (Architex)", "prix": { "blanc": 3.4, "couleur": 3.4 }, "unite": "ch", "qte": true }, { "id": "sig-arch-entre-g", "label": "Chariot d'entrecroisement GAUCHE (Architex)", "prix": { "blanc": 11.8, "couleur": 11.8 }, "unite": "ch", "qte": true }, { "id": "sig-arch-entre-d", "label": "Chariot d'entrecroisement DROIT (Architex)", "prix": { "blanc": 11.8, "couleur": 11.8 }, "unite": "ch", "qte": true }, { "id": "sig-arch-ret3-g", "label": "Retour GAUCHE ajustable 3\" (Architex)", "prix": { "blanc": 5, "couleur": 5 }, "unite": "ch", "qte": true }, { "id": "sig-arch-ret3-d", "label": "Retour DROIT ajustable 3\" (Architex)", "prix": { "blanc": 5, "couleur": 5 }, "unite": "ch", "qte": true }, { "id": "sig-arch-rencontre-g", "label": "Chariot de rencontre GAUCHE, plis ondulés (Architex)", "prix": { "blanc": 19.5, "couleur": 19.5 }, "unite": "ch", "qte": true }, { "id": "sig-arch-rencontre-d", "label": "Chariot de rencontre DROIT, plis ondulés (Architex)", "prix": { "blanc": 19.5, "couleur": 19.5 }, "unite": "ch", "qte": true }, { "id": "sig-arch-plast-g", "label": "Chariot d'entrecroisement plastique GAUCHE (Architex)", "prix": { "blanc": 15.9, "couleur": 15.9 }, "unite": "ch", "qte": true }, { "id": "sig-arch-plast-d", "label": "Chariot d'entrecroisement plastique DROIT (Architex)", "prix": { "blanc": 15.9, "couleur": 15.9 }, "unite": "ch", "qte": true }, { "id": "sig-arch-fric-snap", "label": "Chariot friction pour ruban pression (Architex)", "prix": { "blanc": 1.2, "couleur": 1.2 }, "unite": "ch", "qte": true }, { "id": "sig-arch-billes-det", "label": "Chariot à billes détachable pour ruban pression (Architex)", "prix": { "blanc": 3, "couleur": 3 }, "unite": "ch", "qte": true }, { "id": "sig-ruban-snap-rouleau", "label": "Ruban à boutons pression 4¼\" — rouleau de 100 verges", "prix": { "blanc": 560, "couleur": 560 }, "unite": "rouleau", "qte": true }, { "id": "sig-ruban-snap-vg", "label": "Ruban à boutons pression 4¼\" — à la verge", "prix": { "blanc": 6.4, "couleur": 6.4 }, "unite": "vg", "qte": true }, { "id": "sig-bag-36a", "label": "Baguette 36\" acrylique clair", "prix": { "blanc": 18, "couleur": 18 }, "unite": "ch", "qte": true }, { "id": "sig-bag-48a", "label": "Baguette 48\" acrylique clair", "prix": { "blanc": 21, "couleur": 21 }, "unite": "ch", "qte": true }, { "id": "sig-bag-36f", "label": "Baguette 36\" fibre de verre", "prix": { "blanc": 15.2, "couleur": 15.2 }, "unite": "ch", "qte": true }, { "id": "sig-bag-48f", "label": "Baguette 48\" fibre de verre", "prix": { "blanc": 18, "couleur": 18 }, "unite": "ch", "qte": true }, { "id": "sig-bag-48h", "label": "Baguette 48\" pour handicapés", "prix": { "blanc": 80, "couleur": 80 }, "unite": "ch", "qte": true }, { "id": "sig-bag-poignee", "label": "Poignée pour baguette fibre de verre", "prix": { "blanc": 21, "couleur": 21 }, "unite": "ch", "qte": true } ] };
-NORM_RAILS['SIG_MEDI'] = { "label": "Signature — Medi-Track (rail médical)", "generique": true, "fournisseur": "sig", "prixBlanc": 10, "prixCouleur": 10, "couleurs": [ "Argent" ], "accessoires": [ { "id": "sig-medi-joint", "label": "Joint de rail (Medi-Track)", "prix": { "blanc": 5, "couleur": 5 }, "unite": "ch", "qte": true }, { "id": "sig-medi-plaf", "label": "Support plafond — ceiling flange (Medi-Track)", "prix": { "blanc": 18, "couleur": 18 }, "unite": "ch", "qte": true }, { "id": "sig-medi-mur", "label": "Support mural — wall flange (Medi-Track)", "prix": { "blanc": 36, "couleur": 36 }, "unite": "ch", "qte": true }, { "id": "sig-medi-porte", "label": "Petite porte — pull out gate (Medi-Track)", "prix": { "blanc": 2.8, "couleur": 2.8 }, "unite": "ch", "qte": true }, { "id": "sig-medi-adapt", "label": "Adaptateur de rail (Medi-Track)", "prix": { "blanc": 7.9, "couleur": 7.9 }, "unite": "ch", "qte": true }, { "id": "sig-medi-cap", "label": "Capuchon / cran d'arrêt (Medi-Track)", "prix": { "blanc": 3.9, "couleur": 3.9 }, "unite": "ch", "qte": true }, { "id": "sig-medi-tube", "label": "Poteau de suspension 16 pi — au pied (Medi-Track)", "prix": { "blanc": 10, "couleur": 10 }, "unite": "pi", "qte": true }, { "id": "sig-medi-poteau", "label": "Poteau de suspension jusqu'à 24\" (Medi-Track)", "prix": { "blanc": 70, "couleur": 70 }, "unite": "ch", "qte": true }, { "id": "sig-medi-ch-crochet", "label": "Chariot avec crochet (Medi-Track)", "prix": { "blanc": 4, "couleur": 4 }, "unite": "ch", "qte": true }, { "id": "sig-medi-ch-sans", "label": "Chariot sans crochet (Medi-Track)", "prix": { "blanc": 3.2, "couleur": 3.2 }, "unite": "ch", "qte": true }, { "id": "sig-medi-ch-snap", "label": "Chariot avec snap (Medi-Track)", "prix": { "blanc": 5, "couleur": 5 }, "unite": "ch", "qte": true }, { "id": "sig-medi-courbe", "label": "Rail courbé 90° 24\" × 24\" (Medi-Track)", "prix": { "blanc": 100, "couleur": 100 }, "unite": "ch", "qte": true } ] };
-NORM_RAILS['SIG_K_PF'] = { "label": "Signature — Trousse plis français (rail assemblé, ampleur 100 %)", "generique": true, "fournisseur": "sig", "prixBlanc": null, "prixCouleur": null, "couleurs": [ "Blanc", "Ivoire", "Gris", "Noir" ], "kits": { "AKS — supports de plafond": [ { "pi": 4, "sup": 3, "ch": 14, "prix": 56 }, { "pi": 6, "sup": 3, "ch": 20, "prix": 76 }, { "pi": 8, "sup": 4, "ch": 26, "prix": 100 }, { "pi": 10, "sup": 5, "ch": 32, "prix": 122 }, { "pi": 12, "sup": 6, "ch": 38, "prix": 144 }, { "pi": 14, "sup": 7, "ch": 44, "prix": 168 }, { "pi": 16, "sup": 8, "ch": 50, "prix": 190 }, { "pi": 18, "sup": 9, "ch": 56, "prix": 214 } ], "AKS — supports muraux Smart Klick 3\"–4½\"": [ { "pi": 4, "sup": 3, "ch": 14, "prix": 78 }, { "pi": 6, "sup": 3, "ch": 20, "prix": 98 }, { "pi": 8, "sup": 4, "ch": 26, "prix": 130 }, { "pi": 10, "sup": 5, "ch": 32, "prix": 156 }, { "pi": 12, "sup": 6, "ch": 38, "prix": 186 }, { "pi": 14, "sup": 7, "ch": 44, "prix": 216 }, { "pi": 16, "sup": 8, "ch": 50, "prix": 246 }, { "pi": 18, "sup": 9, "ch": 56, "prix": 276 } ], "ADS — supports de plafond": [ { "pi": 4, "sup": 3, "ch": 14, "prix": 64 }, { "pi": 6, "sup": 3, "ch": 20, "prix": 88 }, { "pi": 8, "sup": 4, "ch": 26, "prix": 114 }, { "pi": 10, "sup": 5, "ch": 32, "prix": 142 }, { "pi": 12, "sup": 6, "ch": 38, "prix": 168 }, { "pi": 14, "sup": 7, "ch": 44, "prix": 194 }, { "pi": 16, "sup": 8, "ch": 50, "prix": 220 }, { "pi": 18, "sup": 9, "ch": 56, "prix": 248 } ], "ADS — supports muraux Smart Klick 3\"–4½\"": [ { "pi": 4, "sup": 3, "ch": 14, "prix": 86 }, { "pi": 6, "sup": 3, "ch": 20, "prix": 110 }, { "pi": 8, "sup": 4, "ch": 26, "prix": 142 }, { "pi": 10, "sup": 5, "ch": 32, "prix": 176 }, { "pi": 12, "sup": 6, "ch": 38, "prix": 210 }, { "pi": 14, "sup": 7, "ch": 44, "prix": 242 }, { "pi": 16, "sup": 8, "ch": 50, "prix": 276 }, { "pi": 18, "sup": 9, "ch": 56, "prix": 310 } ], "CRS 28 mm — plafond (4 à 16 pi)": [ { "pi": 4, "sup": 3, "ch": 14, "prix": 182 }, { "pi": 6, "sup": 3, "ch": 20, "prix": 244 }, { "pi": 8, "sup": 4, "ch": 26, "prix": 320 }, { "pi": 10, "sup": 5, "ch": 32, "prix": 400 }, { "pi": 12, "sup": 6, "ch": 38, "prix": 484 }, { "pi": 14, "sup": 7, "ch": 44, "prix": 566 }, { "pi": 16, "sup": 8, "ch": 50, "prix": 646 } ] }, "accessoires": [ { "id": "sig-courbe-k", "label": "Courbe — supplément par courbe de rail", "prix": { "blanc": 40, "couleur": 40 }, "unite": "ch", "qte": true }, { "id": "sig-entrecroise-k", "label": "Chariots d'entrecroisement — supplément à l'unité", "prix": { "blanc": 7, "couleur": 7 }, "unite": "ch", "qte": true } ] };
-NORM_RAILS['SIG_K_RF'] = { "label": "Signature — Trousse Ripple Fold (rail assemblé, chariots détachables)", "generique": true, "fournisseur": "sig", "prixBlanc": null, "prixCouleur": null, "couleurs": [ "Blanc", "Ivoire", "Gris", "Noir" ], "kits": { "AKS — ampleur 100 % — plafond": [ { "pi": 4, "sup": 3, "ch": 28, "prix": 132 }, { "pi": 6, "sup": 3, "ch": 36, "prix": 172 }, { "pi": 8, "sup": 4, "ch": 48, "prix": 228 }, { "pi": 10, "sup": 5, "ch": 60, "prix": 282 }, { "pi": 12, "sup": 6, "ch": 72, "prix": 338 }, { "pi": 14, "sup": 7, "ch": 84, "prix": 394 }, { "pi": 16, "sup": 8, "ch": 96, "prix": 448 }, { "pi": 18, "sup": 9, "ch": 104, "prix": 492 } ], "AKS — ampleur 120 % — plafond": [ { "pi": 4, "sup": 3, "ch": 28, "prix": 132 }, { "pi": 6, "sup": 3, "ch": 44, "prix": 196 }, { "pi": 8, "sup": 4, "ch": 56, "prix": 252 }, { "pi": 10, "sup": 5, "ch": 68, "prix": 306 }, { "pi": 12, "sup": 6, "ch": 80, "prix": 362 }, { "pi": 14, "sup": 7, "ch": 92, "prix": 418 }, { "pi": 16, "sup": 8, "ch": 108, "prix": 484 }, { "pi": 18, "sup": 9, "ch": 120, "prix": 540 } ], "AKS — ampleur 100 % — murs Smart Klick": [ { "pi": 4, "sup": 3, "ch": 28, "prix": 152 }, { "pi": 6, "sup": 3, "ch": 36, "prix": 194 }, { "pi": 8, "sup": 4, "ch": 48, "prix": 258 }, { "pi": 10, "sup": 5, "ch": 60, "prix": 316 }, { "pi": 12, "sup": 6, "ch": 72, "prix": 380 }, { "pi": 14, "sup": 7, "ch": 84, "prix": 442 }, { "pi": 16, "sup": 8, "ch": 96, "prix": 504 }, { "pi": 18, "sup": 9, "ch": 104, "prix": 554 } ], "AKS — ampleur 120 % — murs Smart Klick": [ { "pi": 4, "sup": 3, "ch": 28, "prix": 152 }, { "pi": 6, "sup": 3, "ch": 44, "prix": 212 }, { "pi": 8, "sup": 4, "ch": 56, "prix": 282 }, { "pi": 10, "sup": 5, "ch": 68, "prix": 344 }, { "pi": 12, "sup": 6, "ch": 80, "prix": 404 }, { "pi": 14, "sup": 7, "ch": 92, "prix": 466 }, { "pi": 16, "sup": 8, "ch": 108, "prix": 540 }, { "pi": 18, "sup": 9, "ch": 120, "prix": 602 } ], "ADS — ampleur 100 % — plafond": [ { "pi": 4, "sup": 3, "ch": 28, "prix": 142 }, { "pi": 6, "sup": 3, "ch": 36, "prix": 184 }, { "pi": 8, "sup": 4, "ch": 48, "prix": 242 }, { "pi": 10, "sup": 5, "ch": 60, "prix": 302 }, { "pi": 12, "sup": 6, "ch": 72, "prix": 360 }, { "pi": 14, "sup": 7, "ch": 84, "prix": 420 }, { "pi": 16, "sup": 8, "ch": 96, "prix": 478 }, { "pi": 18, "sup": 9, "ch": 104, "prix": 526 } ], "ADS — ampleur 120 % — plafond": [ { "pi": 4, "sup": 3, "ch": 28, "prix": 142 }, { "pi": 6, "sup": 3, "ch": 44, "prix": 196 }, { "pi": 8, "sup": 4, "ch": 56, "prix": 264 }, { "pi": 10, "sup": 5, "ch": 68, "prix": 310 }, { "pi": 12, "sup": 6, "ch": 80, "prix": 366 }, { "pi": 14, "sup": 7, "ch": 92, "prix": 424 }, { "pi": 16, "sup": 8, "ch": 108, "prix": 492 }, { "pi": 18, "sup": 9, "ch": 120, "prix": 550 } ], "ADS — ampleur 100 % — murs Smart Klick": [ { "pi": 4, "sup": 3, "ch": 28, "prix": 160 }, { "pi": 6, "sup": 3, "ch": 36, "prix": 206 }, { "pi": 8, "sup": 4, "ch": 48, "prix": 270 }, { "pi": 10, "sup": 5, "ch": 60, "prix": 336 }, { "pi": 12, "sup": 6, "ch": 72, "prix": 402 }, { "pi": 14, "sup": 7, "ch": 84, "prix": 468 }, { "pi": 16, "sup": 8, "ch": 96, "prix": 534 }, { "pi": 18, "sup": 9, "ch": 104, "prix": 588 } ], "ADS — ampleur 120 % — murs Smart Klick": [ { "pi": 4, "sup": 3, "ch": 28, "prix": 160 }, { "pi": 6, "sup": 3, "ch": 44, "prix": 212 }, { "pi": 8, "sup": 4, "ch": 56, "prix": 294 }, { "pi": 10, "sup": 5, "ch": 68, "prix": 360 }, { "pi": 12, "sup": 6, "ch": 80, "prix": 426 }, { "pi": 14, "sup": 7, "ch": 92, "prix": 492 }, { "pi": 16, "sup": 8, "ch": 108, "prix": 570 }, { "pi": 18, "sup": 9, "ch": 120, "prix": 636 } ], "CRS 28 mm — ampleur 120 % — plafond (4 à 16 pi)": [ { "pi": 4, "sup": 3, "ch": 28, "prix": 314 }, { "pi": 6, "sup": 3, "ch": 44, "prix": 414 }, { "pi": 8, "sup": 4, "ch": 56, "prix": 524 }, { "pi": 10, "sup": 5, "ch": 68, "prix": 636 }, { "pi": 12, "sup": 6, "ch": 80, "prix": 746 }, { "pi": 14, "sup": 7, "ch": 92, "prix": 858 }, { "pi": 16, "sup": 8, "ch": 108, "prix": 1036 } ], "CRS 28 mm — ampleur 100 % — plafond (4 à 16 pi)": [ { "pi": 4, "sup": 3, "ch": 28, "prix": 314 }, { "pi": 6, "sup": 3, "ch": 36, "prix": 390 }, { "pi": 8, "sup": 4, "ch": 48, "prix": 500 }, { "pi": 10, "sup": 5, "ch": 60, "prix": 612 }, { "pi": 12, "sup": 6, "ch": 72, "prix": 722 }, { "pi": 14, "sup": 7, "ch": 84, "prix": 834 }, { "pi": 16, "sup": 8, "ch": 96, "prix": 1000 } ], "CRS 28 mm — ampleur 80 % — plafond (4 à 16 pi)": [ { "pi": 4, "sup": 3, "ch": 24, "prix": 302 }, { "pi": 6, "sup": 3, "ch": 36, "prix": 390 }, { "pi": 8, "sup": 4, "ch": 44, "prix": 492 }, { "pi": 10, "sup": 5, "ch": 56, "prix": 600 }, { "pi": 12, "sup": 6, "ch": 64, "prix": 698 }, { "pi": 14, "sup": 7, "ch": 76, "prix": 810 }, { "pi": 16, "sup": 8, "ch": 84, "prix": 834 } ], "CRS 28 mm — ampleur 60 % — plafond (4 à 16 pi)": [ { "pi": 4, "sup": 3, "ch": 24, "prix": 302 }, { "pi": 6, "sup": 3, "ch": 32, "prix": 378 }, { "pi": 8, "sup": 4, "ch": 40, "prix": 480 }, { "pi": 10, "sup": 5, "ch": 48, "prix": 576 }, { "pi": 12, "sup": 6, "ch": 60, "prix": 686 }, { "pi": 14, "sup": 7, "ch": 68, "prix": 786 }, { "pi": 16, "sup": 8, "ch": 76, "prix": 810 } ] }, "accessoires": [ { "id": "sig-courbe-k", "label": "Courbe — supplément par courbe de rail", "prix": { "blanc": 40, "couleur": 40 }, "unite": "ch", "qte": true } ] };
-NORM_RAILS['SIG_K_WAVE'] = { "label": "Signature — Trousse rideau Wave (rail assemblé, chariots)", "generique": true, "fournisseur": "sig", "prixBlanc": null, "prixCouleur": null, "couleurs": [ "Blanc", "Ivoire", "Gris", "Noir" ], "kits": { "ADS — plafond": [ { "pi": 4, "sup": 3, "ch": 24, "prix": 66 }, { "pi": 6, "sup": 3, "ch": 36, "prix": 98 }, { "pi": 8, "sup": 4, "ch": 48, "prix": 128 }, { "pi": 10, "sup": 5, "ch": 60, "prix": 158 }, { "pi": 12, "sup": 6, "ch": 72, "prix": 188 }, { "pi": 14, "sup": 7, "ch": 84, "prix": 218 }, { "pi": 16, "sup": 8, "ch": 96, "prix": 248 }, { "pi": 18, "sup": 9, "ch": 108, "prix": 278 } ], "ADS — murs Smart Klick": [ { "pi": 4, "sup": 3, "ch": 24, "prix": 88 }, { "pi": 6, "sup": 3, "ch": 36, "prix": 120 }, { "pi": 8, "sup": 4, "ch": 48, "prix": 158 }, { "pi": 10, "sup": 5, "ch": 60, "prix": 196 }, { "pi": 12, "sup": 6, "ch": 72, "prix": 236 }, { "pi": 14, "sup": 7, "ch": 84, "prix": 274 }, { "pi": 16, "sup": 8, "ch": 96, "prix": 314 }, { "pi": 18, "sup": 9, "ch": 108, "prix": 352 } ], "AKS — plafond": [ { "pi": 4, "sup": 3, "ch": 24, "prix": 62 }, { "pi": 6, "sup": 3, "ch": 36, "prix": 86 }, { "pi": 8, "sup": 4, "ch": 48, "prix": 112 }, { "pi": 10, "sup": 5, "ch": 60, "prix": 138 }, { "pi": 12, "sup": 6, "ch": 72, "prix": 166 }, { "pi": 14, "sup": 7, "ch": 84, "prix": 192 }, { "pi": 16, "sup": 8, "ch": 96, "prix": 214 }, { "pi": 18, "sup": 9, "ch": 108, "prix": 244 } ], "AKS — murs Smart Klick": [ { "pi": 4, "sup": 3, "ch": 24, "prix": 84 }, { "pi": 6, "sup": 3, "ch": 36, "prix": 108 }, { "pi": 8, "sup": 4, "ch": 48, "prix": 142 }, { "pi": 10, "sup": 5, "ch": 60, "prix": 176 }, { "pi": 12, "sup": 6, "ch": 72, "prix": 214 }, { "pi": 14, "sup": 7, "ch": 84, "prix": 248 }, { "pi": 16, "sup": 8, "ch": 96, "prix": 280 }, { "pi": 18, "sup": 9, "ch": 108, "prix": 318 } ] }, "accessoires": [ { "id": "sig-courbe-k", "label": "Courbe — supplément par courbe de rail", "prix": { "blanc": 40, "couleur": 40 }, "unite": "ch", "qte": true } ] };
+NORM_RAILS['SIG_AKS'] = {"label": "Signature — AKS aluminium", "generique": true, "fournisseur": "sig", "prixBlanc": 3.3, "prixCouleur": 4.15, "couleurs": ["Blanc", "Ivoire / Gris / Noir"], "accessoires": [{"id": "sig-sup-2", "label": "Support mural 2\" (AKS/ADS)", "prix": {"blanc": 3, "couleur": 3}, "unite": "ch", "qte": true},{"id": "sig-sup-3", "label": "Support mural 3\" (AKS/ADS)", "prix": {"blanc": 3.4, "couleur": 3.4}, "unite": "ch", "qte": true},{"id": "sig-sup-4", "label": "Support mural 4\" (AKS/ADS)", "prix": {"blanc": 3.6, "couleur": 3.6}, "unite": "ch", "qte": true},{"id": "sig-sup-5", "label": "Support mural 5\" (AKS/ADS)", "prix": {"blanc": 4.5, "couleur": 4.5}, "unite": "ch", "qte": true},{"id": "sig-sup-6", "label": "Support mural 6\" (AKS/ADS)", "prix": {"blanc": 5, "couleur": 5}, "unite": "ch", "qte": true},{"id": "sig-sup-6d", "label": "Support mural double 6\" (AKS/ADS)", "prix": {"blanc": 6, "couleur": 6}, "unite": "ch", "qte": true},{"id": "sig-sup-sk", "label": "Support mural Smart Klick 3\"–4½\" (AKS/ADS)", "prix": {"blanc": 4.4, "couleur": 4.5}, "unite": "ch", "qte": true},{"id": "sig-sup-skd", "label": "Support mural double Smart Klick 2½\"–4\" et 6\"–7\" (AKS/ADS)", "prix": {"blanc": 8.2, "couleur": 10}, "unite": "ch", "qte": true},{"id": "sig-sup-hd3", "label": "Support mural heavy duty 3\" (AKS/ADS)", "prix": {"blanc": 9, "couleur": 9}, "unite": "ch", "qte": true},{"id": "sig-sup-hd6d", "label": "Support mural heavy duty 6\" double (AKS/ADS)", "prix": {"blanc": 12.25, "couleur": 12.25}, "unite": "ch", "qte": true},{"id": "sig-sup-plaf", "label": "Support plafond Smart Klick — joint plafond (AKS/ADS)", "prix": {"blanc": 2.6, "couleur": 2.6}, "unite": "ch", "qte": true},{"id": "sig-chariot-maitre", "label": "Chariot maître (AKS/ADS)", "prix": {"blanc": 3.5, "couleur": 3.5}, "unite": "ch", "qte": true},{"id": "sig-chariots-10", "label": "Chariots friction — bande de 10 (AKS/ADS)", "prix": {"blanc": 3, "couleur": 3}, "unite": "bande", "qte": true},{"id": "sig-chariot-arret", "label": "Chariot d'arrêt / freinage (AKS/ADS)", "prix": {"blanc": 0.5, "couleur": 0.5}, "unite": "ch", "qte": true},{"id": "sig-chariot-maitre-3snap", "label": "Chariot maître 3 snaps sans entrecroisement (G ou D)", "prix": {"blanc": 9.75, "couleur": 9.75}, "unite": "ch", "qte": true},{"id": "sig-chariot-maitre-cov", "label": "Chariot maître entrecroisé (MCOV / MCUN)", "prix": {"blanc": 7.95, "couleur": 7.95}, "unite": "ch", "qte": true},{"id": "sig-joint-mural", "label": "Joint mural / éclisse avec clé Allen (AKS/ADS)", "prix": {"blanc": 7, "couleur": 7}, "unite": "ch", "qte": true},{"id": "sig-courbe", "label": "Courbe — supplément par courbe de rail", "prix": {"blanc": 20, "couleur": 20}, "unite": "ch", "qte": true},{"id": "sig-ruban-snap-rouleau", "label": "Ruban à boutons pression 4¼\" — rouleau de 100 verges", "prix": {"blanc": 280, "couleur": 280}, "unite": "rouleau", "qte": true},{"id": "sig-ruban-snap-vg", "label": "Ruban à boutons pression 4¼\" — à la verge", "prix": {"blanc": 3.2, "couleur": 3.2}, "unite": "vg", "qte": true},{"id": "sig-ruban-wave", "label": "Ruban transparent rideau Wave — rouleau de 100 verges", "prix": {"blanc": 260, "couleur": 260}, "unite": "rouleau", "qte": true},{"id": "sig-wave-crochets", "label": "Crochets rideau Wave — par 100", "prix": {"blanc": 6, "couleur": 6}, "unite": "100", "qte": true},{"id": "sig-wave-chariots", "label": "Chariots Wave espacement 2⅛\" — à l'unité", "prix": {"blanc": 0.35, "couleur": 0.35}, "unite": "ch", "qte": true},{"id": "sig-bag-36a", "label": "Baguette 36\" acrylique clair", "prix": {"blanc": 9, "couleur": 9}, "unite": "ch", "qte": true},{"id": "sig-bag-48a", "label": "Baguette 48\" acrylique clair", "prix": {"blanc": 10.5, "couleur": 10.5}, "unite": "ch", "qte": true},{"id": "sig-bag-36f", "label": "Baguette 36\" fibre de verre", "prix": {"blanc": 7.6, "couleur": 7.6}, "unite": "ch", "qte": true},{"id": "sig-bag-48f", "label": "Baguette 48\" fibre de verre", "prix": {"blanc": 9, "couleur": 9}, "unite": "ch", "qte": true},{"id": "sig-bag-48h", "label": "Baguette 48\" pour handicapés", "prix": {"blanc": 40, "couleur": 40}, "unite": "ch", "qte": true},{"id": "sig-bag-poignee", "label": "Poignée pour baguette fibre de verre", "prix": {"blanc": 10.5, "couleur": 10.5}, "unite": "ch", "qte": true},{"id": "sig-aks-cap", "label": "Capuchon AKS", "prix": {"blanc": 1.1, "couleur": 1.1}, "unite": "ch", "qte": true},{"id": "sig-aks-cap-plat", "label": "Capuchon plat AKS", "prix": {"blanc": 1.4, "couleur": 1.4}, "unite": "ch", "qte": true},{"id": "sig-cap-torsion", "label": "Arrêt de bout à torsion", "prix": {"blanc": 1.2, "couleur": 1.2}, "unite": "ch", "qte": true}]};
+NORM_RAILS['SIG_ADS'] = {"label": "Signature — ADS aluminium", "generique": true, "fournisseur": "sig", "prixBlanc": 4.3, "prixCouleur": 4.4, "couleurs": ["Blanc", "Ivoire / Gris / Noir"], "accessoires": [{"id": "sig-sup-2", "label": "Support mural 2\" (AKS/ADS)", "prix": {"blanc": 3, "couleur": 3}, "unite": "ch", "qte": true},{"id": "sig-sup-3", "label": "Support mural 3\" (AKS/ADS)", "prix": {"blanc": 3.4, "couleur": 3.4}, "unite": "ch", "qte": true},{"id": "sig-sup-4", "label": "Support mural 4\" (AKS/ADS)", "prix": {"blanc": 3.6, "couleur": 3.6}, "unite": "ch", "qte": true},{"id": "sig-sup-5", "label": "Support mural 5\" (AKS/ADS)", "prix": {"blanc": 4.5, "couleur": 4.5}, "unite": "ch", "qte": true},{"id": "sig-sup-6", "label": "Support mural 6\" (AKS/ADS)", "prix": {"blanc": 5, "couleur": 5}, "unite": "ch", "qte": true},{"id": "sig-sup-6d", "label": "Support mural double 6\" (AKS/ADS)", "prix": {"blanc": 6, "couleur": 6}, "unite": "ch", "qte": true},{"id": "sig-sup-sk", "label": "Support mural Smart Klick 3\"–4½\" (AKS/ADS)", "prix": {"blanc": 4.4, "couleur": 4.5}, "unite": "ch", "qte": true},{"id": "sig-sup-skd", "label": "Support mural double Smart Klick 2½\"–4\" et 6\"–7\" (AKS/ADS)", "prix": {"blanc": 8.2, "couleur": 10}, "unite": "ch", "qte": true},{"id": "sig-sup-hd3", "label": "Support mural heavy duty 3\" (AKS/ADS)", "prix": {"blanc": 9, "couleur": 9}, "unite": "ch", "qte": true},{"id": "sig-sup-hd6d", "label": "Support mural heavy duty 6\" double (AKS/ADS)", "prix": {"blanc": 12.25, "couleur": 12.25}, "unite": "ch", "qte": true},{"id": "sig-sup-plaf", "label": "Support plafond Smart Klick — joint plafond (AKS/ADS)", "prix": {"blanc": 2.6, "couleur": 2.6}, "unite": "ch", "qte": true},{"id": "sig-chariot-maitre", "label": "Chariot maître (AKS/ADS)", "prix": {"blanc": 3.5, "couleur": 3.5}, "unite": "ch", "qte": true},{"id": "sig-chariots-10", "label": "Chariots friction — bande de 10 (AKS/ADS)", "prix": {"blanc": 3, "couleur": 3}, "unite": "bande", "qte": true},{"id": "sig-chariot-arret", "label": "Chariot d'arrêt / freinage (AKS/ADS)", "prix": {"blanc": 0.5, "couleur": 0.5}, "unite": "ch", "qte": true},{"id": "sig-chariot-maitre-3snap", "label": "Chariot maître 3 snaps sans entrecroisement (G ou D)", "prix": {"blanc": 9.75, "couleur": 9.75}, "unite": "ch", "qte": true},{"id": "sig-chariot-maitre-cov", "label": "Chariot maître entrecroisé (MCOV / MCUN)", "prix": {"blanc": 7.95, "couleur": 7.95}, "unite": "ch", "qte": true},{"id": "sig-joint-mural", "label": "Joint mural / éclisse avec clé Allen (AKS/ADS)", "prix": {"blanc": 7, "couleur": 7}, "unite": "ch", "qte": true},{"id": "sig-courbe", "label": "Courbe — supplément par courbe de rail", "prix": {"blanc": 20, "couleur": 20}, "unite": "ch", "qte": true},{"id": "sig-ruban-snap-rouleau", "label": "Ruban à boutons pression 4¼\" — rouleau de 100 verges", "prix": {"blanc": 280, "couleur": 280}, "unite": "rouleau", "qte": true},{"id": "sig-ruban-snap-vg", "label": "Ruban à boutons pression 4¼\" — à la verge", "prix": {"blanc": 3.2, "couleur": 3.2}, "unite": "vg", "qte": true},{"id": "sig-ruban-wave", "label": "Ruban transparent rideau Wave — rouleau de 100 verges", "prix": {"blanc": 260, "couleur": 260}, "unite": "rouleau", "qte": true},{"id": "sig-wave-crochets", "label": "Crochets rideau Wave — par 100", "prix": {"blanc": 6, "couleur": 6}, "unite": "100", "qte": true},{"id": "sig-wave-chariots", "label": "Chariots Wave espacement 2⅛\" — à l'unité", "prix": {"blanc": 0.35, "couleur": 0.35}, "unite": "ch", "qte": true},{"id": "sig-bag-36a", "label": "Baguette 36\" acrylique clair", "prix": {"blanc": 9, "couleur": 9}, "unite": "ch", "qte": true},{"id": "sig-bag-48a", "label": "Baguette 48\" acrylique clair", "prix": {"blanc": 10.5, "couleur": 10.5}, "unite": "ch", "qte": true},{"id": "sig-bag-36f", "label": "Baguette 36\" fibre de verre", "prix": {"blanc": 7.6, "couleur": 7.6}, "unite": "ch", "qte": true},{"id": "sig-bag-48f", "label": "Baguette 48\" fibre de verre", "prix": {"blanc": 9, "couleur": 9}, "unite": "ch", "qte": true},{"id": "sig-bag-48h", "label": "Baguette 48\" pour handicapés", "prix": {"blanc": 40, "couleur": 40}, "unite": "ch", "qte": true},{"id": "sig-bag-poignee", "label": "Poignée pour baguette fibre de verre", "prix": {"blanc": 10.5, "couleur": 10.5}, "unite": "ch", "qte": true},{"id": "sig-ads-cap", "label": "Capuchon ADS", "prix": {"blanc": 1.2, "couleur": 1.2}, "unite": "ch", "qte": true},{"id": "sig-ads-cap-plat", "label": "Capuchon plat ADS", "prix": {"blanc": 1.4, "couleur": 1.4}, "unite": "ch", "qte": true},{"id": "sig-cap-torsion", "label": "Arrêt de bout à torsion", "prix": {"blanc": 1.2, "couleur": 1.2}, "unite": "ch", "qte": true}]};
+NORM_RAILS['SIG_AKS_ENC'] = {"label": "Signature — AKS à encastrer (19 pi)", "generique": true, "fournisseur": "sig", "prixBlanc": 4.25, "prixCouleur": 4.25, "couleurs": ["Blanc", "Noir"], "accessoires": [{"id": "sig-chariot-maitre", "label": "Chariot maître (AKS/ADS)", "prix": {"blanc": 3.5, "couleur": 3.5}, "unite": "ch", "qte": true},{"id": "sig-chariots-10", "label": "Chariots friction — bande de 10 (AKS/ADS)", "prix": {"blanc": 3, "couleur": 3}, "unite": "bande", "qte": true},{"id": "sig-chariot-arret", "label": "Chariot d'arrêt / freinage (AKS/ADS)", "prix": {"blanc": 0.5, "couleur": 0.5}, "unite": "ch", "qte": true},{"id": "sig-aks-cap", "label": "Capuchon AKS", "prix": {"blanc": 1.1, "couleur": 1.1}, "unite": "ch", "qte": true},{"id": "sig-joint-mural", "label": "Joint mural / éclisse avec clé Allen (AKS/ADS)", "prix": {"blanc": 7, "couleur": 7}, "unite": "ch", "qte": true}]};
+NORM_RAILS['SIG_CRS'] = {"label": "Signature — CRS décoratif 28 mm (19 pi)", "generique": true, "fournisseur": "sig", "prixBlanc": 11, "prixCouleur": 14, "couleurs": ["Blanc", "Argent", "Or", "Bronze", "Noir"], "prixParCouleur": {"Blanc": 11, "Argent": 14, "Or": 14, "Bronze": 11, "Noir": 11}, "accessoires": [{"id": "sig-crs-sup-8d", "label": "Support mural double 8\" (CRS)", "prix": {"blanc": 45, "couleur": 47, "par": {"Blanc": 45, "Argent": 47, "Or": 45, "Bronze": 45, "Noir": 47}}, "unite": "ch", "qte": true},{"id": "sig-crs-sup-6d", "label": "Support mural double 6\" (CRS)", "prix": {"blanc": 35, "couleur": 39, "par": {"Blanc": 35, "Argent": 39, "Or": 35, "Bronze": 35, "Noir": 39}}, "unite": "ch", "qte": true},{"id": "sig-crs-sup-6", "label": "Support mural 6\" (CRS)", "prix": {"blanc": 31, "couleur": 33, "par": {"Blanc": 31, "Argent": 33, "Or": 31, "Bronze": 31, "Noir": 33}}, "unite": "ch", "qte": true},{"id": "sig-crs-sup-3", "label": "Support mural 3\" (CRS)", "prix": {"blanc": 24, "couleur": 25, "par": {"Blanc": 24, "Argent": 25, "Or": 24, "Bronze": 24, "Noir": 25}}, "unite": "ch", "qte": true},{"id": "sig-crs-sup-ext", "label": "Support extension (CRS)", "prix": {"blanc": 16, "couleur": 18, "par": {"Blanc": 16, "Argent": 18, "Or": 16, "Bronze": 16, "Noir": 18}}, "unite": "ch", "qte": true},{"id": "sig-crs-sup-plaf", "label": "Support plafond (CRS)", "prix": {"blanc": 8.5, "couleur": 9.5, "par": {"Blanc": 8.5, "Argent": 8.5, "Or": 8.5, "Bronze": 9.5, "Noir": 9.5}}, "unite": "ch", "qte": true},{"id": "sig-crs-cap-gd", "label": "Grand capuchon (CRS)", "prix": {"blanc": 19.5, "couleur": 21.5, "par": {"Blanc": 19.5, "Argent": 21.5, "Or": 19.5, "Bronze": 19.5, "Noir": 21.5}}, "unite": "ch", "qte": true},{"id": "sig-crs-cap-pt", "label": "Petit capuchon (CRS)", "prix": {"blanc": 12, "couleur": 14, "par": {"Blanc": 12, "Argent": 14, "Or": 12, "Bronze": 12, "Noir": 14}}, "unite": "ch", "qte": true},{"id": "sig-crs-twist", "label": "Arrêt de bout à torsion (CRS)", "prix": {"blanc": 1.3, "couleur": 1.3}, "unite": "ch", "qte": true},{"id": "sig-crs-cap-noir", "label": "Arrêt de bout (noir) (CRS)", "prix": {"blanc": 0.9, "couleur": 0.9}, "unite": "ch", "qte": true},{"id": "sig-crs-chariot", "label": "Chariots pour plis français (CRS)", "prix": {"blanc": 0.28, "couleur": 0.28}, "unite": "ch", "qte": true},{"id": "sig-crs-joint", "label": "Joint de rail (CRS)", "prix": {"blanc": 12, "couleur": 12}, "unite": "ch", "qte": true},{"id": "sig-crs-90", "label": "Joint de rail 90° (CRS)", "prix": {"blanc": 12, "couleur": 12}, "unite": "ch", "qte": true}]};
+NORM_RAILS['SIG_ARCH'] = {"label": "Signature — Architex (plafond ou mural)", "generique": true, "fournisseur": "sig", "prixBlanc": 4.5, "prixCouleur": 4.5, "couleurs": ["Blanc"], "accessoires": [{"id": "sig-arch-sup-plaf", "label": "Support plafond pour rail mural (Architex)", "prix": {"blanc": 1.5, "couleur": 1.5}, "unite": "ch", "qte": true},{"id": "sig-arch-sup-aj", "label": "Support ajustable 2\"–4½\" (Architex)", "prix": {"blanc": 3.85, "couleur": 3.85}, "unite": "ch", "qte": true},{"id": "sig-arch-sup-dbl", "label": "Support double ajustable 2\"–7\" (Architex)", "prix": {"blanc": 8.4, "couleur": 8.4}, "unite": "ch", "qte": true},{"id": "sig-arch-courbe", "label": "Rail courbé 90° 2 pi × 2 pi (Architex)", "prix": {"blanc": 50, "couleur": 50}, "unite": "ch", "qte": true},{"id": "sig-arch-fric", "label": "Chariot à friction standard (Architex)", "prix": {"blanc": 0.36, "couleur": 0.36}, "unite": "ch", "qte": true},{"id": "sig-arch-billes", "label": "Chariot à billes 16 mm (Architex)", "prix": {"blanc": 0.8, "couleur": 0.8}, "unite": "ch", "qte": true},{"id": "sig-arch-billes-j", "label": "Chariot à billes avec crochet en J (Architex)", "prix": {"blanc": 1.2, "couleur": 1.2}, "unite": "ch", "qte": true},{"id": "sig-arch-retour-aj", "label": "Retour ajustable (Architex)", "prix": {"blanc": 7.3, "couleur": 7.3}, "unite": "ch", "qte": true},{"id": "sig-arch-ecrou", "label": "Écrou et boulon pour rail, sens unique (Architex)", "prix": {"blanc": 0.9, "couleur": 0.9}, "unite": "ch", "qte": true},{"id": "sig-arch-capuchon", "label": "Capuchon / cran d'arrêt plis français ou ondulés (Architex)", "prix": {"blanc": 1.7, "couleur": 1.7}, "unite": "ch", "qte": true},{"id": "sig-arch-entre-g", "label": "Chariot d'entrecroisement GAUCHE (Architex)", "prix": {"blanc": 5.9, "couleur": 5.9}, "unite": "ch", "qte": true},{"id": "sig-arch-entre-d", "label": "Chariot d'entrecroisement DROIT (Architex)", "prix": {"blanc": 5.9, "couleur": 5.9}, "unite": "ch", "qte": true},{"id": "sig-arch-ret3-g", "label": "Retour GAUCHE ajustable 3\" (Architex)", "prix": {"blanc": 2.5, "couleur": 2.5}, "unite": "ch", "qte": true},{"id": "sig-arch-ret3-d", "label": "Retour DROIT ajustable 3\" (Architex)", "prix": {"blanc": 2.5, "couleur": 2.5}, "unite": "ch", "qte": true},{"id": "sig-arch-rencontre-g", "label": "Chariot de rencontre GAUCHE, plis ondulés (Architex)", "prix": {"blanc": 9.75, "couleur": 9.75}, "unite": "ch", "qte": true},{"id": "sig-arch-rencontre-d", "label": "Chariot de rencontre DROIT, plis ondulés (Architex)", "prix": {"blanc": 9.75, "couleur": 9.75}, "unite": "ch", "qte": true},{"id": "sig-arch-plast-g", "label": "Chariot d'entrecroisement plastique GAUCHE (Architex)", "prix": {"blanc": 7.95, "couleur": 7.95}, "unite": "ch", "qte": true},{"id": "sig-arch-plast-d", "label": "Chariot d'entrecroisement plastique DROIT (Architex)", "prix": {"blanc": 7.95, "couleur": 7.95}, "unite": "ch", "qte": true},{"id": "sig-arch-fric-snap", "label": "Chariot friction pour ruban pression (Architex)", "prix": {"blanc": 0.6, "couleur": 0.6}, "unite": "ch", "qte": true},{"id": "sig-arch-billes-det", "label": "Chariot à billes détachable pour ruban pression (Architex)", "prix": {"blanc": 1.5, "couleur": 1.5}, "unite": "ch", "qte": true},{"id": "sig-ruban-snap-rouleau", "label": "Ruban à boutons pression 4¼\" — rouleau de 100 verges", "prix": {"blanc": 280, "couleur": 280}, "unite": "rouleau", "qte": true},{"id": "sig-ruban-snap-vg", "label": "Ruban à boutons pression 4¼\" — à la verge", "prix": {"blanc": 3.2, "couleur": 3.2}, "unite": "vg", "qte": true},{"id": "sig-bag-36a", "label": "Baguette 36\" acrylique clair", "prix": {"blanc": 9, "couleur": 9}, "unite": "ch", "qte": true},{"id": "sig-bag-48a", "label": "Baguette 48\" acrylique clair", "prix": {"blanc": 10.5, "couleur": 10.5}, "unite": "ch", "qte": true},{"id": "sig-bag-36f", "label": "Baguette 36\" fibre de verre", "prix": {"blanc": 7.6, "couleur": 7.6}, "unite": "ch", "qte": true},{"id": "sig-bag-48f", "label": "Baguette 48\" fibre de verre", "prix": {"blanc": 9, "couleur": 9}, "unite": "ch", "qte": true},{"id": "sig-bag-48h", "label": "Baguette 48\" pour handicapés", "prix": {"blanc": 40, "couleur": 40}, "unite": "ch", "qte": true},{"id": "sig-bag-poignee", "label": "Poignée pour baguette fibre de verre", "prix": {"blanc": 10.5, "couleur": 10.5}, "unite": "ch", "qte": true}]};
+NORM_RAILS['SIG_MEDI'] = {"label": "Signature — Medi-Track (rail médical)", "generique": true, "fournisseur": "sig", "prixBlanc": 5, "prixCouleur": 5, "couleurs": ["Argent"], "accessoires": [{"id": "sig-medi-joint", "label": "Joint de rail (Medi-Track)", "prix": {"blanc": 2.5, "couleur": 2.5}, "unite": "ch", "qte": true},{"id": "sig-medi-plaf", "label": "Support plafond — ceiling flange (Medi-Track)", "prix": {"blanc": 9, "couleur": 9}, "unite": "ch", "qte": true},{"id": "sig-medi-mur", "label": "Support mural — wall flange (Medi-Track)", "prix": {"blanc": 18, "couleur": 18}, "unite": "ch", "qte": true},{"id": "sig-medi-porte", "label": "Petite porte — pull out gate (Medi-Track)", "prix": {"blanc": 1.4, "couleur": 1.4}, "unite": "ch", "qte": true},{"id": "sig-medi-adapt", "label": "Adaptateur de rail (Medi-Track)", "prix": {"blanc": 3.95, "couleur": 3.95}, "unite": "ch", "qte": true},{"id": "sig-medi-cap", "label": "Capuchon / cran d'arrêt (Medi-Track)", "prix": {"blanc": 1.95, "couleur": 1.95}, "unite": "ch", "qte": true},{"id": "sig-medi-tube", "label": "Poteau de suspension 16 pi — au pied (Medi-Track)", "prix": {"blanc": 5, "couleur": 5}, "unite": "pi", "qte": true},{"id": "sig-medi-poteau", "label": "Poteau de suspension jusqu'à 24\" (Medi-Track)", "prix": {"blanc": 35, "couleur": 35}, "unite": "ch", "qte": true},{"id": "sig-medi-ch-crochet", "label": "Chariot avec crochet (Medi-Track)", "prix": {"blanc": 2, "couleur": 2}, "unite": "ch", "qte": true},{"id": "sig-medi-ch-sans", "label": "Chariot sans crochet (Medi-Track)", "prix": {"blanc": 1.6, "couleur": 1.6}, "unite": "ch", "qte": true},{"id": "sig-medi-ch-snap", "label": "Chariot avec snap (Medi-Track)", "prix": {"blanc": 2.5, "couleur": 2.5}, "unite": "ch", "qte": true},{"id": "sig-medi-courbe", "label": "Rail courbé 90° 24\" × 24\" (Medi-Track)", "prix": {"blanc": 50, "couleur": 50}, "unite": "ch", "qte": true}]};
+NORM_RAILS['SIG_K_PF'] = {"label": "Signature — Trousse plis français (rail assemblé, ampleur 100 %)", "generique": true, "fournisseur": "sig", "prixBlanc": null, "prixCouleur": null, "couleurs": ["Blanc", "Ivoire", "Gris", "Noir"], "kits": {"AKS — supports de plafond": [{"pi": 4, "sup": 3, "ch": 14, "prix": 28},{"pi": 6, "sup": 3, "ch": 20, "prix": 38},{"pi": 8, "sup": 4, "ch": 26, "prix": 50},{"pi": 10, "sup": 5, "ch": 32, "prix": 61},{"pi": 12, "sup": 6, "ch": 38, "prix": 72},{"pi": 14, "sup": 7, "ch": 44, "prix": 84},{"pi": 16, "sup": 8, "ch": 50, "prix": 95},{"pi": 18, "sup": 9, "ch": 56, "prix": 107}], "AKS — supports muraux Smart Klick 3\"–4½\"": [{"pi": 4, "sup": 3, "ch": 14, "prix": 39},{"pi": 6, "sup": 3, "ch": 20, "prix": 49},{"pi": 8, "sup": 4, "ch": 26, "prix": 65},{"pi": 10, "sup": 5, "ch": 32, "prix": 78},{"pi": 12, "sup": 6, "ch": 38, "prix": 93},{"pi": 14, "sup": 7, "ch": 44, "prix": 108},{"pi": 16, "sup": 8, "ch": 50, "prix": 123},{"pi": 18, "sup": 9, "ch": 56, "prix": 138}], "ADS — supports de plafond": [{"pi": 4, "sup": 3, "ch": 14, "prix": 32},{"pi": 6, "sup": 3, "ch": 20, "prix": 44},{"pi": 8, "sup": 4, "ch": 26, "prix": 57},{"pi": 10, "sup": 5, "ch": 32, "prix": 71},{"pi": 12, "sup": 6, "ch": 38, "prix": 84},{"pi": 14, "sup": 7, "ch": 44, "prix": 97},{"pi": 16, "sup": 8, "ch": 50, "prix": 110},{"pi": 18, "sup": 9, "ch": 56, "prix": 124}], "ADS — supports muraux Smart Klick 3\"–4½\"": [{"pi": 4, "sup": 3, "ch": 14, "prix": 43},{"pi": 6, "sup": 3, "ch": 20, "prix": 55},{"pi": 8, "sup": 4, "ch": 26, "prix": 71},{"pi": 10, "sup": 5, "ch": 32, "prix": 88},{"pi": 12, "sup": 6, "ch": 38, "prix": 105},{"pi": 14, "sup": 7, "ch": 44, "prix": 121},{"pi": 16, "sup": 8, "ch": 50, "prix": 138},{"pi": 18, "sup": 9, "ch": 56, "prix": 155}], "CRS 28 mm — plafond (4 à 16 pi)": [{"pi": 4, "sup": 3, "ch": 14, "prix": 91},{"pi": 6, "sup": 3, "ch": 20, "prix": 122},{"pi": 8, "sup": 4, "ch": 26, "prix": 160},{"pi": 10, "sup": 5, "ch": 32, "prix": 200},{"pi": 12, "sup": 6, "ch": 38, "prix": 242},{"pi": 14, "sup": 7, "ch": 44, "prix": 283},{"pi": 16, "sup": 8, "ch": 50, "prix": 323}]}, "accessoires": [{"id": "sig-courbe-k", "label": "Courbe — supplément par courbe de rail", "prix": {"blanc": 20, "couleur": 20}, "unite": "ch", "qte": true},{"id": "sig-entrecroise-k", "label": "Chariots d'entrecroisement — supplément à l'unité", "prix": {"blanc": 3.5, "couleur": 3.5}, "unite": "ch", "qte": true}]};
+NORM_RAILS['SIG_K_RF'] = {"label": "Signature — Trousse Ripple Fold (rail assemblé, chariots détachables)", "generique": true, "fournisseur": "sig", "prixBlanc": null, "prixCouleur": null, "couleurs": ["Blanc", "Ivoire", "Gris", "Noir"], "kits": {"AKS — ampleur 100 % — plafond": [{"pi": 4, "sup": 3, "ch": 28, "prix": 66},{"pi": 6, "sup": 3, "ch": 36, "prix": 86},{"pi": 8, "sup": 4, "ch": 48, "prix": 114},{"pi": 10, "sup": 5, "ch": 60, "prix": 141},{"pi": 12, "sup": 6, "ch": 72, "prix": 169},{"pi": 14, "sup": 7, "ch": 84, "prix": 197},{"pi": 16, "sup": 8, "ch": 96, "prix": 224},{"pi": 18, "sup": 9, "ch": 104, "prix": 246}], "AKS — ampleur 120 % — plafond": [{"pi": 4, "sup": 3, "ch": 28, "prix": 66},{"pi": 6, "sup": 3, "ch": 44, "prix": 98},{"pi": 8, "sup": 4, "ch": 56, "prix": 126},{"pi": 10, "sup": 5, "ch": 68, "prix": 153},{"pi": 12, "sup": 6, "ch": 80, "prix": 181},{"pi": 14, "sup": 7, "ch": 92, "prix": 209},{"pi": 16, "sup": 8, "ch": 108, "prix": 242},{"pi": 18, "sup": 9, "ch": 120, "prix": 270}], "AKS — ampleur 100 % — murs Smart Klick": [{"pi": 4, "sup": 3, "ch": 28, "prix": 76},{"pi": 6, "sup": 3, "ch": 36, "prix": 97},{"pi": 8, "sup": 4, "ch": 48, "prix": 129},{"pi": 10, "sup": 5, "ch": 60, "prix": 158},{"pi": 12, "sup": 6, "ch": 72, "prix": 190},{"pi": 14, "sup": 7, "ch": 84, "prix": 221},{"pi": 16, "sup": 8, "ch": 96, "prix": 252},{"pi": 18, "sup": 9, "ch": 104, "prix": 277}], "AKS — ampleur 120 % — murs Smart Klick": [{"pi": 4, "sup": 3, "ch": 28, "prix": 76},{"pi": 6, "sup": 3, "ch": 44, "prix": 106},{"pi": 8, "sup": 4, "ch": 56, "prix": 141},{"pi": 10, "sup": 5, "ch": 68, "prix": 172},{"pi": 12, "sup": 6, "ch": 80, "prix": 202},{"pi": 14, "sup": 7, "ch": 92, "prix": 233},{"pi": 16, "sup": 8, "ch": 108, "prix": 270},{"pi": 18, "sup": 9, "ch": 120, "prix": 301}], "ADS — ampleur 100 % — plafond": [{"pi": 4, "sup": 3, "ch": 28, "prix": 71},{"pi": 6, "sup": 3, "ch": 36, "prix": 92},{"pi": 8, "sup": 4, "ch": 48, "prix": 121},{"pi": 10, "sup": 5, "ch": 60, "prix": 151},{"pi": 12, "sup": 6, "ch": 72, "prix": 180},{"pi": 14, "sup": 7, "ch": 84, "prix": 210},{"pi": 16, "sup": 8, "ch": 96, "prix": 239},{"pi": 18, "sup": 9, "ch": 104, "prix": 263}], "ADS — ampleur 120 % — plafond": [{"pi": 4, "sup": 3, "ch": 28, "prix": 71},{"pi": 6, "sup": 3, "ch": 44, "prix": 98},{"pi": 8, "sup": 4, "ch": 56, "prix": 132},{"pi": 10, "sup": 5, "ch": 68, "prix": 155},{"pi": 12, "sup": 6, "ch": 80, "prix": 183},{"pi": 14, "sup": 7, "ch": 92, "prix": 212},{"pi": 16, "sup": 8, "ch": 108, "prix": 246},{"pi": 18, "sup": 9, "ch": 120, "prix": 275}], "ADS — ampleur 100 % — murs Smart Klick": [{"pi": 4, "sup": 3, "ch": 28, "prix": 80},{"pi": 6, "sup": 3, "ch": 36, "prix": 103},{"pi": 8, "sup": 4, "ch": 48, "prix": 135},{"pi": 10, "sup": 5, "ch": 60, "prix": 168},{"pi": 12, "sup": 6, "ch": 72, "prix": 201},{"pi": 14, "sup": 7, "ch": 84, "prix": 234},{"pi": 16, "sup": 8, "ch": 96, "prix": 267},{"pi": 18, "sup": 9, "ch": 104, "prix": 294}], "ADS — ampleur 120 % — murs Smart Klick": [{"pi": 4, "sup": 3, "ch": 28, "prix": 80},{"pi": 6, "sup": 3, "ch": 44, "prix": 106},{"pi": 8, "sup": 4, "ch": 56, "prix": 147},{"pi": 10, "sup": 5, "ch": 68, "prix": 180},{"pi": 12, "sup": 6, "ch": 80, "prix": 213},{"pi": 14, "sup": 7, "ch": 92, "prix": 246},{"pi": 16, "sup": 8, "ch": 108, "prix": 285},{"pi": 18, "sup": 9, "ch": 120, "prix": 318}], "CRS 28 mm — ampleur 120 % — plafond (4 à 16 pi)": [{"pi": 4, "sup": 3, "ch": 28, "prix": 157},{"pi": 6, "sup": 3, "ch": 44, "prix": 207},{"pi": 8, "sup": 4, "ch": 56, "prix": 262},{"pi": 10, "sup": 5, "ch": 68, "prix": 318},{"pi": 12, "sup": 6, "ch": 80, "prix": 373},{"pi": 14, "sup": 7, "ch": 92, "prix": 429},{"pi": 16, "sup": 8, "ch": 108, "prix": 518}], "CRS 28 mm — ampleur 100 % — plafond (4 à 16 pi)": [{"pi": 4, "sup": 3, "ch": 28, "prix": 157},{"pi": 6, "sup": 3, "ch": 36, "prix": 195},{"pi": 8, "sup": 4, "ch": 48, "prix": 250},{"pi": 10, "sup": 5, "ch": 60, "prix": 306},{"pi": 12, "sup": 6, "ch": 72, "prix": 361},{"pi": 14, "sup": 7, "ch": 84, "prix": 417},{"pi": 16, "sup": 8, "ch": 96, "prix": 500}], "CRS 28 mm — ampleur 80 % — plafond (4 à 16 pi)": [{"pi": 4, "sup": 3, "ch": 24, "prix": 151},{"pi": 6, "sup": 3, "ch": 36, "prix": 195},{"pi": 8, "sup": 4, "ch": 44, "prix": 246},{"pi": 10, "sup": 5, "ch": 56, "prix": 300},{"pi": 12, "sup": 6, "ch": 64, "prix": 349},{"pi": 14, "sup": 7, "ch": 76, "prix": 405},{"pi": 16, "sup": 8, "ch": 84, "prix": 417}], "CRS 28 mm — ampleur 60 % — plafond (4 à 16 pi)": [{"pi": 4, "sup": 3, "ch": 24, "prix": 151},{"pi": 6, "sup": 3, "ch": 32, "prix": 189},{"pi": 8, "sup": 4, "ch": 40, "prix": 240},{"pi": 10, "sup": 5, "ch": 48, "prix": 288},{"pi": 12, "sup": 6, "ch": 60, "prix": 343},{"pi": 14, "sup": 7, "ch": 68, "prix": 393},{"pi": 16, "sup": 8, "ch": 76, "prix": 405}]}, "accessoires": [{"id": "sig-courbe-k", "label": "Courbe — supplément par courbe de rail", "prix": {"blanc": 20, "couleur": 20}, "unite": "ch", "qte": true}]};
+NORM_RAILS['SIG_K_WAVE'] = {"label": "Signature — Trousse rideau Wave (rail assemblé, chariots)", "generique": true, "fournisseur": "sig", "prixBlanc": null, "prixCouleur": null, "couleurs": ["Blanc", "Ivoire", "Gris", "Noir"], "kits": {"ADS — plafond": [{"pi": 4, "sup": 3, "ch": 24, "prix": 33},{"pi": 6, "sup": 3, "ch": 36, "prix": 49},{"pi": 8, "sup": 4, "ch": 48, "prix": 64},{"pi": 10, "sup": 5, "ch": 60, "prix": 79},{"pi": 12, "sup": 6, "ch": 72, "prix": 94},{"pi": 14, "sup": 7, "ch": 84, "prix": 109},{"pi": 16, "sup": 8, "ch": 96, "prix": 124},{"pi": 18, "sup": 9, "ch": 108, "prix": 139}], "ADS — murs Smart Klick": [{"pi": 4, "sup": 3, "ch": 24, "prix": 44},{"pi": 6, "sup": 3, "ch": 36, "prix": 60},{"pi": 8, "sup": 4, "ch": 48, "prix": 79},{"pi": 10, "sup": 5, "ch": 60, "prix": 98},{"pi": 12, "sup": 6, "ch": 72, "prix": 118},{"pi": 14, "sup": 7, "ch": 84, "prix": 137},{"pi": 16, "sup": 8, "ch": 96, "prix": 157},{"pi": 18, "sup": 9, "ch": 108, "prix": 176}], "AKS — plafond": [{"pi": 4, "sup": 3, "ch": 24, "prix": 31},{"pi": 6, "sup": 3, "ch": 36, "prix": 43},{"pi": 8, "sup": 4, "ch": 48, "prix": 56},{"pi": 10, "sup": 5, "ch": 60, "prix": 69},{"pi": 12, "sup": 6, "ch": 72, "prix": 83},{"pi": 14, "sup": 7, "ch": 84, "prix": 96},{"pi": 16, "sup": 8, "ch": 96, "prix": 107},{"pi": 18, "sup": 9, "ch": 108, "prix": 122}], "AKS — murs Smart Klick": [{"pi": 4, "sup": 3, "ch": 24, "prix": 42},{"pi": 6, "sup": 3, "ch": 36, "prix": 54},{"pi": 8, "sup": 4, "ch": 48, "prix": 71},{"pi": 10, "sup": 5, "ch": 60, "prix": 88},{"pi": 12, "sup": 6, "ch": 72, "prix": 107},{"pi": 14, "sup": 7, "ch": 84, "prix": 124},{"pi": 16, "sup": 8, "ch": 96, "prix": 140},{"pi": 18, "sup": 9, "ch": 108, "prix": 159}]}, "accessoires": [{"id": "sig-courbe-k", "label": "Courbe — supplément par courbe de rail", "prix": {"blanc": 20, "couleur": 20}, "unite": "ch", "qte": true}]};
 
 // Prix d'un rail / d'un accessoire selon la couleur choisie : prix par couleur si défini (CRS), sinon blanc / couleur comme avant.
 function normPrixRailC(rail, coul, estBlanc) {
@@ -11950,7 +11954,7 @@ const SIG_PRET_OEILLETS = [
   ['GEOLIN', 52, 62], ['INCLINATION', 52, 60], ['JIFFY', 52, 52], ['KALISI', 54, 58], ['LINDOR', 52, 68], ['MIRAGE', 54, 44], ['OLLY', 52, 48],
   ['PALACE', 110, 88], ['SHANGRILA', 54, 62], ['SOMBRA', 52, 76], ['TRISTAN', 54, 72], ['TUXEDO', 56, 72], ['VANGUARD', 110, 60], ['XANDER', 52, 58],
 ];
-// [largeur, hauteur, coût/24, coût/12, coût/6]
+// [largeur, hauteur, prix liste/24, prix liste/12, prix liste/6] (prix de détail suggérés)
 const SIG_PRET_PASSEPOLE = [
   [57, 63, 38, 44, 50], [57, 72, 40, 44, 50], [57, 84, 44, 48, 52], [57, 96, 44, 48, 54],
   [115, 63, 47, 51, 56], [115, 72, 49, 54, 58], [115, 84, 51, 55, 60], [115, 96, 51, 55, 60],
@@ -11958,7 +11962,7 @@ const SIG_PRET_PASSEPOLE = [
 const SIG_PRET = [
   ...SIG_PRET_OEILLETS.map(([n, l, p]) => ({ nom: `${n} — panneau à œillets ${l}" × 95"`, groupe: 'oeillets', larg: l, haut: 95, pdsf: p })),
   ...SIG_PRET_PASSEPOLE.map(([l, h, a, b, c]) => ({ nom: `Passe-pôle ${l}" × ${h}" — blanc ou blanc cassé`, groupe: 'passepole', larg: l, haut: h,
-    paliers: { 24: a * 2, 12: b * 2, 6: c * 2 } })),
+    paliers: { 24: a, 12: b, 6: c } })),
 ];
 const SIG_PRET_TITRES = {
   oeillets: 'Signature — Panneaux à œillets 2" (prix détail suggéré, 8 œillets)',
@@ -12062,7 +12066,7 @@ function calculatePricePret() {
   const qte = Math.max(1, opt.pretQte || 1);
   const pu = normPretPrixUnitaire(p, qte);
   const pdsfTotal = Math.round(pu * qte * 100) / 100;
-  const pct = settings.norm.pct / 100, multi = settings.norm.multi;
+  const pct = getPct(), multi = getMulti();
   const cout = Math.round(pdsfTotal * pct * 100) / 100;
   const vente = Math.round(cout * multi * 100) / 100;
   const marge = vente > 0 ? Math.round((vente - cout) / vente * 1000) / 10 : 0;
@@ -12077,7 +12081,7 @@ function calculatePricePret() {
     <div class="result-detail">${qte} panneau${qte > 1 ? 'x' : ''} × ${fmtCAD(pu)}${p.paliers ? ' · palier ' + palier : ''}</div>
     <div class="result-prices">
       <div class="price-row"><span class="price-label">Matériaux</span><span class="price-value pdsf">${fmtCAD(pdsfTotal)}</span></div>
-      <div class="price-row"><span class="price-label">Ton coût (${settings.norm.pct}%)</span><span class="price-value cout">${fmtCAD(cout)}</span></div>
+      <div class="price-row"><span class="price-label">Ton coût (${Math.round(pct * 100)}%)</span><span class="price-value cout">${fmtCAD(cout)}</span></div>
       <div class="price-row" style="border-color:var(--gold-dim);background:rgba(26,183,183,0.12)"><span class="price-label" style="color:var(--gold);font-weight:500">PRIX VENDANT</span><span class="price-value vente">${fmtCAD(vente)}</span></div>
     </div>
     <div class="margin-bar-wrap"><div class="margin-label"><span>Marge brute</span><span style="color:var(--green)">${marge}%</span></div><div class="margin-bar"><div class="margin-fill" style="width:${Math.min(marge, 100)}%"></div></div></div>
@@ -12596,8 +12600,8 @@ function calculatePriceNorm() {
   const pdsfStore = breakdown.filter(b => !b.label.startsWith('⚡')).reduce((s,b) => s + b.pdsf, 0);
   const pdsfTotal = pdsfStore + pdsfMoto;
 
-  const pct        = settings.norm.pct / 100;
-  const multi      = settings.norm.multi;
+  const pct        = getPct();
+  const multi      = getMulti();
   const multiSomfy = settings.norm.multiSomfy || 1.5;
 
   const coutStore  = Math.round(pdsfStore * pct * 100) / 100;
@@ -12684,7 +12688,7 @@ function calculatePriceNorm() {
         <span class="price-value pdsf">${fmtCAD(pdsfTotal)}</span>
       </div>
       <div class="price-row">
-        <span class="price-label">Ton coût (${settings.norm.pct}%)</span>
+        <span class="price-label">Ton coût (${Math.round(pct * 100)}%)</span>
         <span class="price-value cout">${fmtCAD(cout)}</span>
       </div>
       ${motoRow}

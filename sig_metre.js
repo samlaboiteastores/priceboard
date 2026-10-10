@@ -8,7 +8,7 @@
 //    déduction du rail → hauteur du tissu réduite ; œillets comptés et facturés à l'unité (prix dans ⚙ Paramètres).
 //  • Rail Meditrack : toutes les pièces calculées seules (supports aux 3 pi, chariots AVEC crochet, capuchon, petite porte,
 //    joints, poteaux ou tubes de suspension, courbes). Rails décoratifs : trousse Ripple Fold assemblée (AKS, ADS, CRS).
-// Prix : PDSF (coût Signature × 2) ; coût = % Draperie/Signature des Paramètres.
+// Prix : PDSF = prix de la liste Signature ; coût = % Signature des Paramètres (50 %).
 // ══════════════════════════════════════════════════════
 const SIGM_AMPLEURS_DECO = ['rf60', 'rf80', 'rf100', 'rf120'];          // NORM_FINITIONS (Ripple Fold détachable)
 const SIGM_AMPLEURS_SEP = [
@@ -18,12 +18,12 @@ const SIGM_AMPLEURS_SEP = [
   { v: 'a75', l: 'Ampleur 75 %', multi: 1.75 },
   { v: 'a100', l: 'Ampleur 100 %', multi: 2.0 },
 ];
-// Filet pour rideaux séparateurs (liste p. 11) : coût au mètre linéaire → PDSF ×2
+// Filet pour rideaux séparateurs (liste p. 11) : prix de la liste au mètre linéaire (= PDSF)
 const SIGM_FILETS = [
   { v: '', l: 'Aucun filet', h: 0, pdsfM: 0 },
-  { v: '18', l: 'Filet 18" (46 cm)', h: 18, pdsfM: 14 },
-  { v: '24', l: 'Filet 24" (61 cm)', h: 24, pdsfM: 17 },
-  { v: '48', l: 'Filet 48" (122 cm)', h: 48, pdsfM: 32 },
+  { v: '18', l: 'Filet 18" (46 cm)', h: 18, pdsfM: 7 },
+  { v: '24', l: 'Filet 24" (61 cm)', h: 24, pdsfM: 8.5 },
+  { v: '48', l: 'Filet 48" (122 cm)', h: 48, pdsfM: 16 },
 ];
 const SIGM_FILET_TROUS = ['Trous de 1/2" (ouverture 70 %)', 'Trous de 1/4"'];
 const SIGM_OEILLETS = ['Ronds', 'Carrés'];
