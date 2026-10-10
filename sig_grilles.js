@@ -117,6 +117,22 @@ function sigPrixBase(g, type, larg, haut, plomb) {
   return v ? { v, L, H } : { err: 'Non offert à ces dimensions' };
 }
 
+// ── Voile plus large que la grille : calcul au mètre, tissu inversé (Draperie Normandie) ──
+const SIG_STYLE_MULTI = { RF100: 2.5, RF120: 3.0, W200: 2.0, W250: 2.5, W300: 3.0 };
+const sigNorme = n => String(n || '').toUpperCase().replace(/I?\.?F\.R\.?/g, '').replace(/["”″]/g, '').replace(/\s+/g, ' ').trim();
+function sigTissuMetre(nomGrille) {
+  const cle = sigNorme(nomGrille);
+  return (typeof NORM_CATALOG !== 'undefined' ? NORM_CATALOG : []).find(t => t.collection === 'Signature' && !/\(doublure\)/.test(t.nom) && sigNorme(t.nom) === cle) || null;
+}
+function sigHorsGrille(nom, st, larg, haut) {
+  const t = sigTissuMetre(nom);
+  if (!t) return { err: nom + ' : plus large que la grille de la liste et absent des tissus au mètre — prix sur demande à Signature' };
+  const multi = SIG_STYLE_MULTI[st] || 2.5, r = sigmMetrage(t, larg, multi, haut + SIGM_SURPLUS);
+  const lignes = [{ label: `${t.nom} — plus large que la grille : ${r.vg} vg (≈ ${r.m} m) × ${t.pdsf} $${r.inverse ? ' — tissu inversé' : ', confection incluse'}`, pdsf: r.vg * t.pdsf }];
+  if (r.inverse) lignes.push({ label: `Confection tissu inversé (calcul Draperie Normandie) — ${r.vg} vg × ${NORM_CONF_SD.inverse[1]} $`, pdsf: r.vg * NORM_CONF_SD.inverse[1] });
+  return { lignes, total: lignes.reduce((x, l) => x + l.pdsf, 0), r, t };
+}
+
 // ── Options (étape 3) ───────────────────────────────────
 function sigOptions() {
   const a = state.sig, o = state.options, p = SIG_GRILLES[a.t];
@@ -158,18 +174,24 @@ function calculatePriceSigGrille() {
   if (state._sigOptCle !== cle || !document.getElementById('sig-qte')) { sigOptions(); state._sigOptCle = cle; }
   const o = state.options;
   const alertEl = document.getElementById('alert-dim'), noteEl = document.getElementById('note-dim');
-  const r = sigPrixBase(g, p.type, larg, haut, !!o.sigPlomb);
+  let r = sigPrixBase(g, p.type, larg, haut, !!o.sigPlomb), hors = null;
+  if (r.err && p.type === 'voile' && larg > g.L[g.L.length - 1]) {
+    hors = sigHorsGrille(a.t, a.st, larg, haut);
+    if (hors.err) r = { err: hors.err };
+    else r = { v: Math.round(hors.total * 100) / 100, L: larg, H: null };
+  }
   if (r.err) {
     alertEl.textContent = '⚠ ' + r.err + ' — liste Signature p. ' + g.page;
     alertEl.classList.add('show'); noteEl.classList.remove('show'); resetResult(); state.lastResult = null; return;
   }
   alertEl.classList.remove('show');
-  noteEl.textContent = p.type === 'voile'
+  noteEl.textContent = hors ? `ℹ Plus large que la grille (max ${g.L[g.L.length - 1]}") : calcul au mètre — ${hors.r.inverse ? 'tissu inversé, comme Draperie Normandie' : 'en laizes, confection incluse'} · liste p. 6-10`
+    : p.type === 'voile'
     ? `ℹ Prix à la largeur ${r.L}" (hauteur jusqu'à ${(o.sigPlomb ? (g.hmaxPlomb || g.hmax) : g.hmax) || '?'}") · liste p. ${g.page}`
     : `ℹ Grille utilisée : ${r.L}" × ${r.H}" · liste p. ${g.page}`;
   noteEl.classList.add('show');
 
-  const lignes = [{ label: `${a.t} — ${r.L}"${r.H ? ' × ' + r.H + '"' : ''}`, pdsf: r.v }];
+  const lignes = hors ? hors.lignes.map(l => ({ label: l.label, pdsf: Math.round(l.pdsf * 100) / 100 })) : [{ label: `${a.t} — ${r.L}"${r.H ? ' × ' + r.H + '"' : ''}`, pdsf: r.v }];
   let pdsf = r.v;
   const ajout = (label, v) => { if (v > 0) { v = Math.round(v * 100) / 100; pdsf += v; lignes.push({ label, pdsf: v }); } };
   if (o.sigTete6) ajout('Tête 6 po (+10 %)', r.v * 0.10);
@@ -181,6 +203,10 @@ function calculatePriceSigGrille() {
     const RL = g.railL || g.L, L2 = nextDim(RL, larg);
     const v = L2 ? g.rail[RL.indexOf(L2)] : null;
     if (v) { ajout(`Rail ADS ${L2}" (chariots, capuchons, supports inclus)`, v); railTxt = `Rail ADS (liste) ${L2}"`; }
+    else if (hors && typeof sigmTrousse === 'function') {
+      const T = sigmTrousse(larg, a.st === 'RF120' ? 'rf120' : 'rf100', { sigmRail: 'ADS', sigmPose: 'plafond' });
+      if (!T.err) { ajout(`Trousse Ripple Fold ${T.variante} — ${T.k.pi} pi : ${T.k.sup} supports, ${T.k.ch} chariots détachables${T.extra}`, T.k.prix); railTxt = `Trousse ADS ${T.k.pi} pi`; }
+    }
   } else if (rail && NORM_RAILS[rail]) {
     const R = NORM_RAILS[rail], coul = o.sigRailCoul || (R.couleurs || ['Blanc'])[0], blanc = /blanc/i.test(coul);
     const pieds = Math.ceil(larg / 12);
@@ -210,6 +236,7 @@ function calculatePriceSigGrille() {
     'Panneaux : ' + div,
     'Tête : ' + (o.sigTete6 ? '6 po' : '4 po'),
   ];
+  if (hors) resume.push('Calcul au mètre : plus large que la grille de la liste (' + hors.r.vg + ' vg' + (hors.r.inverse ? ', tissu inversé' : '') + ')');
   if (p.type === 'opaque') resume.push('Doublure : ' + (doub && doub.pct ? doub.l.replace(/^Doublure /, '').replace(/ \(\+\d+ %\)/, '') : 'Aucune'));
   else if (o.sigPlomb) resume.push('Bas plombé');
   resume.push('Rail : ' + railTxt + (o.sigCourbes ? ' · ' + o.sigCourbes + ' courbe(s)' : ''));

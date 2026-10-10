@@ -643,6 +643,22 @@
                   <div id="sig-choix"></div>
                 </div>
 
+                <!-- SIGNATURE — rideaux sur mesure au mètre (sig_metre.js) -->
+                <div id="row-sigm" style="display:none">
+                  <div style="padding:0 20px 10px;">
+                    <div style="position:relative;">
+                      <input type="text" id="sigm-search" placeholder="🔍 Rechercher un tissu au mètre (Ambiance, Nital, Tranquil…)" autocomplete="off" aria-label="Rechercher un tissu Signature au mètre"
+                        style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:DM Mono,monospace;font-size:12px;padding:9px 36px 9px 12px;box-sizing:border-box;"
+                        oninput="sigmListe(this.value)">
+                      <span id="sigm-clear" onclick="document.getElementById('sigm-search').value='';sigmListe('');"
+                        style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text-dim);font-size:14px;line-height:1;">✕</span>
+                    </div>
+                  </div>
+                  <div id="sigm-list" style="max-height:300px;overflow-y:auto;border-top:1px solid var(--border);border-bottom:1px solid var(--border);"></div>
+                  <div id="sigm-selected" style="display:none;margin:10px 20px 0;padding:8px 12px;background:rgba(26,183,183,0.08);border:1px solid rgba(26,183,183,0.3);border-radius:6px;font-size:12px;color:var(--gold);"></div>
+                  <div id="sigm-choix"></div>
+                </div>
+
                 <!-- VEROTEX — sélecteur tissu + options -->
                 <div id="row-vtx" style="display:none">
                   <div style="padding:8px 20px 4px;">
@@ -1107,6 +1123,16 @@
                 <div style="display:flex;align-items:center;gap:6px">
                   <input type="number" class="admin-input" id="admin-multi-somfy-norm" value="1.5" min="1" max="10" step="0.1" onchange="saveAdminSettings()">
                   <span style="color:var(--text-dim);font-size:12px">×</span>
+                </div>
+              </div>
+              <div class="admin-row">
+                <div>
+                  <div class="admin-label">Signature — prix par œillet</div>
+                  <div style="font-size:10px;color:var(--text-dim);margin-top:2px">Rideaux séparateurs / médicaux (PDSF, 1 œillet par chariot)</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px">
+                  <input type="number" class="admin-input" id="admin-oeillet-sig" value="0" min="0" max="50" step="0.05" onchange="saveAdminSettings()">
+                  <span style="color:var(--text-dim);font-size:12px">$</span>
                 </div>
               </div>
               <div class="admin-row">
@@ -3247,6 +3273,8 @@ function loadSettings() {
   if (!settings.solr) settings.solr = { pct: 32, multi: 2.0, multiSomfy: 1.5 };
   if (!settings.solr.multiSomfy) settings.solr.multiSomfy = 1.5;
   if (!settings.norm) settings.norm = { pct: 50, multi: 2.0, multiSomfy: 1.5 };
+  if (!settings.sig) settings.sig = { oeillet: 0 };
+  if (document.getElementById('admin-oeillet-sig')) document.getElementById('admin-oeillet-sig').value = settings.sig.oeillet || 0;
   if (!settings.norm.multiSomfy) settings.norm.multiSomfy = 1.5;
   if (!settings.vtx)  settings.vtx  = { pct: 100, multi: 1.0 };
   if (!settings.altex) settings.altex = { multi: 2.0 };
@@ -3292,6 +3320,8 @@ function saveAdminSettings() {
   settings.solr.multiSomfy = parseFloat(document.getElementById('admin-multi-somfy-solr').value) || 1.5;
   settings.norm.pct = parseFloat(document.getElementById('admin-pct-norm').value) || 50;
   settings.norm.multi = parseFloat(document.getElementById('admin-multi-norm').value) || 2.0;
+  if (!settings.sig) settings.sig = {};
+  settings.sig.oeillet = Math.max(0, parseFloat((document.getElementById('admin-oeillet-sig') || {}).value) || 0);
   settings.norm.multiSomfy = parseFloat(document.getElementById('admin-multi-somfy-norm').value) || 1.5;
   settings.vtx.pct  = parseFloat(document.getElementById('admin-pct-vtx').value)  || 100;
   settings.vtx.multi = parseFloat(document.getElementById('admin-multi-vtx').value) || 1.0;
@@ -3311,6 +3341,7 @@ function saveAdminSettings() {
   else if (state.fournisseur === 'solr') calculatePriceSolr();
   else if (state.fournisseur === 'norm') {
     if (state.type === 'sig-grille') calculatePriceSigGrille();
+    else if (state.type === 'sig-metre') calculatePriceSigMetre();
     else if (state.type === 'norm-romain') calculatePriceRomain();
     else if (state.type === 'norm-pret') calculatePricePret();
     else calculatePriceNorm();
@@ -3461,7 +3492,7 @@ function onFournisseurChange() {
   const _selF = document.getElementById('sel-fournisseur').value;
   state.normSource = (_selF === 'sig') ? 'sig' : 'norm';         // Signature Textiles ≠ Draperie Normandie : deux fournisseurs, un même moteur de calcul
   state.fournisseur = (_selF === 'sig') ? 'norm' : _selF;
-  hide('row-altex'); hide('row-sig');
+  hide('row-altex'); hide('row-sig'); hide('row-sigm');
   multiDimsUI(1);   // le bloc toiles/stores 2-3 ne reste jamais affiché d'un fournisseur à l'autre
   if (state.fournisseur === 'altex') { altexOnFournisseur(); return; }
   if (state.fournisseur === 'elite') { eliteOnFournisseur(); return; }
@@ -3518,7 +3549,7 @@ function onFournisseurChange() {
     show('row-type');
     const selType = document.getElementById('sel-type');
     selType.innerHTML = state.normSource === 'sig'
-      ? '<option value="">— Sélectionner —</option><option value="sig-grille">Rideaux confectionnés — liste de prix (largeur × hauteur)</option><option value="norm-pret">Panneaux prêts à poser</option><option value="norm-rideau">Ancien calcul au mètre (lignes existantes)</option>'
+      ? '<option value="">— Sélectionner —</option><option value="sig-grille">Rideaux confectionnés — liste de prix (largeur × hauteur)</option><option value="sig-metre">Rideaux sur mesure au mètre — décoratifs ou séparateurs / médicaux (tissus p. 6-11)</option><option value="norm-pret">Panneaux prêts à poser</option><option value="norm-rideau">Ancien calcul au mètre (lignes existantes)</option>'
       : '<option value="">— Sélectionner —</option><option value="norm-rideau">Rideaux (Simplicity, Alendel, Unique)</option><option value="norm-romain">Stores Romains</option>';
     selType.value = '';
     return;
@@ -3563,11 +3594,12 @@ function onTypeChange() {
     hide('row-modele'); hide('row-couleur');
     hide('row-tissu-nom'); hide('row-tissu-couleur');
     hide('row-solr-tissu');
-    hide('row-sig');
+    hide('row-sig'); hide('row-sigm');
     hide('card-dim'); hide('card-options');
     resetResult();
 
     if (state.type === 'sig-grille') { sigGrilleStart(); return; }
+    if (state.type === 'sig-metre') { sigMetreStart(); return; }
     if (state.type === 'norm-rideau') {
       // Sélection tissu Simplicity
       const badge = document.getElementById('norm-selected');
@@ -3733,6 +3765,7 @@ function onDimChange() {
     show('card-options');
     state.options = state.options || {};
     if (state.type === 'sig-grille') { calculatePriceSigGrille(); return; }
+    if (state.type === 'sig-metre') { calculatePriceSigMetre(); return; }
     if (state.type === 'norm-romain') {
       buildOptionsRomain();
       calculatePriceRomain();
@@ -13187,29 +13220,50 @@ function svcKmExtra(kmAller) {
 // ── État des services ──
 let svcState = {};
 
-function onSvcCodePostalChange() {
-  const cp = document.getElementById('svc-codepostal').value.trim();
-  const km = svcGetKm(cp);
-  const infoEl = document.getElementById('svc-km-info');
-  const prefix = cp.replace(/\s/g,'').substring(0,3).toUpperCase();
+// Distance réelle par la route (Google Maps, calculée par Odoo) ; la table des secteurs sert de secours.
+const SVC_KM_URL = 'https://tkl.tekstil.ca/lbas/priceboard/km?cp=';
+const svcKmCache = {};
+let svcKmMinuterie = null;
 
-  if (km === null && cp.length >= 3) {
-    infoEl.style.display = 'block';
-    infoEl.style.cssText = 'display:block;margin-top:8px;padding:8px 12px;font-size:11px;border-radius:6px;background:rgba(224,92,92,0.08);border:1px solid rgba(224,92,92,0.25);color:var(--red);line-height:1.6;';
-    infoEl.innerHTML = `Code postal <strong>${prefix}</strong> — région non reconnue. Entrez les km manuellement ci-dessous.`;
-    show('svc-km-manuel', true);
-  } else if (km !== null) {
-    const extra = svcKmExtra(km);
-    infoEl.style.display = 'block';
-    infoEl.style.cssText = 'display:block;margin-top:8px;padding:8px 12px;font-size:11px;border-radius:6px;background:rgba(91,155,213,0.08);border:1px solid rgba(91,155,213,0.25);color:var(--blue);line-height:1.6;';
-    infoEl.innerHTML = `📍 Zone <strong>${prefix}</strong> — ~${km} km depuis Ste-Thérèse<br>`
-      + `Aller-retour : ~${km*2} km · 40 km inclus · <strong>~${extra} km extra @ $1.20/km</strong>`;
-    hide('svc-km-manuel');
-    svcState.kmAller = km;
-  } else {
-    infoEl.style.display = 'none';
-  }
+function svcAfficherKm(prefix, km, source) {
+  const infoEl = document.getElementById('svc-km-info');
+  const extra = Math.round(svcKmExtra(km));
+  infoEl.style.cssText = 'display:block;margin-top:8px;padding:8px 12px;font-size:11px;border-radius:6px;background:rgba(91,155,213,0.08);border:1px solid rgba(91,155,213,0.25);color:var(--blue);line-height:1.6;';
+  infoEl.innerHTML = `📍 <strong>${prefix}</strong> — ${km} km depuis Ste-Thérèse ${source === 'google' ? '(par la route, Google Maps)' : '(estimation par secteur)'}<br>`
+    + `Aller-retour : ${Math.round(km * 2)} km · 40 km inclus · <strong>${extra} km extra @ $1.20/km</strong>`;
+  svcState.kmAller = km;
+  svcState.kmSource = source;
+}
+
+function svcKmIntrouvable(prefix) {
+  const infoEl = document.getElementById('svc-km-info');
+  infoEl.style.cssText = 'display:block;margin-top:8px;padding:8px 12px;font-size:11px;border-radius:6px;background:rgba(224,92,92,0.08);border:1px solid rgba(224,92,92,0.25);color:var(--red);line-height:1.6;';
+  infoEl.innerHTML = `Code postal <strong>${prefix}</strong> — distance introuvable. Vérifie le code postal (ex. J7E 2X5).`;
+  svcState.kmAller = 0;
+}
+
+function onSvcCodePostalChange() {
+  const cp = document.getElementById('svc-codepostal').value.replace(/\s/g, '').toUpperCase();
+  const infoEl = document.getElementById('svc-km-info');
+  const prefix = cp.substring(0, 3);
+  clearTimeout(svcKmMinuterie);
+  if (!/^[A-Z]\d[A-Z]/.test(cp)) { infoEl.style.display = 'none'; svcState.kmAller = 0; calculateSvc(); return; }
+  // estimation immédiate par secteur (si connu), puis la vraie distance quand le code est complet
+  const kmTable = svcGetKm(cp);
+  if (kmTable !== null) svcAfficherKm(prefix, kmTable, 'table');
   calculateSvc();
+  const cle = /^[A-Z]\d[A-Z]\d[A-Z]\d$/.test(cp) ? cp : (cp.length === 3 ? cp : null);
+  if (!cle) return;
+  if (svcKmCache[cle]) { svcAfficherKm(prefix, svcKmCache[cle], 'google'); calculateSvc(); return; }
+  svcKmMinuterie = setTimeout(() => {
+    fetch(SVC_KM_URL + encodeURIComponent(cle)).then(r => r.json()).then(j => {
+      const actuel = document.getElementById('svc-codepostal').value.replace(/\s/g, '').toUpperCase();
+      if (actuel !== cp) return;            // le code a changé entre-temps
+      if (j && j.ok) { svcKmCache[cle] = j.km; svcAfficherKm(prefix, j.km, 'google'); }
+      else if (kmTable === null) svcKmIntrouvable(prefix);
+      calculateSvc();
+    }).catch(() => { if (kmTable === null) { svcKmIntrouvable(prefix); calculateSvc(); } });
+  }, 350);
 }
 
 // ── Helper UI ──
@@ -13412,7 +13466,7 @@ function calculateSvc() {
 
   // ── DÉPLACEMENT ──
   const kmAller = svcState.kmAller || 0;
-  const kmExtra = svcKmExtra(kmAller);
+  const kmExtra = Math.round(svcKmExtra(kmAller));
   const nbVisites = visite === 'mesure-install' ? 2 : 1;
 
   for (let i = 0; i < nbVisites; i++) {
@@ -13624,6 +13678,7 @@ function _buildResumeLines() {
   if (f === 'altex') return (state.altexResume && state.altexResume.length && state.lastResult) ? state.altexResume.slice() : null;
   if (f === 'elite') return (state.eliteResume && state.eliteResume.length && state.lastResult) ? state.eliteResume.slice() : null;
   if (state.type === 'sig-grille') return (state.sigResume && state.sigResume.length && state.lastResult) ? state.sigResume.slice() : null;
+  if (state.type === 'sig-metre') return (state.sigmResume && state.sigmResume.length && state.lastResult) ? state.sigmResume.slice() : null;
   const opt = state.options;
   const lines = [];
 
@@ -14295,6 +14350,7 @@ function copyResume() {
     }
 
     if (saved.type === 'sig-grille' && typeof window.sigGrilleRestore === 'function') { window.sigGrilleRestore(saved, ctrls); return; }
+    if (saved.type === 'sig-metre' && typeof window.sigMetreRestore === 'function') { window.sigMetreRestore(saved, ctrls); return; }
 
     // 3) Fournisseurs a recherche de tissu
     try {
@@ -14402,5 +14458,6 @@ function copyResume() {
 <script src="elite.js"></script>
 <script src="sig_grilles_data.js"></script>
 <script src="sig_grilles.js"></script>
+<script src="sig_metre.js"></script>
 </body>
 </html>
