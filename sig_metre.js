@@ -10,7 +10,11 @@
 //    joints, poteaux ou tubes de suspension, courbes). Rails décoratifs : trousse Ripple Fold assemblée (AKS, ADS, CRS).
 // Prix : PDSF = prix de la liste Signature ; coût = % Signature des Paramètres (50 %).
 // ══════════════════════════════════════════════════════
-const SIGM_AMPLEURS_DECO = ['rf60', 'rf80', 'rf100', 'rf120'];          // NORM_FINITIONS (Ripple Fold détachable)
+const SIGM_AMPLEURS_DECO = ['rf60', 'rf80', 'rf100', 'rf120', 'plisf', 'plis2', 'plisplat', 'pliscreux'];   // Ripple Fold détachable + plis (Sam 2026-10-12)
+// Plis plats et creux : même métrage que les plis français de Draperie Normandie (3 × la largeur)
+const SIGM_FIN_EXTRA = [{ val: 'plisplat', label: 'Plis plats', multi: 3.0 }, { val: 'pliscreux', label: 'Plis creux (inversés)', multi: 3.0 }];
+function sigmFinition(v) { return NORM_FINITIONS.find(f => f.val === v) || SIGM_FIN_EXTRA.find(f => f.val === v); }
+const sigmEstPlis = v => /^plis/.test(v || '');
 const SIGM_AMPLEURS_SEP = [
   { v: 'a0', l: 'Sans ampleur (rideau à plat)', multi: 1.0 },
   { v: 'a25', l: 'Ampleur 25 %', multi: 1.25 },
@@ -130,11 +134,11 @@ function sigmOptions() {
     h += sigRailHtml(o, { defaut: 'medi', on });
   } else {
     if (!SIGM_AMPLEURS_DECO.includes(o.sigmFin)) o.sigmFin = 'rf100';
-    h += sigmSelect('sigm-fin', 'Confection', SIGM_AMPLEURS_DECO.map(v => NORM_FINITIONS.find(f => f.val === v)).map(f => ({ v: f.val, l: f.label })), o.sigmFin, "state.options.sigmFin=this.value;" + on);
+    h += sigmSelect('sigm-fin', 'Confection', SIGM_AMPLEURS_DECO.map(sigmFinition).map(f => ({ v: f.val, l: f.label })), o.sigmFin, "state.options.sigmFin=this.value;" + on);
     h += sigmSelect('sigm-div', 'Panneaux', SIG_DIVISIONS, o.sigmDiv || 'demi', "state.options.sigmDiv=this.value;" + on);
     const D = sigmTissus(true).sort((x, y) => x.nom.localeCompare(y.nom, 'fr'));
     h += sigmSelect('sigm-doub', 'Doublure (liste p. 11)', [{ v: '', l: 'Aucune doublure' }, ...D.map(d => ({ v: d.nom, l: sigmNomPropre(d.nom) + ' (' + d.largeur + '")' }))], o.sigmDoub || '', "state.options.sigmDoub=this.value;" + on);
-    h += sigRailHtml(o, { defaut: 'AKS', on });
+    h += sigRailHtml(o, { defaut: 'AKS', plis: sigmEstPlis(o.sigmFin), on });
   }
   h += '<div style="padding:6px 20px 12px;display:flex;align-items:center;gap:8px;font-size:12px;"><input type="number" min="1" step="1" id="sigm-qte" value="' + (o.sigmQte || 1) + '" oninput="state.options.sigmQte=Math.max(1,parseInt(this.value)||1);' + on + '" style="width:60px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px;"> <label for="sigm-qte">Quantité (rideaux identiques)</label></div>';
   document.getElementById('options-container').innerHTML = h;
@@ -223,7 +227,7 @@ function sigRailCalcul(o, larg, ctx) {
     return { lignes: L, txt: `Architex ${pi} pi — ${o.sigmPose === 'mur' ? 'au mur' : 'au plafond'}, ${sup} supports, ${ch} chariots à billes${ctx.plis ? '' : ' détachables'}${courbes ? ', ' + courbes + ' courbe(s)' : ''}` };
   }
   if (r === 'medi') {
-    const nb = ctx.nbChariots || (Math.ceil(larg * ((NORM_FINITIONS.find(f => f.val === ctx.fin) || { multi: 2.5 }).multi) / 6) + 1);
+    const nb = ctx.nbChariots || (Math.ceil(larg * ((sigmFinition(ctx.fin) || { multi: 2.5 }).multi) / 6) + 1);
     const M = sigmMeditrack(larg, nb, o);
     return { lignes: M.lignes, txt: M.txt };
   }
@@ -324,7 +328,7 @@ function calculatePriceSigMetre() {
   if (hautFini < 12) return bloquer(`Hauteur de tissu trop petite (${sigmPoMm(hautFini)}) : vérifie la hauteur, l'espace au sol et le filet.`);
   const hautTissu = hautFini + SIGM_SURPLUS;
 
-  const multi = sep ? (SIGM_AMPLEURS_SEP.find(x => x.v === o.sigmAmp) || SIGM_AMPLEURS_SEP[2]).multi : (NORM_FINITIONS.find(f => f.val === o.sigmFin) || NORM_FINITIONS[2]).multi;
+  const multi = sep ? (SIGM_AMPLEURS_SEP.find(x => x.v === o.sigmAmp) || SIGM_AMPLEURS_SEP[2]).multi : (sigmFinition(o.sigmFin) || NORM_FINITIONS[2]).multi;
   const div = sep ? 'demi' : (o.sigmDiv || 'demi');
   const largeurs = div === 'demi' ? [larg] : [larg / 2, larg / 2];
   const lignes = [];
@@ -366,7 +370,7 @@ function calculatePriceSigMetre() {
     ajout(`Œillets ${(o.sigmOe || SIGM_OEILLETS[0]).toLowerCase()} ${(o.sigmOeCoul || SIGM_OEILLET_COUL[0]).toLowerCase()} × ${nbChariots}${oeil ? ' × ' + oeil + ' $' : ' — ⚠ prix par œillet à régler dans ⚙ Paramètres'}`, nbChariots * oeil);
   }
   // Rail (bloc commun Signature)
-  const RR = sigRailCalcul(o, larg, { fin: sep ? null : o.sigmFin, nbChariots: sep ? nbChariots : null });
+  const RR = sigRailCalcul(o, larg, { fin: sep ? null : o.sigmFin, nbChariots: sep ? nbChariots : null, plis: !sep && sigmEstPlis(o.sigmFin) });
   if (RR.err) return bloquer(RR.err);
   RR.lignes.forEach(x => ajout(x.label, x.pdsf));
   const railTxt = RR.txt;
@@ -384,7 +388,7 @@ function calculatePriceSigMetre() {
   const vente = Math.round(cout * mul * 100) / 100;
   const marge = vente > 0 ? Math.round((vente - cout) / vente * 1000) / 10 : 0;
 
-  const ampTxt = sep ? (SIGM_AMPLEURS_SEP.find(x => x.v === o.sigmAmp) || SIGM_AMPLEURS_SEP[2]).l : (NORM_FINITIONS.find(f => f.val === o.sigmFin) || {}).label;
+  const ampTxt = sep ? (SIGM_AMPLEURS_SEP.find(x => x.v === o.sigmAmp) || SIGM_AMPLEURS_SEP[2]).l : (sigmFinition(o.sigmFin) || {}).label;
   const resume = [
     'Fournisseur : Signature Textiles',
     (sep ? 'Rideau séparateur / médical' : 'Rideau décoratif') + ' sur mesure — tissu au mètre',
