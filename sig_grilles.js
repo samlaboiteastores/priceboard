@@ -5,13 +5,13 @@
 // Rails et composantes (rail ADS de la liste ou autre rail Signature + accessoires) : offerts pour tous les tissus.
 // Données : sig_grilles_data.js (SIG_GRILLES).
 // ══════════════════════════════════════════════════════
+// Sam 2026-10-12 : pas de wave ; Ripple Fold détachable 100/120 % et plis (grille « plis français » 2 pour 1 de la liste).
 const SIG_STYLES = {
-  RF100: 'Plis ondulés (Ripple Fold) — ampleur 100 %',
-  RF120: 'Plis ondulés (Ripple Fold) — ampleur 120 %',
-  W200: 'Wave ou plis français — ampleur 200 % (2 pour 1)',
-  W250: 'Wave ou plis français — ampleur 250 % (2½ pour 1)',
-  W300: 'Wave ou plis français — ampleur 300 % (3 pour 1)',
+  RF100: 'Ripple Fold détachable — ampleur 100 %',
+  RF120: 'Ripple Fold détachable — ampleur 120 %',
+  W200: 'Plis (français, 2 pattes, plats, creux) — 2 pour 1',
 };
+const SIG_PLIS = ['Plis français (3 pattes)', 'Plis 2 pattes', 'Plis plats', 'Plis creux (inversés)'];
 const SIG_DOUBLURES = [
   { v: '', l: 'Aucune doublure', pct: 0 },
   { v: 'opaque', l: 'Doublure opaque / blackout (+30 %)', pct: 30 },
@@ -137,13 +137,15 @@ function sigHorsGrille(nom, st, larg, haut) {
 function sigOptions() {
   const a = state.sig, o = state.options, p = SIG_GRILLES[a.t];
   const on = 'calculatePriceSigGrille();';
-  let h = sigSelect('sig-div', 'Panneaux', SIG_DIVISIONS, o.sigDiv || 'demi', "state.options.sigDiv=this.value;" + on);
+  let h = '';
+  if (a.st === 'W200') { if (!SIG_PLIS.includes(o.sigPli)) o.sigPli = SIG_PLIS[0]; h += sigSelect('sig-pli', 'Type de pli (même prix que plis français)', SIG_PLIS.map(x => ({ v: x, l: x })), o.sigPli, "state.options.sigPli=this.value;" + on); }
+  h += sigSelect('sig-div', 'Panneaux', SIG_DIVISIONS, o.sigDiv || 'demi', "state.options.sigDiv=this.value;" + on);
   h += '<div style="padding:6px 20px;"><label style="display:flex;gap:8px;align-items:center;font-size:12px;cursor:pointer;"><input type="checkbox" id="sig-tete6"' + (o.sigTete6 ? ' checked' : '') + ' onchange="state.options.sigTete6=this.checked;' + on + '"> Tête 6 po (+10 %) <span style="color:var(--text-dim)">— standard : tête 4 po</span></label></div>';
   if (p.type === 'opaque') h += sigSelect('sig-doub', 'Doublure', SIG_DOUBLURES.map(d => ({ v: d.v, l: d.l })), o.sigDoub || '', "state.options.sigDoub=this.value;" + on);
   else h += '<div style="padding:6px 20px;"><label style="display:flex;gap:8px;align-items:center;font-size:12px;cursor:pointer;"><input type="checkbox" id="sig-plomb"' + (o.sigPlomb ? ' checked' : '') + ' onchange="state.options.sigPlomb=this.checked;' + on + '"> Bas plombé <span style="color:var(--text-dim)">— change la hauteur maximale</span></label></div>';
   // Rails (bloc commun Signature) — anciennes lignes : sigRail 'ads' / SIG_X
   if (o.sigmRail == null && o.sigRail !== undefined) { o.sigmRail = o.sigRail === 'ads' ? 'ads-liste' : o.sigRail ? 'pied:' + o.sigRail : 'aucun'; o.sigmRailCoul = o.sigRailCoul; o.sigmAcc = o.sigAcc; o.sigmCourbes = o.sigCourbes; }
-  h += sigRailHtml(o, { defaut: 'ads-liste', grille: true, on });
+  h += sigRailHtml(o, { defaut: 'ads-liste', grille: true, plis: a.st === 'W200', on });
   h += '<div style="padding:6px 20px 12px;display:flex;align-items:center;gap:8px;font-size:12px;"><input type="number" min="1" step="1" id="sig-qte" value="' + (o.sigQte || 1) + '" oninput="state.options.sigQte=Math.max(1,parseInt(this.value)||1);' + on + '" style="width:60px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px;"> <span>Quantité (rideaux identiques)</span></div>';
   document.getElementById('options-container').innerHTML = h;
 }
@@ -158,6 +160,7 @@ function calculatePriceSigGrille() {
   if (!larg || !haut) { resetResult(); return; }
   show('card-options');
   const cle = [a.t, a.st, state.options.sigmRail, state.options.sigmPose].join('|');
+  if (a.st === 'W200' && !state.options.sigPli) state.options.sigPli = SIG_PLIS[0];
   if (state._sigOptCle !== cle || !document.getElementById('sig-qte')) { sigOptions(); state._sigOptCle = cle; }
   const o = state.options;
   const alertEl = document.getElementById('alert-dim'), noteEl = document.getElementById('note-dim');
@@ -184,7 +187,7 @@ function calculatePriceSigGrille() {
   if (o.sigTete6) ajout('Tête 6 po (+10 %)', r.v * 0.10);
   const doub = SIG_DOUBLURES.find(d => d.v === (o.sigDoub || ''));
   if (p.type === 'opaque' && doub && doub.pct) ajout(doub.l, r.v * doub.pct / 100);
-  const RR = sigRailCalcul(o, larg, { fin: a.st === 'RF120' || a.st === 'W300' ? 'rf120' : 'rf100', grille: g });
+  const RR = sigRailCalcul(o, larg, { fin: a.st === 'RF120' ? 'rf120' : 'rf100', grille: g, plis: a.st === 'W200' });
   if (RR.err) { alertEl.textContent = '⚠ ' + RR.err; alertEl.classList.add('show'); resetResult(); state.lastResult = null; return; }
   RR.lignes.forEach(x => ajout(x.label, x.pdsf));
   const railTxt = RR.txt;
@@ -200,7 +203,7 @@ function calculatePriceSigGrille() {
   const fmtPo = v => { let w = Math.floor(v + 1e-4), f = Math.round((v - w) * 8) / 8; if (f >= 1) { w++; f = 0; } const m = { 0.125: '1/8', 0.25: '1/4', 0.375: '3/8', 0.5: '1/2', 0.625: '5/8', 0.75: '3/4', 0.875: '7/8' }; return m[f] ? `${w} ${m[f]}"` : `${w}"`; };
   const resume = [
     'Fournisseur : Signature Textiles',
-    'Rideau confectionné : ' + SIG_STYLES[a.st],
+    'Rideau confectionné : ' + (a.st === 'W200' ? (o.sigPli || SIG_PLIS[0]) + ' — 2 pour 1' : SIG_STYLES[a.st]),
     'Tissu : ' + a.t + (state.tissuCouleur ? ' — ' + state.tissuCouleur : '') + (p.type === 'voile' ? ' (' + p.section.toLowerCase() + ')' : ''),
     'Dimensions : ' + fmtPo(larg) + ' × ' + fmtPo(haut) + ' (largeur finie plissée × hauteur)',
     'Panneaux : ' + div,
