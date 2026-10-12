@@ -3553,7 +3553,12 @@ function onFournisseurChange() {
     show('row-type');
     const selType = document.getElementById('sel-type');
     selType.innerHTML = state.normSource === 'sig'
-      ? '<option value="">— Sélectionner —</option><option value="sig-grille">Rideaux confectionnés — liste de prix (largeur × hauteur)</option><option value="sig-metre">Rideaux sur mesure au mètre — décoratifs ou séparateurs / médicaux (tissus p. 6-11)</option><option value="norm-pret">Panneaux prêts à poser</option><option value="norm-rideau">Ancien calcul au mètre (lignes existantes)</option>'
+      ? '<option value="">— Sélectionner —</option>'
+        + '<optgroup label="Voilages"><option value="sig-voile">Voilages confectionnés — liste de prix</option></optgroup>'
+        + '<optgroup label="Rideaux"><option value="sig-opaque">Rideaux opaques confectionnés — liste de prix</option><option value="sig-metre">Rideaux et voilages sur mesure — tissu au mètre</option></optgroup>'
+        + '<optgroup label="Rideaux médicaux"><option value="sig-medical">Rideaux médicaux / séparateurs — filet, œillets, Meditrack</option></optgroup>'
+        + '<optgroup label="Prêt-à-poser"><option value="norm-pret">Panneaux prêts à poser</option></optgroup>'
+        + '<optgroup label="Anciennes lignes"><option value="norm-rideau">Ancien calcul au mètre (lignes existantes seulement)</option></optgroup>'
       : '<option value="">— Sélectionner —</option><option value="norm-rideau">Rideaux (Simplicity, Alendel, Unique)</option><option value="norm-romain">Stores Romains</option>';
     selType.value = '';
     return;
@@ -3585,10 +3590,24 @@ function onFournisseurChange() {
   resetResult();
 }
 
+const SIG_TYPE_MAP = { 'sig-voile': ['sig-grille', 'voile'], 'sig-opaque': ['sig-grille', 'opaque'], 'sig-metre': ['sig-metre', 'deco'], 'sig-medical': ['sig-metre', 'sep'] };
+// valeur du menu pour une ligne enregistrée (✎ Modifier)
+window.sigTypeOption = function (saved) {
+  if (saved.type === 'sig-grille') {
+    if (saved.sigCat) return saved.sigCat === 'opaque' ? 'sig-opaque' : 'sig-voile';
+    const t = saved.sig && saved.sig.t, g = t && typeof SIG_GRILLES !== 'undefined' && SIG_GRILLES[t];
+    return g && g.type === 'opaque' ? 'sig-opaque' : 'sig-voile';
+  }
+  if (saved.type === 'sig-metre') return (saved.sigCat === 'sep' || (saved.sigm && saved.sigm.u === 'sep')) ? 'sig-medical' : 'sig-metre';
+  return null;
+};
 function onTypeChange() {
   if (state.fournisseur === 'altex') { altexOnType(); return; }   // Altex : gabarit VP (altex.js)
   if (state.fournisseur === 'elite') { eliteOnType(); return; }   // Elite : gabarit VP (elite.js)
   state.type = document.getElementById('sel-type').value;
+  // Signature : catégories du menu → type interne + catégorie (2026-10-12)
+  state.sigCat = '';
+  if (SIG_TYPE_MAP[state.type]) { state.sigCat = SIG_TYPE_MAP[state.type][1]; state.type = SIG_TYPE_MAP[state.type][0]; }
   if (!state.type) { hide('row-modele'); return; }
 
   // Normandie — Rideaux ou Romains
@@ -14365,7 +14384,7 @@ function copyResume() {
     // 2) Type (SBM / Normandie)
     if (saved.type) {
       var selT = byId('sel-type');
-      if (selT) { selT.value = saved.type; if (typeof onTypeChange === 'function') { try { onTypeChange(); } catch (e) {} } }
+      if (selT) { selT.value = (window.sigTypeOption && window.sigTypeOption(saved)) || saved.type; if (typeof onTypeChange === 'function') { try { onTypeChange(); } catch (e) {} } }
     }
 
     if (saved.type === 'sig-grille' && typeof window.sigGrilleRestore === 'function') { window.sigGrilleRestore(saved, ctrls); return; }

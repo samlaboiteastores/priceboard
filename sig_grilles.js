@@ -44,6 +44,8 @@ function sigListe(filtre) {
   Object.keys(SIG_GRILLES).sort((a, b) => a.localeCompare(b, 'fr')).forEach(n => {
     const p = SIG_GRILLES[n];
     if (filtre && !(n + ' ' + p.section).toLowerCase().includes(filtre)) return;
+    if (state.sigCat === 'voile' && p.type !== 'voile') return;
+    if (state.sigCat === 'opaque' && p.type !== 'opaque') return;
     (groupes[p.section] = groupes[p.section] || []).push(n);
   });
   list.innerHTML = '';
@@ -52,7 +54,7 @@ function sigListe(filtre) {
   ordre.forEach(sec => {
     const h = document.createElement('div');
     h.style.cssText = 'position:sticky;top:0;z-index:2;padding:7px 14px 5px;font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--gold);background:var(--surface);border-bottom:1px solid var(--border);text-transform:uppercase;';
-    h.textContent = 'Signature · ' + (sec === 'Tissus opaques' ? 'Tissus opaques — grille largeur × hauteur' : sec + ' — prix selon la largeur');
+    h.textContent = sec === 'Tissus opaques' ? 'Rideaux opaques — prix largeur × hauteur' : sec.replace(/^VOILE - /, '').replace(/ – .*$/, '').replace(/^VOILES/, 'Voilages') + ' — prix selon la largeur';
     list.appendChild(h);
     groupes[sec].forEach(n => {
       const sel = state.sig && state.sig.t === n;

@@ -48,6 +48,7 @@ function sigmPoMm(v) { let w = Math.floor(v + 1e-4), f = Math.round((v - w) * 8)
 // ── 1 — Produit ─────────────────────────────────────────
 function sigMetreStart() {
   state.sigm = state.sigm || {};
+  if (state.sigCat === 'sep' || state.sigCat === 'deco') state.sigm.u = state.sigCat;
   ['row-norm-tissu', 'row-sig', 'card-dim', 'card-options'].forEach(hide);
   show('row-sigm', true);
   const s = document.getElementById('sigm-search'); if (s) s.value = '';
@@ -84,6 +85,7 @@ function sigmListe(filtre) {
 function sigmChoisir(nom, garder) {
   const prec = state.sigm || {};
   state.sigm = Object.assign({ t: nom }, garder || { u: prec.u || 'deco' });
+  if (state.sigCat === 'sep' || state.sigCat === 'deco') state.sigm.u = state.sigCat;
   state.modele = nom; state.tissuNom = nom;
   const t = sigmTissu(nom), b = document.getElementById('sigm-selected');
   if (b && t) {
@@ -108,7 +110,7 @@ function sigmChoix() {
   const box = document.getElementById('sigm-choix'); if (!box) return;
   const a = state.sigm || {};
   if (!a.t || !sigmTissu(a.t)) { box.innerHTML = ''; hide('card-dim'); hide('card-options'); resetResult(); return; }
-  let html = sigmSelect('sigm-usage', 'Usage du rideau', [{ v: 'deco', l: 'Rideau décoratif (Ripple Fold détachable)' }, { v: 'sep', l: 'Rideau séparateur / médical (filet, œillets, Meditrack)' }],
+  let html = state.sigCat ? '' : sigmSelect('sigm-usage', 'Usage du rideau', [{ v: 'deco', l: 'Rideau décoratif (Ripple Fold détachable)' }, { v: 'sep', l: 'Rideau séparateur / médical (filet, œillets, Meditrack)' }],
     a.u || 'deco', "state.sigm.u=this.value;state.options={};state._sigmOptCle=null;sigmChoix();");
   html += '<div style="padding:6px 20px 0;"><label for="sigm-couleur" style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);display:block;margin-bottom:7px;">Couleur du tissu</label>'
     + '<input id="sigm-couleur" value="' + sigmEsc(state.tissuCouleur || '') + '" placeholder="ex. Blanc, Naturel…" oninput="state.tissuCouleur=this.value.trim();if(state.lastResult)calculatePriceSigMetre();" '
