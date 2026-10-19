@@ -14023,7 +14023,7 @@ function _buildResumeLines() {
 function lbasSansVides(parts) {
   // 2026-10-16 (Sam) : ce qui n'est pas choisi ne s'écrit pas — aussi les valeurs par défaut
   // qui ne disent rien : « N-A (à confirmer) » (canal), « 1 toile / 1 top » (une seule toile).
-  var VIDE = /^(aucun(e)?\b.*|non|sans\b.*|—|–|-|0|0"|0 po|n\/a|n-a\b.*|.*\(à confirmer\)|1 toile \/ 1 (top|cassette))$/i;
+  var VIDE = /^(aucun(e)?\b.*|non|sans\b.*|—|–|-|0|0"|0 po|n\/a|na|n-a\b.*|.*\(à confirmer\)|1 toile \/ 1 (top|cassette))$/i;
   return (parts || []).filter(function (p) {
     var t = String(p == null ? '' : p).trim();
     if (!t || /:$/.test(t)) return false;
