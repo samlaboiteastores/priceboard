@@ -4701,10 +4701,51 @@ function rebuildNDA() {
   calculatePricePD();
 }
 
+// ── PERSIENNES (liste PD 2026 p.3-6) — options révisées 2026-10-21 (Sam) ──
+// Tout est gardé dans state.options (survit au bouton « ✎ Modifier » d'une ligne du devis).
+const PE_BARRE_LIMITE = { bois: 60, pvc: 50 };   // barre centrale obligatoire au-delà (liste p.3 et p.5)
+const PE_CHARNIERE_NOIRE = 5;                     // $ PDSF chacune (liste p.3)
+
+function peStyleChamp(el) {
+  el.style.cssText = 'width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:DM Mono,monospace;font-size:12px;padding:9px 12px;outline:none;appearance:none;-webkit-appearance:none;';
+  return el;
+}
+function peSelect(id, choix, valeur, onchange) {
+  const s = peStyleChamp(document.createElement('select'));
+  s.id = id;
+  choix.forEach(function(x) { const o = document.createElement('option'); o.value = x[0]; o.textContent = x[1]; s.appendChild(o); });
+  s.value = valeur;
+  if (s.value !== valeur && choix.length) s.value = choix[0][0];
+  s.onchange = function() { onchange(s.value); };
+  return s;
+}
+// Champ texte précédé de son <label> (le descriptif du devis lit ce label)
+function peTexte(parent, id, label, valeur, placeholder, oninput) {
+  const l = document.createElement('label');
+  l.htmlFor = id; l.textContent = label;
+  l.style.cssText = 'display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin:8px 0 6px';
+  const i = document.createElement('input');
+  i.type = 'text'; i.id = id; i.value = valeur || ''; i.placeholder = placeholder || '';
+  i.style.cssText = 'width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:DM Mono,monospace;font-size:12px;padding:9px 12px;outline:none;';
+  i.oninput = function() { oninput(i.value.trim()); };
+  parent.appendChild(l); parent.appendChild(i);
+  return i;
+}
+function peNote(parent, texte, couleur) {
+  const d = document.createElement('div');
+  d.style.cssText = 'font-size:10px;line-height:1.5;margin-top:6px;padding:6px 8px;border-radius:4px;'
+    + (couleur === 'rouge' ? 'color:#e05c5c;background:rgba(224,92,92,0.1);border:1px solid rgba(224,92,92,0.3)'
+      : 'color:var(--gold);background:rgba(26,183,183,0.08);border:1px solid rgba(26,183,183,0.2)');
+  d.textContent = texte;
+  parent.appendChild(d);
+  return d;
+}
+
 function renderOptionsPE(container) {
   const modeleData = PD.PE.modeles[state.modele];
   if (!modeleData) return;
   const isPVC = modeleData.materiau === 'pvc';
+  const o = state.options;
 
   function mkSection(title, color) {
     const d = document.createElement('div');
@@ -4716,125 +4757,185 @@ function renderOptionsPE(container) {
   // Couleur
   const { wrap:cw, body:cb } = mkSection('Couleur');
   if (isPVC) {
-    // PVC : select Blanc / Ivoire seulement
-    const colSel = document.createElement('select');
-    colSel.id = 'pe-couleur-sel';
-    colSel.style.cssText = 'width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:DM Mono,monospace;font-size:12px;padding:9px 12px;outline:none;appearance:none;-webkit-appearance:none;';
-    [['Blanc','Blanc'],['Ivoire','Ivoire']].forEach(function(x) {
-      const o = document.createElement('option'); o.value=x[0]; o.textContent=x[1];
-      if ((state.peCouleur || 'Blanc') === x[0]) o.selected = true;
-      colSel.appendChild(o);
-    });
-    if (!state.peCouleur) state.peCouleur = 'Blanc';
-    colSel.onchange = function() { state.peCouleur = colSel.value; calculatePricePD(); };
-    cb.appendChild(colSel);
+    if (!o.peCouleur || ['Blanc','Ivoire'].indexOf(o.peCouleur) === -1) o.peCouleur = 'Blanc';
+    cb.appendChild(peSelect('pe-couleur-sel', [['Blanc','Blanc'],['Ivoire','Ivoire']], o.peCouleur,
+      function(v) { o.peCouleur = v; calculatePricePD(); }));
+    o.peCouleurClient = false;
   } else {
-    // Bois : champ texte libre
-    const colInp = document.createElement('input');
-    colInp.type='text'; colInp.id='pe-couleur';
-    colInp.placeholder = 'ex: #1015, Blanc cassé, Nutmeg...';
-    colInp.value = state.peCouleur || '';
-    colInp.style.cssText = 'width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:DM Mono,monospace;font-size:12px;padding:9px 12px;outline:none;';
-    colInp.oninput = function() { state.peCouleur = colInp.value.trim(); calculatePricePD(); };
-    cb.appendChild(colInp);
-    const cbWrap = document.createElement('div');
-    cbWrap.style.cssText = 'display:flex;align-items:center;gap:8px;margin-top:8px';
-    const cb2 = document.createElement('input'); cb2.type='checkbox'; cb2.id='pe-couleur-speciale';
-    cb2.checked = !!state.peCouleurSpeciale;
-    cb2.style.cssText = 'width:14px;height:14px;accent-color:var(--gold);cursor:pointer;flex-shrink:0';
-    const lbl = document.createElement('label'); lbl.htmlFor='pe-couleur-speciale';
-    lbl.style.cssText = 'font-size:11px;color:var(--text-mid);cursor:pointer';
-    lbl.textContent = 'Couleur spéciale (+150$ PDSF net)';
-    cb2.onchange = function() { state.peCouleurSpeciale = cb2.checked; calculatePricePD(); };
-    cbWrap.appendChild(cb2); cbWrap.appendChild(lbl); cb.appendChild(cbWrap);
+    const inp = peTexte(cb, 'pe-couleur', 'Couleur (sélecteur T & L)', o.peCouleur, 'ex: #1015, Blanc cassé, Nutmeg...',
+      function(v) { o.peCouleur = v; calculatePricePD(); });
+    inp.previousElementSibling.style.marginTop = '0';
+    const w = document.createElement('div');
+    w.style.cssText = 'display:flex;align-items:center;gap:8px;margin-top:10px';
+    const ck = document.createElement('input'); ck.type = 'checkbox'; ck.id = 'pe-couleur-speciale';
+    ck.checked = !!o.peCouleurClient;
+    ck.style.cssText = 'width:14px;height:14px;accent-color:var(--gold);cursor:pointer;flex-shrink:0';
+    const lb = document.createElement('label'); lb.htmlFor = 'pe-couleur-speciale';
+    lb.style.cssText = 'font-size:11px;color:var(--text-mid);cursor:pointer';
+    lb.textContent = 'Couleur du client (couleur spéciale)';
+    ck.onchange = function() { o.peCouleurClient = ck.checked; renderOptionsPD(); calculatePricePD(); };
+    w.appendChild(ck); w.appendChild(lb); cb.appendChild(w);
+    peNote(cb, 'Couleur spéciale : 150 $ net (liste PD p.3), ajoutée au prix quand la case est cochée.');
+    if (o.peCouleurClient) {
+      peTexte(cb, 'pe-couleur-client', 'Couleur du client (nom, marque et code)', o.peCouleurClientNom,
+        'ex: Benjamin Moore OC-17 Blanc Dove', function(v) { o.peCouleurClientNom = v; calculatePricePD(); });
+      if (!o.peCouleurClientNom) peNote(cb, '⚠ Inscris la couleur du client : elle part sur la commande.', 'rouge');
+    }
   }
   container.appendChild(cw);
 
-  // Cadrage (tous les PE)
+  // Pose
+  const { wrap:pw, body:pb } = mkSection('Pose');
+  o.pePose = o.pePose || 'interieure';
+  pb.appendChild(peSelect('pe-pose', [['interieure','Pose intérieure'],['exterieure','Pose extérieure']], o.pePose,
+    function(v) { o.pePose = v; calculatePricePD(); }));
+  container.appendChild(pw);
+
+  // Cadrage
   const { wrap:cadw, body:cadb } = mkSection('Cadrage');
-  const cadSel = document.createElement('select');
-  cadSel.id = 'pe-cadrage';
-  cadSel.style.cssText = 'width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:DM Mono,monospace;font-size:12px;padding:9px 12px;outline:none;appearance:none;-webkit-appearance:none;';
-  [['regulier','Cadrage Régulier (inclus)'],
-   ['bullnose','Cadrage Bullnose — 3 côtés (inclus)']
-  ].forEach(function(x) {
-    const o = document.createElement('option'); o.value=x[0]; o.textContent=x[1];
-    if ((state.options.cadrage || 'regulier') === x[0]) o.selected = true;
-    cadSel.appendChild(o);
-  });
-  if (!state.options.cadrage) state.options.cadrage = 'regulier';
-  cadSel.onchange = function() { state.options.cadrage = cadSel.value; calculatePricePD(); };
-  cadb.appendChild(cadSel);
+  o.cadrage = o.cadrage || 'regulier';
+  cadb.appendChild(peSelect('pe-cadrage', [['regulier','Cadrage Régulier (inclus)'],['bullnose','Cadrage Bullnose — 3 côtés (inclus)']],
+    o.cadrage, function(v) { o.cadrage = v; calculatePricePD(); }));
   container.appendChild(cadw);
 
-  // Forme spéciale (bois seulement — pas PVC)
+  // Forme spéciale (bois seulement, liste p.4)
   if (!isPVC) {
-  const { wrap:fsw, body:fsb } = mkSection('Forme spéciale');
-  const fsWrap = document.createElement('div');
-  fsWrap.style.cssText = 'display:flex;align-items:flex-start;gap:10px;padding:4px 0';
-  const fsCb = document.createElement('input');
-  fsCb.type = 'checkbox'; fsCb.id = 'pe-forme-speciale';
-  fsCb.checked = !!state.options.formeSpeciale;
-  fsCb.style.cssText = 'width:14px;height:14px;accent-color:var(--gold);cursor:pointer;flex-shrink:0;margin-top:2px';
-  const fsLbl = document.createElement('label');
-  fsLbl.htmlFor = 'pe-forme-speciale';
-  fsLbl.style.cssText = 'font-size:12px;color:var(--text-mid);cursor:pointer;line-height:1.5';
-  fsLbl.innerHTML = 'Forme spéciale <span style="color:var(--gold)">*</span>'
-    + '<span style="display:block;font-size:10px;color:var(--text-dim);margin-top:2px">* Grille Formes Spéciales — gabarit de carton obligatoire · Bois seulement</span>';
-  fsCb.onchange = function() {
-    state.options.formeSpeciale = fsCb.checked;
-    calculatePricePD();
-  };
-  fsWrap.appendChild(fsCb); fsWrap.appendChild(fsLbl); fsb.appendChild(fsWrap);
-  container.appendChild(fsw);
+    const { wrap:fsw, body:fsb } = mkSection('Forme spéciale');
+    const fsWrap = document.createElement('div');
+    fsWrap.style.cssText = 'display:flex;align-items:flex-start;gap:10px;padding:4px 0';
+    const fsCb = document.createElement('input');
+    fsCb.type = 'checkbox'; fsCb.id = 'pe-forme-speciale'; fsCb.checked = !!o.formeSpeciale;
+    fsCb.style.cssText = 'width:14px;height:14px;accent-color:var(--gold);cursor:pointer;flex-shrink:0;margin-top:2px';
+    const fsLbl = document.createElement('label'); fsLbl.htmlFor = 'pe-forme-speciale';
+    fsLbl.style.cssText = 'font-size:12px;color:var(--text-mid);cursor:pointer;line-height:1.5';
+    fsLbl.textContent = 'Forme spéciale (arche, angle, trapèze…)';
+    fsCb.onchange = function() { o.formeSpeciale = fsCb.checked; renderOptionsPD(); calculatePricePD(); };
+    fsWrap.appendChild(fsCb); fsWrap.appendChild(fsLbl); fsb.appendChild(fsWrap);
+    if (o.formeSpeciale) {
+      const lb = document.createElement('div');
+      lb.className = 'section-divider'; lb.textContent = 'Pivotement des lamelles (une seule direction)';
+      lb.style.cssText = 'margin:8px 0 6px;padding:0';
+      fsb.appendChild(lb);
+      o.pePivot = o.pePivot || 'haut';
+      fsb.appendChild(peSelect('pe-pivot', [['haut','Lamelles fermées vers le haut'],['bas','Lamelles fermées vers le bas']], o.pePivot,
+        function(v) { o.pePivot = v; calculatePricePD(); }));
+      peNote(fsb, 'Liste PD p.4 : bois (tilleul) seulement, lamelles 2½", 3½" ou 4½" · gabarit de carton obligatoire · '
+        + 'les lamelles pivotent dans un seul sens (haut ou bas une fois fermées) · haut en bois plein jusqu\'à ce que les '
+        + 'lamelles puissent être droites · grille 36" à 96" · délai jusqu\'à 8 semaines.');
+      if (modeleData.grilleKey === 'laq-1.5') peNote(fsb, '⚠ Pas de forme spéciale en lamelles 1½" : choisis 2½", 3½" ou 4½".', 'rouge');
+    }
+    container.appendChild(fsw);
   } else {
-    state.options.formeSpeciale = false;
+    o.formeSpeciale = false;
   }
 
-  // Système (bois seulement)
+  // Système (bois seulement ; PVC : système baguette ou vision inclus)
   if (!isPVC) {
     const { wrap:sw, body:sb } = mkSection('Système');
-    const sysSel = document.createElement('select');
-    sysSel.id = 'pe-systeme';
-    sysSel.style.cssText = 'width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:DM Mono,monospace;font-size:12px;padding:9px 12px;outline:none;appearance:none;-webkit-appearance:none;';
-    [['vision',"Système Vision — baguette cachée à l'arrière"],
-     ['baguette','Système Baguette — baguette en façade']
-    ].forEach(function(x) { const o=document.createElement('option'); o.value=x[0]; o.textContent=x[1]; sysSel.appendChild(o); });
-    sysSel.value = state.options.systeme || 'vision';
-    state.options.systeme = sysSel.value;
-    sysSel.onchange = function() { state.options.systeme = sysSel.value; calculatePricePD(); };
-    sb.appendChild(sysSel); container.appendChild(sw);
+    o.systeme = o.systeme || 'vision';
+    sb.appendChild(peSelect('pe-systeme', [['vision',"Système Vision — baguette cachée à l'arrière"],['baguette','Système Baguette — baguette en façade']],
+      o.systeme, function(v) { o.systeme = v; calculatePricePD(); }));
+    container.appendChild(sw);
+
+    // Charnières (liste p.3) : dorées, argent ou blanches incluses ; noires +5 $ chacune
+    const { wrap:hw, body:hb } = mkSection('Charnières');
+    o.peCharniere = o.peCharniere || 'blanc';
+    hb.appendChild(peSelect('pe-charniere', [['blanc','Charnières blanches (incluses)'],['dore','Charnières dorées (incluses)'],
+      ['argent','Charnières argent (incluses)'],['noir','Charnières noires (extra)']], o.peCharniere,
+      function(v) { o.peCharniere = v; renderOptionsPD(); calculatePricePD(); }));
+    const dynH = document.createElement('div'); dynH.id = 'pe-charnieres-nb'; hb.appendChild(dynH);
+    container.appendChild(hw);
   }
 
-  // Panneaux section placeholder — updated after dim change
-  const panDiv = document.createElement('div'); panDiv.id='pe-panneaux-section'; container.appendChild(panDiv);
+  // Panneaux, configuration et barre centrale (dépendent des dimensions)
+  const panDiv = document.createElement('div'); panDiv.id = 'pe-panneaux-section'; container.appendChild(panDiv);
   if (state.largTip) updatePEPanneaux();
+}
+
+// Nombre total de panneaux = inclus (selon la largeur) + additionnels choisis
+function peNbPanneaux() {
+  const inclus = PD.PE.panneauxInclus[state.largTip] || 1;
+  return inclus + Math.max(0, parseInt(state.options.pePanneauxExtra, 10) || 0);
+}
+// Charnières noires : estimation 2 par panneau (3 au-delà de 60" de haut), modifiable
+function peCharnieresEstimees() {
+  return peNbPanneaux() * ((state.haut || state.hautTip || 0) > 60 ? 3 : 2);
 }
 
 function updatePEPanneaux() {
   const section = document.getElementById('pe-panneaux-section');
   if (!section || !state.largTip) return;
-  const inclus = PD.PE.panneauxInclus[state.largTip] || 1;
+  const o = state.options;
   const modeleData = PD.PE.modeles[state.modele];
-  const maxPan = modeleData.materiau === 'pvc' ? 24 : 30;
-  section.innerHTML = '<div class="section-divider">Panneaux inclus & additionnels</div>'
-    + '<div style="padding:0 20px 12px">'
-    + '<div style="padding:8px 12px;background:rgba(26,183,183,0.08);border:1px solid rgba(26,183,183,0.2);border-radius:6px;font-size:11px;color:var(--gold);margin-bottom:10px">'
-    + 'Largeur '+state.largTip+'" — <strong>'+inclus+' panneau'+(inclus>1?'x':'')+' inclus</strong>'
-    + '<span style="color:var(--text-dim);font-size:10px;display:block;margin-top:2px">Max '+maxPan+'" / panneau · Panneau additionnel : +280$ PDSF chacun</span></div>'
-    + '<label style="display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:7px">Panneaux additionnels</label>'
-    + '<select id="pe-panneaux-extra" onchange="state.pePanneauxExtra=parseInt(this.value)||0;calculatePricePD()" '
-    + 'style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:DM Mono,monospace;font-size:12px;padding:9px 12px;outline:none;appearance:none;-webkit-appearance:none;">'
-    + '<option value="0">Aucun panneau additionnel</option>'
-    + '<option value="1">+1 panneau (+280$ PDSF)</option>'
-    + '<option value="2">+2 panneaux (+560$ PDSF)</option>'
-    + '<option value="3">+3 panneaux (+840$ PDSF)</option>'
-    + '<option value="4">+4 panneaux (+1120$ PDSF)</option>'
-    + '</select></div>';
-  const sel = document.getElementById('pe-panneaux-extra');
-  if (sel && state.pePanneauxExtra) sel.value = state.pePanneauxExtra;
-}
+  if (!modeleData) return;
+  const isPVC = modeleData.materiau === 'pvc';
+  const inclus = PD.PE.panneauxInclus[state.largTip] || 1;
+  const maxPan = isPVC ? 24 : 30;
+  section.innerHTML = '';
 
+  function sec(titre) {
+    const d = document.createElement('div');
+    d.innerHTML = '<div class="section-divider">' + titre + '</div>';
+    const b = document.createElement('div'); b.style.padding = '0 20px 12px'; d.appendChild(b);
+    section.appendChild(d);
+    return b;
+  }
+
+  // 1. Nombre de panneaux (le prix suit : +280 $ PDSF par panneau au-delà des inclus)
+  const b1 = sec('Nombre de panneaux');
+  const choix = [];
+  for (let n = inclus; n <= inclus + 4; n++) {
+    choix.push([String(n - inclus), n === inclus ? n + ' panneau' + (n > 1 ? 'x' : '') + ' (inclus)'
+      : n + ' panneaux (' + inclus + ' inclus + ' + (n - inclus) + ' additionnel' + (n - inclus > 1 ? 's' : '') + ')']);
+  }
+  const nb = peNbPanneaux();
+  b1.appendChild(peSelect('pe-panneaux-nb', choix, String(nb - inclus), function(v) {
+    o.pePanneauxExtra = parseInt(v, 10) || 0; updatePEPanneaux(); calculatePricePD();
+  }));
+  peNote(b1, 'Largeur ' + state.largTip + '" : ' + inclus + ' panneau' + (inclus > 1 ? 'x' : '') + ' inclus · '
+    + 'panneau additionnel +280$ PDSF chacun · max ' + maxPan + '" par panneau (≈ '
+    + ((state.larg || state.largTip) / nb).toFixed(1) + '" chacun ici)');
+
+  // 2. Configuration des panneaux
+  const b2 = sec('Configuration');
+  const cfg = peTexte(b2, 'pe-config', 'Configuration des panneaux', o.peConfig,
+    'ex: 2 G + 1 D · LL-RR · 4 panneaux pliants · poteau en T au centre', function(v) { o.peConfig = v; });
+  cfg.previousElementSibling.style.marginTop = '0';
+
+  // 3. Barre centrale (diviseur) : obligatoire selon la liste au-delà de 60" (bois) / 50" (PVC) — fortement suggérée, pas forcée
+  const b3 = sec('Barre centrale (diviseur)');
+  const limite = isPVC ? PE_BARRE_LIMITE.pvc : PE_BARRE_LIMITE.bois;
+  const haut = state.haut || state.hautTip || 0;
+  const recommandee = haut > limite;
+  if (!o.peBarre) o.peBarre = recommandee ? 'oui' : 'non';
+  // « Sans » a une valeur vide : le descriptif du devis n'écrit pas ce qui n'est pas choisi
+  b3.appendChild(peSelect('pe-barre', [['','Sans barre centrale'],['oui','Avec barre centrale (diviseur)']], o.peBarre === 'oui' ? 'oui' : '',
+    function(v) { o.peBarre = v || 'non'; updatePEPanneaux(); calculatePricePD(); }));
+  if (recommandee && o.peBarre !== 'oui') {
+    peNote(b3, '⚠ FORTEMENT RECOMMANDÉ : hauteur ' + haut + '" > ' + limite + '". Persienne Design exige une barre centrale au-delà de '
+      + limite + '" (' + (isPVC ? 'PVC' : 'bois') + ', liste 2026). Sans elle, la commande risque d\'être refusée ou de gauchir.', 'rouge');
+  } else if (recommandee) {
+    peNote(b3, 'Barre centrale requise par Persienne Design au-delà de ' + limite + '" de hauteur — c\'est fait.');
+  }
+  if (o.peBarre === 'oui') {
+    peTexte(b3, 'pe-barre-hauteur', 'Hauteur du diviseur (centre, mesurée du bas, en pouces)', o.peBarreHauteur,
+      'ex: 36" (souvent alignée sur le croisillon de la fenêtre)', function(v) { o.peBarreHauteur = v; });
+    if (!o.peBarreHauteur) peNote(b3, '⚠ Inscris la hauteur du diviseur : Persienne Design la demande pour fabriquer.', 'rouge');
+  }
+
+  // Charnières noires : nombre (estimé, modifiable)
+  const dynH = document.getElementById('pe-charnieres-nb');
+  if (dynH) {
+    dynH.innerHTML = '';
+    if (!isPVC && o.peCharniere === 'noir') {
+      // Suit le nombre de panneaux tant que le vendeur ne l'a pas changé à la main
+      if (!o.peNbCharnieres || !o.peCharnieresManuel) o.peNbCharnieres = peCharnieresEstimees();
+      peTexte(dynH, 'pe-charnieres-noires', 'Nombre de charnières noires', String(o.peNbCharnieres),
+        '', function(v) { o.peNbCharnieres = parseInt(v, 10) || 0; o.peCharnieresManuel = true; calculatePricePD(); });
+      peNote(dynH, 'Charnières noires : 5 $ PDSF chacune (liste PD p.3). Estimé : 2 par panneau (3 au-delà de 60" de hauteur) = ' + peCharnieresEstimees() + '. Ajuste au besoin.');
+    }
+  }
+}
 // ══════════════════════════════════════════════════════
 // PD — CALCUL PRIX
 // ══════════════════════════════════════════════════════
@@ -5015,55 +5116,79 @@ function calculatePricePE(fmtCAD) {
   var haut = state.hautTip;
   var modeleData = PD.PE.modeles[state.modele];
   if (!modeleData) return;
-  var formeSpeciale = !!state.options.formeSpeciale;
+  var o = state.options;
+  var isBois = modeleData.materiau === 'bois';
+  var formeSpeciale = isBois && !!o.formeSpeciale;
+  var alerte = document.getElementById('alert-dim');
+
+  // Formes spéciales : lamelles 2½", 3½" ou 4½" seulement (liste PD p.4)
+  if (formeSpeciale && modeleData.grilleKey === 'laq-1.5') {
+    alerte.textContent = '⚠ Forme spéciale : lamelles 2½", 3½" ou 4½" seulement (pas de 1½") — liste PD p.4';
+    alerte.classList.add('show');
+    resetResult(); return;
+  }
 
   // Grille : formes spéciales si cochée (bois seulement), sinon grille standard
   var grilleKey = modeleData.grilleKey;
-  if (formeSpeciale && modeleData.materiau === 'bois') {
-    grilleKey = modeleData.finition === 'teinte' ? 'fs-teinte' : 'fs-laque';
-  }
+  if (formeSpeciale) grilleKey = modeleData.finition === 'teinte' ? 'fs-teinte' : 'fs-laque';
   var grille = PD.PE.grilles[grilleKey];
   if (!grille) return;
   var pdsf = getPrixGrille(grille, larg, haut);
   if (!pdsf) {
-    document.getElementById('alert-dim').textContent = '⚠ Dimension hors limite pour cette grille — Max: 96" × 96"';
-    document.getElementById('alert-dim').classList.add('show');
+    var lmax = grille.largeurs[grille.largeurs.length - 1], hmax = grille.hauteurs[grille.hauteurs.length - 1];
+    var lmin = grille.largeurs[0], hmin = grille.hauteurs[0];
+    alerte.textContent = '⚠ Dimension hors limite pour cette grille' + (formeSpeciale ? ' (formes spéciales)' : '')
+      + ' — de ' + lmin + '" × ' + hmin + '" à ' + lmax + '" × ' + hmax + '"';
+    alerte.classList.add('show');
     resetResult(); return;
   }
-  document.getElementById('alert-dim').classList.remove('show');
+  alerte.classList.remove('show');
 
-  var couleur = state.peCouleur || '';
   var inclus = PD.PE.panneauxInclus[larg] || 1;
-  var panneauxExtra = state.pePanneauxExtra || 0;
-  var couleurSpeciale = modeleData.materiau === 'bois' && state.peCouleurSpeciale;
-  var systeme = state.options.systeme || 'vision';
-  var cadrage = state.options.cadrage || 'regulier';
-  var cadrageLabel = cadrage === 'bullnose' ? 'Bullnose' : 'Régulier';
-  // formeSpeciale et fsFinition déjà déclarés plus haut
+  var nbPanneaux = peNbPanneaux();
+  var panneauxExtra = Math.max(0, nbPanneaux - inclus);
+  var couleur = o.peCouleur || '';
+  var couleurClient = isBois && !!o.peCouleurClient;
+  var charniere = isBois ? (o.peCharniere || 'blanc') : '';
+  var nbNoires = charniere === 'noir' ? (parseInt(o.peNbCharnieres, 10) || peCharnieresEstimees()) : 0;
+  var systeme = o.systeme || 'vision';
+  var cadrageLabel = (o.cadrage || 'regulier') === 'bullnose' ? 'Bullnose' : 'Régulier';
+  var poseLabel = (o.pePose || 'interieure') === 'exterieure' ? 'Pose extérieure' : 'Pose intérieure';
+  var barre = o.peBarre === 'oui';
+  var limiteBarre = isBois ? PE_BARRE_LIMITE.bois : PE_BARRE_LIMITE.pvc;
+  var barreManquante = !barre && (state.haut || haut) > limiteBarre;
 
   // Forme spéciale = produit sans escompte de cueillette (coût 35 % même en cueillette)
-  var fsEx = formeSpeciale && modeleData.materiau === 'bois';
+  var fsEx = formeSpeciale;
   var breakdown = [{label:state.modele+' ('+larg+'" × '+haut+'")'+(fsEx?' — forme spéciale':''),pdsf:pdsf,sansEscCueillette:fsEx}];
-
   if (panneauxExtra > 0) {
-    var ep = panneauxExtra * PD.PE.panneauExtra;
-    breakdown.push({label:panneauxExtra+' panneau'+(panneauxExtra>1?'x':'')+' additionnel'+(panneauxExtra>1?'s':'')+' (×280$)',pdsf:ep,sansEscCueillette:fsEx});
+    breakdown.push({label:panneauxExtra+' panneau'+(panneauxExtra>1?'x':'')+' additionnel'+(panneauxExtra>1?'s':'')+' (×280$)',
+      pdsf:panneauxExtra * PD.PE.panneauExtra, sansEscCueillette:fsEx});
   }
-  if (couleurSpeciale) breakdown.push({label:'Couleur spéciale (150 $ net)',pdsf:150,net:true});
-  pdAjouterLivraison(breakdown, 120 + 20 * Math.max(0, inclus + panneauxExtra - 1),
-    (inclus + panneauxExtra) + ' panneau' + ((inclus + panneauxExtra) > 1 ? 'x' : '') + ' — 120 $ + 20 $/panneau additionnel');
+  if (nbNoires > 0) breakdown.push({label:'Charnières noires ×'+nbNoires+' (5$ ch.)', pdsf:nbNoires * PE_CHARNIERE_NOIRE});
+  if (couleurClient) breakdown.push({label:'Couleur du client — couleur spéciale (150 $ net)',pdsf:150,net:true});
+  pdAjouterLivraison(breakdown, 120 + 20 * Math.max(0, nbPanneaux - 1),
+    nbPanneaux + ' panneau' + (nbPanneaux > 1 ? 'x' : '') + ' — 120 $ + 20 $/panneau additionnel');
 
-  var sysLabel = modeleData.materiau==='bois' ? (systeme==='vision'?'Système Vision':'Système Baguette') : 'PVC';
+  var sysLabel = isBois ? (systeme==='vision'?'Système Vision':'Système Baguette') : 'PVC';
   var finitionLabel = modeleData.finition==='laque'?' · Laqué':modeleData.finition==='teinte'?' · Teinté':'';
-  var couleurLabel = couleur ? (' — '+couleur+(couleurSpeciale?' (spéciale)':'')) : '';
+  var couleurLabel = couleurClient ? (' — couleur du client : '+(o.peCouleurClientNom || 'À INSCRIRE'))
+    : (couleur ? ' — '+couleur : '');
+  var charLabel = { blanc:'blanches', dore:'dorées', argent:'argent', noir:'noires' }[charniere] || '';
+  var dim = '<br><span style="color:var(--text-dim)">';
 
   pdFinaliser(breakdown, {
     fournisseur: 'Persienne Design · Persienne'+(formeSpeciale?' · Forme Spéciale ✦':''),
     produit: state.modele,
     detail: larg+'" × '+haut+'" · '+sysLabel+finitionLabel+couleurLabel
-      +'<br><span style="color:var(--text-dim)">Cadrage '+cadrageLabel+'</span>'
-      +(formeSpeciale?'<br><span style="color:var(--gold);font-size:10px">✦ Forme spéciale '+(modeleData.finition==='teinte'?'Teintée':'Laquée')+' — gabarit de carton obligatoire · Bois seulement</span>':'')
-      +'<br><span style="color:var(--gold-dim)">'+inclus+' panneau'+(inclus>1?'x':'')+' inclus'+(panneauxExtra>0?' + '+panneauxExtra+' extra':'')+'</span>',
+      + dim + poseLabel + ' · Cadrage ' + cadrageLabel + (charLabel ? ' · Charnières ' + charLabel : '') + '</span>'
+      + (formeSpeciale ? '<br><span style="color:var(--gold);font-size:10px">✦ Forme spéciale — lamelles fermées vers le '
+        + (o.pePivot === 'bas' ? 'bas' : 'haut') + ' · gabarit de carton obligatoire · bois seulement</span>' : '')
+      + '<br><span style="color:var(--gold-dim)">' + nbPanneaux + ' panneau' + (nbPanneaux>1?'x':'')
+        + ' (' + inclus + ' inclus' + (panneauxExtra>0 ? ' + ' + panneauxExtra + ' additionnel' + (panneauxExtra>1?'s':'') : '') + ')'
+        + (o.peConfig ? ' · ' + o.peConfig.replace(/</g, '&lt;') : '') + '</span>'
+      + (barre ? dim + 'Barre centrale à ' + (o.peBarreHauteur ? o.peBarreHauteur.replace(/</g, '&lt;') : '<span style="color:#e05c5c">hauteur à inscrire</span>') + '</span>' : '')
+      + (barreManquante ? '<br><span style="color:#e05c5c;font-size:10px">⚠ Barre centrale fortement recommandée au-delà de ' + limiteBarre + '" de hauteur</span>' : ''),
     titre: 'Détail PDSF — Persienne'
   });
 }
