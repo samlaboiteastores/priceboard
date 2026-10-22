@@ -14665,7 +14665,7 @@ function copyResume() {
       l += val('frac-larg'); h += val('frac-haut');
       var cfg = (typeof window.lbasCaptureConfig === 'function') ? window.lbasCaptureConfig() : { state: state };
       var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      LbasDessin.dessiner(svg, { config: cfg, larg: l, haut: h, info: { projet: '', produit: String(state.modele || state.tissuNom || '').slice(0, 34), no: '' } });
+      LbasDessin.dessiner(svg, { config: cfg, larg: l, haut: h, details: (typeof buildDevisDescription === 'function' ? buildDevisDescription() : '') || '', info: { projet: '', produit: String(state.modele || state.tissuNom || '').slice(0, 34), no: '' } });
       hote.innerHTML = ''; hote.appendChild(svg); card.style.display = '';
     } catch (e) { if (card) card.style.display = 'none'; }
   }

@@ -40,8 +40,16 @@ function texte(g, x, y, t, o) {
 
 // Feuille DA : zone de dessin + notes + cartouche
 let NOTES_EXTRA = [];   // notes du relevé (mesure finale, division, cadrage…) ajoutées à chaque dessin
+let DETAILS = [];       // tout ce qui a été choisi au price board (« Entête : Cassette carrée », « Base : … »)
+const CALC = '\u200b'; // marque une note calculée par le dessin (panneaux, empilement…) : gardée en plus des choix du board
+// Descriptif du board ou de la ligne → une note par choix
+function detailsDe(txt) {
+  if (!txt) return [];
+  return String(txt).split(/\s*\|\s*|\n|,\s*(?=[A-ZÉÈÀÔ][^,:]{1,40}\s:)/).map(x => x.trim()).filter(x => x && !/^(Largeur|Hauteur|Dimensions?|Mesures?|Prix|PDSF|Grille|Qt[ée])\b/i.test(x));
+}
 function feuille(svg, W, H, info, notes) {
-  notes = notes.concat(NOTES_EXTRA || []);
+  if (DETAILS.length) notes = DETAILS.concat(notes.filter(n => n && (n[0] === CALC || n[0] === '⚠')));
+  notes = notes.concat(NOTES_EXTRA || []).filter(Boolean).map(n => String(n).replace(CALC, ''));
   const defs = el('defs', {}, svg);
   const m = el('marker', { id: 'fl', viewBox: '0 0 10 10', refX: 5, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, defs);
   el('path', { d: 'M0,2 L5,5 L0,8', fill: 'none', stroke: BLEU, 'stroke-width': 1.4 }, m);
@@ -75,14 +83,15 @@ function feuille(svg, W, H, info, notes) {
   const nx = W - 196;
   el('line', { x1: nx, y1: 4, x2: nx, y2: cy, stroke: NOIR, 'stroke-width': 0.8 }, svg);
   texte(svg, nx + 10, 22, 'NOTES', { bold: true, size: 10 });
+  // beaucoup de choix = texte plus petit, pour que tout tienne dans la colonne
+  const couper = (n, max) => { const out = []; let l = ''; String(n).split(' ').forEach(m => { if ((l + ' ' + m).trim().length > max && l) { out.push(l.trim()); l = ''; } l += ' ' + m; }); out.push(l.trim()); return out; };
+  const place = cy - 44;
+  const [taille, max, pas, ecart] = [[9.5, 30, 13, 6], [8.5, 34, 11, 4], [7.5, 39, 9.5, 3], [6.5, 44, 8.2, 2]]
+    .find(([, mx, p, e]) => notes.reduce((t, n) => t + couper(n, mx).length * p + e, 0) <= place) || [6.5, 44, 8.2, 2];
   let y = 40;
   notes.forEach(n => {
-    const mots = n.split(' '); let ligne = '';
-    mots.forEach(mt => {
-      if ((ligne + ' ' + mt).length > 30) { texte(svg, nx + 10, y, ligne.trim(), { size: 9.5, fill: n.startsWith('⚠') ? ROUGE : NOIR }); y += 13; ligne = ''; }
-      ligne += ' ' + mt;
-    });
-    texte(svg, nx + 10, y, ligne.trim(), { size: 9.5, fill: n.startsWith('⚠') ? ROUGE : NOIR }); y += 19;
+    couper(n, max).forEach(l => { if (y < cy - 6) texte(svg, nx + 10, y, l, { size: taille, fill: n.startsWith('⚠') ? ROUGE : NOIR }); y += pas; });
+    y += ecart;
   });
   return { x: 14, y: 14, w: nx - 28, h: cy - 28 };   // zone de dessin
 }
@@ -102,11 +111,11 @@ function dessinPersienne(svg, p) {
   const lp = p.larg / nb;
   const notes = [
     `${p.modele} · ${p.systeme}`,
-    `${nb} panneaux de ${fr(lp)} (max 30")`,
+    CALC + `${nb} panneaux de ${fr(lp)} (max 30")`,
     `Configuration : ${p.config}`,
     `Pose ${p.pose} · cadrage ${p.cadrage}`,
     `Charnières ${p.charnieres}`,
-    p.barre ? `Barre centrale à ${fr(p.hBarre)} du bas` : (p.haut > 60 ? '⚠ Barre centrale fortement recommandée (> 60")' : 'Sans barre centrale'),
+    p.barre ? CALC + `Barre centrale à ${fr(p.hBarre)} du bas` : (p.haut > 60 ? '⚠ Barre centrale fortement recommandée (> 60")' : 'Sans barre centrale'),
     'Lamelles : sens d\'ouverture selon flèches.'
   ];
   const z = feuille(svg, W, H, p.info || { projet: 'Résidence Tremblay\nSalon — fenêtre 2', produit: 'Persienne bois\nPersienne Design', no: 'S01234-L3\nRév. 0' }, notes);
@@ -149,13 +158,13 @@ function dessinStores(svg, p) {
   const W = 760, H = 520; svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.innerHTML = '';
   const largs = p.largs.slice(0, p.nb), total = largs.reduce((a, b) => a + b, 0);
   const notes = [
-    `${p.nb} toiles / 1 ${p.top}`,
+    CALC + `${p.nb} toile${p.nb > 1 ? 's' : ''} / 1 ${p.top}`,
     `Tissu : ${p.tissu}`,
     `Mécanisme : ${p.meca}`,
     p.base ? `Base : ${p.base}` : '',
     `Contrôles : ${p.cotes.slice(0, p.nb).join(' · ')}`,
-    'Largeur de chaque toile = mesure de commande ; jeu entre toiles selon fabricant.',
-    p.nb > 1 ? 'Une seule cassette sur toute la largeur.' : ''
+    p.nb > 1 ? CALC + 'Largeur de chaque toile = mesure de commande ; jeu entre toiles selon fabricant.' : '',
+    p.nb > 1 ? CALC + 'Une seule cassette sur toute la largeur.' : ''
   ].filter(Boolean);
   const z = feuille(svg, W, H, p.info || { projet: 'Bureaux Desjardins\nSalle B-204', produit: 'Toile à rouleau\nVP / SOL-R', no: 'S01250-L1\nRév. 0' }, notes);
   const hTop = 5;
@@ -189,7 +198,7 @@ function dessinRideau(svg, p) {
     `${p.ouverture} · ${p.confection}`,
     `Tissu : ${p.tissu}`,
     `Rail : ${p.rail} · fixation ${p.fixation}`,
-    `Empilement ≈ ${fr(p.larg * p.stackPct / 100)} au total`,
+    CALC + `Empilement ≈ ${fr(p.larg * p.stackPct / 100)} au total`,
     `Dégagement au sol : ${fr(p.sol)}`,
     `Retours : ${fr(p.retour)} de chaque côté`
   ];
@@ -237,11 +246,11 @@ function dessinMedical(svg, p) {
   const largRideau = dev * 1.1;
   const notes = [
     `Rail Meditrack ${p.forme} : ${fr(p.a)}${p.forme !== 'Droit' ? ' × ' + fr(p.b) : ''}`,
-    `Développé ≈ ${fr(dev)} · rideau ≈ ${fr(largRideau)} (+10 %)`,
+    CALC + `Développé ≈ ${fr(dev)} · rideau ≈ ${fr(largRideau)} (+10 %)`,
     `Filet ${fr(p.filet)} en haut (exigence incendie : gicleurs)`,
     `Tissu : ${p.tissu} · ${fr(p.hTissu)}`,
     `Espace au sol : ${fr(p.sol)}`,
-    `Plafond à ${fr(p.plafond)} · ${Math.ceil(dev / 6)} chariots env.`,
+    CALC + `Plafond à ${fr(p.plafond)} · ${Math.ceil(dev / 6)} chariots env.`,
     p.plafond - p.filet - p.hTissu - p.sol - 2 !== 0 ? `⚠ Écart de ${fr(p.plafond - p.filet - p.hTissu - p.sol - 2)} à corriger (plafond ≠ total)` : 'Hauteurs : total = plafond ✔'
   ];
   const z = feuille(svg, W, H, p.info || { projet: 'CISSS Laurentides\nUrgence — civière 7', produit: 'Rideau médical\nSignature / Meditrack', no: 'S01270-L5\nRév. 0' }, notes);
@@ -328,7 +337,14 @@ function dessinCadre(svg, p) {
 // ───────────── Du produit (config du price board ou catégorie) aux paramètres du dessin ─────────────
 // Base (barre du bas) : le texte du descriptif du price board si on l'a (« Base : Base Carrée régulière »), sinon l'option
 const BASES = { carree: 'carrée', ronde: 'ronde', ovale: 'ovale', 'base-reguliere': 'régulière', 'zm-tissu': 'ZM recouverte de tissu', simple: 'simple' };
+function choix(o, re) {
+  const d = Array.isArray(o.details) ? o.details : detailsDe(o.details);
+  const x = d.find(v => re.test(v));
+  return x ? x.split(/\s:\s/).slice(1).join(' : ').trim() : '';
+}
 function baseDe(o, op) {
+  const ch = choix(o, /^Base\s*:/i);
+  if (ch) return ch;
   const txt = String(o.produit || '') + ' ' + String((o.config || {}).description || '');
   const m = txt.match(/Base\s*:\s*([^,|\n]+)/i);
   if (m) return m[1].trim();
@@ -386,7 +402,7 @@ function parametres(o) {
     const mult = String(op.multiple || '1x1').match(/^(\d+)/);
     const nb = o.parts && o.parts.length ? o.parts.length : Math.max(1, mult ? +mult[1] : 1);   // fenêtre divisée : une toile par partie
     const cote = /gauche/i.test(op.cote || op.solrCote || '') ? 'G' : 'D';
-    return { fam, p: { info, nb, largs: o.parts && o.parts.length ? o.parts.slice() : Array(nb).fill(larg / nb), haut, top: lisible(op.entete || op.solrEntete || (st.type === 'norm-romain' ? 'tête romaine' : 'entête')),
+    return { fam, p: { info, nb, largs: o.parts && o.parts.length ? o.parts.slice() : Array(nb).fill(larg / nb), haut, top: choix(o, /^Ent[êe]te\s*:/i) || lisible(op.entete || op.solrEntete || (st.type === 'norm-romain' ? 'tête romaine' : 'entête')),
       tissu: produit || '—', meca: lisible(op.mecanisme || op.solrMec || op.romainMeca) || '—', cotes: Array(nb).fill(cote), base: baseDe(o, op) } };
   }
   return { fam, p: { info, produit, larg, haut, compte: fam === 'compte', notes: o.notes } };
@@ -395,6 +411,7 @@ function parametres(o) {
 function dessiner(svg, o) {
   const r = parametres(o);
   NOTES_EXTRA = r.fam === 'cadre' || r.fam === 'compte' ? [] : (o.notes || []);
+  DETAILS = Array.isArray(o.details) ? detailsDe(o.details.join(' | ')) : detailsDe(o.details);
   try {
     if (r.fam === 'persienne') dessinPersienne(svg, r.p);
     else if (r.fam === 'rideau') dessinRideau(svg, r.p);
@@ -438,10 +455,10 @@ function entreeTag(D, t, tag, o) {
   if (fin.cote) notes.push('Mécanisme côté ' + fin.cote);
   if (fin.note) notes.push(fin.note);
   notes.push(fin.l != null || fin.long ? 'Mesure finale (prise sur place)' : 'Mesure du plan (à confirmer sur place)');
-  return { config: t.pb_config || null, cat: t.cat, larg, haut, segments, angles, dirs, parts: fin.statut === 'divisee' ? fin.parts : null,
+  return { config: t.pb_config || null, cat: t.cat, larg, haut, segments, angles, dirs, parts: fin.statut === 'divisee' ? fin.parts : null, details: t.pb_desc || t.desc || '',
            produit: t.desc || t.code, notes, info: o.info || { projet: '', produit: t.code + '\n' + libelle(t), no: tag.id || '' } };
 }
 // Nom court du produit d'un type : modèle et couleur du price board, sinon le descriptif
 function libelle(t) { const c = t.pb_config || {}, st = c.state || {}; const m = [c.modele || st.modele || c.tissuNom, c.couleur || st.couleur].filter(Boolean).join(' · '); return (m || t.desc || '').slice(0, 60); }
-return { dessiner, famille, parametres, entreeTag, mesurePlan, libelle };
+return { dessiner, famille, parametres, entreeTag, mesurePlan, libelle, detailsDe };
 })();
