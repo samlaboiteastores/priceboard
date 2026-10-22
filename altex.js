@@ -687,6 +687,7 @@ window.addEventListener('message', function (ev) {
   window.LBAS_ALTEX_FACTEUR = (f > 0 && f < 1) ? f : null;
   const navAdmin = document.getElementById('nav-admin');
   if (navAdmin) navAdmin.style.display = (d.admin === true) ? '' : 'none';
+  if (d.marges && typeof window.lbasAppliquerMarges === 'function') window.lbasAppliquerMarges(d.marges);   // marges centrales d'Odoo
   if (state.fournisseur === 'altex' && state.lastResult) calculatePriceAltex();
   if (typeof updateAdminMarge === 'function') try { updateAdminMarge(); } catch (e) {}
 });

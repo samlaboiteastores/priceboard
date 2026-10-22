@@ -3348,7 +3348,24 @@ function saveAdminSettings() {
   else if (state.fournisseur === 'altex') calculatePriceAltex();
   else if (state.fournisseur === 'elite') calculatePriceElite();
   else calculatePrice();
+  lbasPousserMarges();
 }
+
+// ── Marges centrales (Odoo) : UNE source pour tout le monde, le board, la lecture de plan et les bots ──
+// Odoo les envoie (message lbas_facteurs, champ marges) ; l'onglet Paramètres (Sam seul) les renvoie à Odoo.
+var _lbasMargesSync = false;
+function lbasPousserMarges() {
+  if (_lbasMargesSync) return;
+  try { if (window.parent && window.parent !== window) window.parent.postMessage({ source: 'lbas-priceboard', type: 'lbas_save_marges', marges: JSON.parse(JSON.stringify(settings)) }, 'https://tkl.tekstil.ca'); } catch (e) {}
+}
+window.lbasAppliquerMarges = function (m) {
+  if (!m || typeof m !== 'object' || !m.vp) return;
+  try { localStorage.setItem('lbas_settings', JSON.stringify(m)); } catch (e) {}
+  loadSettings();
+  _lbasMargesSync = true;
+  try { saveAdminSettings(); } catch (e) {}
+  _lbasMargesSync = false;
+};
 
 function updateAdminMarge() {
   if (document.getElementById('admin-marge-elite') && settings.elite) {
@@ -4482,6 +4499,7 @@ function setPDMode(mode) {
   settings.pd.pct = settings.pd.pickup ? 30 : 35;
   document.getElementById('admin-pct-pd').value = settings.pd.pct;
   localStorage.setItem('lbas_settings', JSON.stringify(settings));
+  lbasPousserMarges();
   updatePDModeButtons();
   updateAdminMarge();
   if (state.fournisseur === 'pd') calculatePricePD();
