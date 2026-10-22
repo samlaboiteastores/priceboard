@@ -14346,7 +14346,8 @@ function copyResume() {
       pdsf: (state.fournisseur === 'altex' && state.lastResult) ? (state.lastResult.pdsfTotal || 0) : 0,
       releve: releve,
       supplier_ref: 'priceboard',
-      config: (typeof window.lbasCaptureConfig === 'function') ? window.lbasCaptureConfig() : null
+      config: (typeof window.lbasCaptureConfig === 'function') ? window.lbasCaptureConfig() : null,
+      settings: (typeof settings !== 'undefined') ? settings : null   // marges admin de ce navigateur (relevé sur plan : même prix partout)
     };
     try {
       window.parent.postMessage(payload, 'https://tkl.tekstil.ca');
