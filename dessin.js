@@ -192,6 +192,35 @@ function dessinStores(svg, p) {
 }
 
 // ───────────── 3. RIDEAU DÉCORATIF (Ripple Fold) ─────────────
+// Vue de dessus d'un rail de rideau courbé : n courbes de l'angle choisi ; segments en proportion si on n'a pas leurs longueurs
+function vueDessusRail(svg, box, p) {
+  const g = el('g', {}, svg);
+  el('line', { x1: box.x, y1: box.y + 4, x2: box.x, y2: box.y + box.h - 4, stroke: GRIS, 'stroke-width': 0.6, 'stroke-dasharray': '3 3' }, g);
+  texte(g, box.x + 12, box.y + 14, 'VUE DE DESSUS — RAIL', { size: 9, bold: true, fill: GRIS });
+  const n = p.courbes, deg = p.angleCourbe || 90, L = p.larg || 100;
+  let segs = p.segments && p.segments.length === n + 1 ? p.segments.slice() : null;
+  const schema = !segs;
+  if (!segs) {
+    if (n === 1) segs = [L * 0.55, L * 0.45];
+    else { const bout = L * 0.2, milieu = (L - 2 * bout) / (n - 1); segs = [bout].concat(Array(n - 1).fill(milieu), [bout]); }
+  }
+  const tour = deg * Math.PI / 180;
+  let dir = -n * tour / 2, pts = [{ x: 0, y: 0 }];
+  segs.forEach((l, i) => { const a = pts[pts.length - 1]; pts.push({ x: a.x + Math.cos(dir) * l, y: a.y + Math.sin(dir) * l }); dir += tour; });
+  const xs = pts.map(q => q.x), ys = pts.map(q => q.y);
+  const minX = Math.min(...xs), minY = Math.min(...ys), w = Math.max(...xs) - minX || 1, h = Math.max(...ys) - minY || 1;
+  const k = Math.min((box.w - 70) / w, (box.h - 110) / h);
+  const ox = box.x + (box.w - w * k) / 2 - minX * k, oy = box.y + 40 + (box.h - 110 - h * k) / 2 - minY * k;
+  const P = pts.map(q => ({ x: ox + q.x * k, y: oy + q.y * k }));
+  el('polyline', { points: P.map(q => q.x + ',' + q.y).join(' '), fill: 'none', stroke: NOIR, 'stroke-width': 4, 'stroke-linejoin': 'round' }, g);
+  segs.forEach((l, i) => {
+    const a = P[i], b = P[i + 1], nx = -(b.y - a.y), ny = b.x - a.x, nl = Math.hypot(nx, ny) || 1;
+    texte(g, (a.x + b.x) / 2 - nx / nl * 14, (a.y + b.y) / 2 - ny / nl * 14 + 4, (schema ? '≈ ' : '') + fr(l), { anchor: 'middle', size: 10, fill: BLEU, mono: true });
+  });
+  P.slice(1, -1).forEach(q => { el('circle', { cx: q.x, cy: q.y + 16, r: 12, fill: '#fff', stroke: TEAL, 'stroke-width': 1.4 }, g); texte(g, q.x, q.y + 20, deg + '°', { anchor: 'middle', size: 9, bold: true, fill: TEAL, mono: true }); });
+  texte(g, box.x + box.w / 2, box.y + box.h - 30, 'Rail ' + fr(L) + ' · ' + n + ' courbe' + (n > 1 ? 's' : '') + ' de ' + deg + '°', { anchor: 'middle', size: 9.5, bold: true });
+  if (schema) texte(g, box.x + box.w / 2, box.y + box.h - 16, 'Longueur de chaque segment : à confirmer au relevé', { anchor: 'middle', size: 8.5, fill: ROUGE });
+}
 function dessinRideau(svg, p) {
   const W = 760, H = 520; svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.innerHTML = '';
   const notes = [
@@ -199,12 +228,15 @@ function dessinRideau(svg, p) {
     `Tissu : ${p.tissu}`,
     `Rail : ${p.rail} · fixation ${p.fixation}`,
     CALC + `Empilement ≈ ${fr(p.larg * p.stackPct / 100)} au total`,
+    p.courbes ? CALC + `Rail courbé : ${p.courbes} courbe${p.courbes > 1 ? 's' : ''} de ${p.angleCourbe}° (vue de dessus)` : '',
     `Dégagement au sol : ${fr(p.sol)}`,
     `Retours : ${fr(p.retour)} de chaque côté`
   ];
   const z = feuille(svg, W, H, p.info || { projet: 'Hôtel Saint-Sauveur\nLobby — mur est', produit: 'Rideau Ripple Fold\nNormandie', no: 'S01261-L2\nRév. 0' }, notes);
+  let zr = z;
+  if (p.courbes > 0) { zr = Object.assign({}, z, { w: z.w * 0.58 }); vueDessusRail(svg, { x: z.x + z.w * 0.58, y: z.y, w: z.w * 0.42, h: z.h }, p); }
   const hTot = p.haut + p.sol + 4;
-  const e = echelle(z, p.larg + 2 * p.retour, hTot, 54);
+  const e = echelle(zr, p.larg + 2 * p.retour, hTot, 54);
   const g = el('g', {}, svg);
   const xr = e.x0 + p.retour * e.s, wr = p.larg * e.s;
   // plafond et sol
@@ -351,6 +383,13 @@ function baseDe(o, op) {
   const v = op.base || op.barre || op.solrBase || op.romainBase || op.eliteBase || '';
   return v ? (BASES[v] || lisible(v)) : '';
 }
+// Courbes d'un rail de rideau : « Courbes de rail » du board (90°/45° × quantité) ou accessoire « courbe » des rails Signature
+function courbesDe(op, o) {
+  const acc = op.normRailAcc || {};
+  const n = parseInt(acc['ks-courbe'], 10) || parseInt(acc['sig-courbe'], 10) || parseInt(acc['sig-courbe-k'], 10) || parseInt(acc['sig-arch-courbe'], 10) || parseInt(acc['sig-medi-courbe'], 10) || 0;
+  const deg = parseInt(acc['courbe-type'], 10) || 90;
+  return n > 0 ? { courbes: n, angleCourbe: deg, segments: o.segments && o.segments.length === n + 1 ? o.segments : null } : { courbes: 0 };
+}
 const lisible = v => String(v || '').replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim();
 function sensPanneaux(txt, nb) {
   const t = String(txt || '').toUpperCase();
@@ -388,7 +427,7 @@ function parametres(o) {
     const fin = String(op.normFinition || ''), rf = fin.match(/^rf(\d+)/);
     return { fam, p: { info, larg, haut, ouverture: /^paire/.test(op.normDivision || '') ? 'Paire' : 'Simple', confection: rf ? `Ripple Fold ${rf[1]} %` : (lisible(fin) || 'Confection'),
       tissu: [modele, st.normCollection].filter(Boolean).join(' · ') || produit || '—', rail: lisible(op.normRailSys) || '—', fixation: op.normMoto && op.normMoto.montage === 'mur' ? 'au mur' : 'au plafond',
-      sol: 0.5, retour: parseFloat(op.normRetour) || 0, stackPct: 20 } };
+      sol: 0.5, retour: parseFloat(op.normRetour) || 0, stackPct: 20, ...courbesDe(op, o) } };
   }
   if (fam === 'medical') {
     const segs = (o.segments || []).filter(s => s > 0);
