@@ -51,6 +51,11 @@ function feuille(svg, W, H, info, notes) {
   el('path', { d: 'M0,0 L7,7 M7,0 L0,7', stroke: '#9aa9ab', 'stroke-width': 0.7 }, filet);
 
   el('rect', { x: 4, y: 4, width: W - 8, height: H - 8, fill: '#fff', stroke: NOIR, 'stroke-width': 1.2 }, svg);
+  if (info && info.qte) {   // une page par type : la quantité en gros, les repères du plan dessous
+    el('rect', { x: 14, y: 14, width: 104, height: 34, rx: 5, fill: TEAL }, svg);
+    texte(svg, 66, 37, 'QTÉ ' + info.qte, { anchor: 'middle', size: 17, bold: true, fill: '#fff' });
+    if (info.reperes) String(info.reperes).split('\n').slice(0, 3).forEach((l, i) => texte(svg, 16, 62 + i * 12, l.length > 70 ? l.slice(0, 69) + '…' : l, { size: 9, fill: GRIS, mono: true }));
+  }
   // Cartouche (bas)
   const cy = H - 74;
   el('line', { x1: 4, y1: cy, x2: W - 4, y2: cy, stroke: NOIR, 'stroke-width': 1 }, svg);
@@ -147,6 +152,7 @@ function dessinStores(svg, p) {
     `${p.nb} toiles / 1 ${p.top}`,
     `Tissu : ${p.tissu}`,
     `Mécanisme : ${p.meca}`,
+    p.base ? `Base : ${p.base}` : '',
     `Contrôles : ${p.cotes.slice(0, p.nb).join(' · ')}`,
     'Largeur de chaque toile = mesure de commande ; jeu entre toiles selon fabricant.',
     p.nb > 1 ? 'Une seule cassette sur toute la largeur.' : ''
@@ -161,7 +167,8 @@ function dessinStores(svg, p) {
   largs.forEach((l, i) => {
     const w = l * e.s, y = e.y0 + hTop * e.s, h = p.haut * e.s;
     el('rect', { x: x + 2, y, width: w - 4, height: h, fill: 'rgba(19,143,143,0.08)', stroke: TEAL, 'stroke-width': 1 }, g);
-    el('rect', { x: x + 2, y: y + h - 6, width: w - 4, height: 6, fill: '#9fb0b2' }, g);   // barre de charge
+    el('rect', { x: x + 2, y: y + h - 6, width: w - 4, height: 6, fill: '#9fb0b2' }, g);   // barre de charge (base)
+    if (p.base && i === 0) texte(g, x + w / 2, y + h - 10, 'BASE : ' + String(p.base).toUpperCase().slice(0, 34), { anchor: 'middle', size: 8, bold: true, fill: '#55656a' });
     texte(g, x + w / 2, y + h / 2, `Toile ${i + 1}`, { anchor: 'middle', size: 11, bold: true, fill: TEAL });
     // chaînette
     const cote = (p.cotes[i] || 'D');
@@ -319,6 +326,15 @@ function dessinCadre(svg, p) {
 }
 
 // ───────────── Du produit (config du price board ou catégorie) aux paramètres du dessin ─────────────
+// Base (barre du bas) : le texte du descriptif du price board si on l'a (« Base : Base Carrée régulière »), sinon l'option
+const BASES = { carree: 'carrée', ronde: 'ronde', ovale: 'ovale', 'base-reguliere': 'régulière', 'zm-tissu': 'ZM recouverte de tissu', simple: 'simple' };
+function baseDe(o, op) {
+  const txt = String(o.produit || '') + ' ' + String((o.config || {}).description || '');
+  const m = txt.match(/Base\s*:\s*([^,|\n]+)/i);
+  if (m) return m[1].trim();
+  const v = op.base || op.barre || op.solrBase || op.romainBase || op.eliteBase || '';
+  return v ? (BASES[v] || lisible(v)) : '';
+}
 const lisible = v => String(v || '').replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim();
 function sensPanneaux(txt, nb) {
   const t = String(txt || '').toUpperCase();
@@ -371,7 +387,7 @@ function parametres(o) {
     const nb = o.parts && o.parts.length ? o.parts.length : Math.max(1, mult ? +mult[1] : 1);   // fenêtre divisée : une toile par partie
     const cote = /gauche/i.test(op.cote || op.solrCote || '') ? 'G' : 'D';
     return { fam, p: { info, nb, largs: o.parts && o.parts.length ? o.parts.slice() : Array(nb).fill(larg / nb), haut, top: lisible(op.entete || op.solrEntete || (st.type === 'norm-romain' ? 'tête romaine' : 'entête')),
-      tissu: produit || '—', meca: lisible(op.mecanisme || op.solrMec || op.romainMeca) || '—', cotes: Array(nb).fill(cote) } };
+      tissu: produit || '—', meca: lisible(op.mecanisme || op.solrMec || op.romainMeca) || '—', cotes: Array(nb).fill(cote), base: baseDe(o, op) } };
   }
   return { fam, p: { info, produit, larg, haut, compte: fam === 'compte', notes: o.notes } };
 }
