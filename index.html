@@ -5375,6 +5375,8 @@ function show(id, cond = true) {
 function hide(id) { show(id, false); }
 
 function resetForm() {
+  // Nouveau store : on sort du mode « modifier une ligne » (sinon le prochain ajout écraserait la ligne modifiée)
+  if (typeof window.lbasExitEditMode === 'function') window.lbasExitEditMode();
   document.getElementById('sel-fournisseur').value = '';
   document.getElementById('sel-type').value = '';
   state = { fournisseur:'', type:'', modele:'', couleur:'', larg:null, haut:null, fracLarg:0, fracHaut:0, options:{},
