@@ -479,7 +479,7 @@ function calculatePriceElite() {
     ...moto,
     'Côté contrôle : ' + (opt.eliteCote === 'gauche' ? 'Contrôle gauche' : 'Contrôle droit'),
     'Enroulement : ' + (opt.eliteEnroul === 'inverse' ? 'Inversé' : 'Ordinaire'),
-    'Multiple toiles : ' + (N > 1 ? N + ' toiles liées / 1 top' : '1 toile / 1 top'),
+    N > 1 ? 'Multiple toiles : ' + N + ' toiles liées / 1 top' : '',   // 1 toile / 1 top : rien à écrire (Sam 2026-10-26)
     accTxt.length ? 'Accessoires : ' + accTxt.join(', ') : '',
   ].filter(x => x && !/:\s*$/.test(x));
   state.eliteResume = resume;
