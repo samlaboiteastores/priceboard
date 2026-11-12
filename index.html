@@ -11599,6 +11599,7 @@ function buildOptionsNorm() {
       { val: 'simple',    label: 'Demi-paire (1 panneau)' },
       { val: 'paire-c',   label: '1 paire centrée — 2 panneaux identiques (G et D)' },
       { val: 'paire-dc',  label: '1 paire décentrée — panneaux non identiques' },
+      { val: 'multi',     label: 'Panneaux multiples — nombre et largeur de chaque panneau' },
     ].forEach(o => {
       const opt = document.createElement('option');
       opt.value = o.val; opt.textContent = o.label;
@@ -11670,6 +11671,84 @@ function buildOptionsNorm() {
         dcWrap.appendChild(dcInfo);
       }
       divBody.appendChild(dcWrap);
+    }
+    // Panneaux multiples → nombre + largeur de chaque panneau, de gauche à droite
+    if (state.options.normDivision === 'multi') {
+      const larg = state.larg || 0;
+      const retValeur = state.options.normRetour === 'autre'
+        ? (state.options.normRetourCustom || 0)
+        : parseFloat(state.options.normRetour || 0);
+      const largTotale = larg + retValeur * 2;
+      let nb = parseInt(state.options.normNbPanneaux, 10) || 3;
+      if (!Array.isArray(state.options.normPanneaux)) state.options.normPanneaux = [];
+      const pans = state.options.normPanneaux;
+      const repartir = () => {
+        const eq = largTotale > 0 ? Math.round((largTotale / nb) * 8) / 8 : 0;
+        for (let i = 0; i < nb; i++) pans[i] = eq;
+        if (largTotale > 0) pans[nb - 1] = Math.round((largTotale - eq * (nb - 1)) * 8) / 8;
+      };
+      state.options.normNbPanneaux = nb;
+      pans.length = Math.min(pans.length, nb);
+      if (pans.length < nb || pans.every(v => !v)) repartir();
+
+      const mWrap = document.createElement('div');
+      mWrap.style.cssText = 'margin-top:10px;padding:12px;background:rgba(91,155,213,0.06);border:1px solid rgba(91,155,213,0.2);border-radius:6px;';
+      const mLbl = document.createElement('div');
+      mLbl.style.cssText = 'font-size:12px;color:var(--blue);margin-bottom:8px;font-weight:500;';
+      mLbl.innerHTML = `Largeur totale : <strong>${largTotale || '?'}"</strong><br><span style="font-size:11px;font-weight:normal;opacity:.8;">Nombre de panneaux, puis la largeur de chaque panneau de gauche à droite :</span>`;
+      mWrap.appendChild(mLbl);
+
+      const nbRow = document.createElement('div');
+      nbRow.style.cssText = 'display:flex;gap:6px;align-items:center;margin-bottom:8px;';
+      const nbInp = document.createElement('input');
+      nbInp.type = 'number'; nbInp.min = '2'; nbInp.max = '12'; nbInp.step = '1'; nbInp.value = nb; nbInp.id = 'norm-nb-panneaux';
+      nbInp.style.cssText = 'width:80px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:DM Mono,monospace;font-size:12px;padding:8px 12px;box-sizing:border-box;';
+      nbInp.onchange = () => {
+        const v = Math.max(2, Math.min(12, parseInt(nbInp.value, 10) || 2));
+        state.options.normNbPanneaux = v; state.options.normPanneaux = [];
+        buildOptionsNorm(); calculatePriceNorm();
+      };
+      const nbTxt = document.createElement('span');
+      nbTxt.style.cssText = 'font-size:11px;color:var(--text-mid);'; nbTxt.textContent = 'panneaux';
+      const eqBtn = document.createElement('button');
+      eqBtn.type = 'button'; eqBtn.textContent = 'Répartir également';
+      eqBtn.style.cssText = 'margin-left:auto;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:11px;padding:7px 10px;cursor:pointer;';
+      eqBtn.onclick = () => { repartir(); buildOptionsNorm(); calculatePriceNorm(); };
+      nbRow.appendChild(nbInp); nbRow.appendChild(nbTxt); nbRow.appendChild(eqBtn);
+      mWrap.appendChild(nbRow);
+
+      const FR = [['0','0'],['0.125','1/8"'],['0.25','1/4"'],['0.375','3/8"'],['0.5','1/2"'],['0.625','5/8"'],['0.75','3/4"'],['0.875','7/8"']];
+      const somme = () => pans.reduce((a, v) => a + (parseFloat(v) || 0), 0);
+      const info = document.createElement('div');
+      const majInfo = () => {
+        const sm = somme(), ecart = Math.round((largTotale - sm) * 1000) / 1000;
+        info.style.cssText = 'margin-top:6px;font-size:11px;' + (Math.abs(ecart) > 0.13 ? 'color:var(--red);' : 'color:var(--text-mid);');
+        info.textContent = `Total des panneaux : ${sm}" / ${largTotale || '?'}` + '"' + (Math.abs(ecart) > 0.13 ? ` — écart de ${ecart > 0 ? '+' : ''}${ecart}" à corriger` : ' ✔');
+      };
+      for (let i = 0; i < nb; i++) {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;gap:6px;align-items:center;margin-bottom:5px;';
+        const lb = document.createElement('span');
+        lb.style.cssText = 'width:92px;font-size:11px;color:var(--text-mid);';
+        lb.textContent = 'Panneau ' + (i + 1) + (i === 0 ? ' (G)' : i === nb - 1 ? ' (D)' : '');
+        const v = parseFloat(pans[i]) || 0;
+        const ent = document.createElement('input');
+        ent.type = 'number'; ent.min = '0'; ent.step = '1'; ent.value = v ? Math.floor(v) : ''; ent.placeholder = 'Pouces';
+        ent.id = 'norm-pan-' + (i + 1);
+        ent.style.cssText = 'flex:2;min-width:70px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:DM Mono,monospace;font-size:12px;padding:7px 10px;box-sizing:border-box;';
+        const fr = document.createElement('select');
+        fr.id = 'norm-pan-frac-' + (i + 1);
+        fr.style.cssText = 'flex:1;min-width:64px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:DM Mono,monospace;font-size:12px;padding:7px 8px;outline:none;appearance:none;-webkit-appearance:none;';
+        const fv = Math.round((v - Math.floor(v)) * 8) / 8;
+        FR.forEach(([val, l]) => { const o = document.createElement('option'); o.value = val; o.textContent = l; if (Math.abs(parseFloat(val) - fv) < 0.001) o.selected = true; fr.appendChild(o); });
+        const maj = () => { pans[i] = (parseFloat(ent.value) || 0) + (parseFloat(fr.value) || 0); majInfo(); calculatePriceNorm(); };
+        ent.oninput = maj; fr.onchange = maj;
+        row.appendChild(lb); row.appendChild(ent); row.appendChild(fr);
+        mWrap.appendChild(row);
+      }
+      majInfo();
+      mWrap.appendChild(info);
+      divBody.appendChild(mWrap);
     }
     container.appendChild(divBody);
   }
@@ -12477,6 +12556,20 @@ function calculatePriceNorm() {
       { larg: pg, label: `Panneau G (${pg}")` },
       { larg: pd, label: `Panneau D (${pd.toFixed(1)}")` },
     ];
+  } else if (division === 'multi') {
+    const pans = (opt.normPanneaux || []).slice(0, parseInt(opt.normNbPanneaux, 10) || 0).map(v => parseFloat(v) || 0);
+    const sm = pans.reduce((a, v) => a + v, 0);
+    if (!pans.length || pans.some(v => v <= 0)) {
+      alertEl.textContent = '⚠ Veuillez entrer la largeur de chaque panneau';
+      alertEl.classList.add('show');
+      resetResult(); return;
+    }
+    if (Math.abs(sm - larg) > 0.13) {
+      alertEl.textContent = `⚠ Total des panneaux ${sm}" ≠ largeur totale ${larg}" — corriger les largeurs`;
+      alertEl.classList.add('show');
+      resetResult(); return;
+    }
+    largeurs = pans.map((l, i) => ({ larg: l, label: `Panneau ${i + 1} (${l}")` }));
   }
 
   if (isPanneau) {
@@ -12816,6 +12909,7 @@ function calculatePriceNorm() {
 
   const divLabel = opt.normDivision === 'paire-c'  ? '1 paire centrée (G+D identiques)'
                  : opt.normDivision === 'paire-dc' ? `1 paire décentrée — G:${opt.normPanneauGauche || '?'}" / D:${largBase + retourVal*2 - (opt.normPanneauGauche||0)}'"`
+                 : opt.normDivision === 'multi' ? `${(opt.normPanneaux || []).length} panneaux (G→D) — ` + (opt.normPanneaux || []).map((v, i) => `${i + 1}: ${v}"`).join(' · ')
                  : 'Demi-paire (1 panneau)';
   const retourLabel = retourVal > 0 ? ` · Retour ${retourVal}" × 2 côtés (+${retourVal*2}" à la largeur)` : '';
 
@@ -14357,6 +14451,9 @@ function copyResume() {
     if (_div === 'paire-dc') {
       var _pg = parseFloat(state.options.normPanneauGauche) || 0;
       if (_pg > 0) { releve = (releve || '') + ' — Panneau G: ' + _fmtPo(_pg); }
+    } else if (_div === 'multi') {
+      var _pans = (state.options.normPanneaux || []).map(function (v) { return parseFloat(v) || 0; });
+      if (_pans.length) { releve = (releve || '') + ' — ' + _pans.length + ' panneaux (G→D) : ' + _pans.map(_fmtPo).join(' / '); }
     }
     var _editId = window.LBAS_EDIT_LINE_ID || null;
     var payload = {

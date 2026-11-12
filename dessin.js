@@ -248,10 +248,12 @@ function dessinRideau(svg, p) {
   // rail
   el('rect', { x: xr, y: e.y0 + 4, width: wr, height: 5, fill: '#5d6b6d' }, g);
   const yT = e.y0 + 4 * e.s, hR = p.haut * e.s;
-  const nbPan = p.ouverture === 'Paire' ? 2 : 1;
-  const largPan = (p.larg / nbPan) * e.s;
+  const pans = (p.panneaux && p.panneaux.length) ? p.panneaux : (p.ouverture === 'Paire' ? [p.larg / 2, p.larg / 2] : [p.larg]);
+  const nbPan = pans.length, totPans = pans.reduce((a, v) => a + v, 0) || p.larg;
+  let xCur = xr;
   for (let k = 0; k < nbPan; k++) {
-    const x0 = xr + k * largPan;
+    const largPan = pans[k] / totPans * wr;
+    const x0 = xCur; xCur += largPan;
     // ondulations Ripple Fold
     let d = `M${x0},${yT}`;
     const onde = Math.max(10, 4 * e.s);
@@ -259,10 +261,12 @@ function dessinRideau(svg, p) {
     el('path', { d, fill: 'none', stroke: '#7a5c3e', 'stroke-width': 1.2 }, g);
     el('rect', { x: x0 + 1, y: yT + 2, width: largPan - 2, height: hR - 2, fill: 'rgba(122,92,62,0.10)', stroke: '#7a5c3e', 'stroke-width': 1 }, g);
     for (let x = x0 + onde / 2; x < x0 + largPan - 2; x += onde) el('line', { x1: x, y1: yT + 6, x2: x, y2: yT + hR - 2, stroke: 'rgba(122,92,62,0.25)', 'stroke-width': 1 }, g);
-    texte(g, x0 + largPan / 2, yT + hR / 2, nbPan === 2 ? (k ? 'Panneau D' : 'Panneau G') : 'Panneau unique', { anchor: 'middle', size: 11, bold: true, fill: '#7a5c3e' });
+    const nom = nbPan === 1 ? 'Panneau unique' : nbPan === 2 && !p.multi ? (k ? 'Panneau D' : 'Panneau G') : 'Panneau ' + (k + 1);
+    texte(g, x0 + largPan / 2, yT + hR / 2, nom, { anchor: 'middle', size: nbPan > 4 ? 9 : 11, bold: true, fill: '#7a5c3e' });
+    if (nbPan > 1) texte(g, x0 + largPan / 2, yT + hR / 2 + 15, fr(pans[k]), { anchor: 'middle', size: nbPan > 4 ? 8.5 : 10, fill: BLEU, mono: true });
   }
   // flèches d'ouverture
-  if (nbPan === 2) {
+  if (nbPan === 2 && !p.multi) {
     el('path', { d: `M${xr + wr / 2 - 12},${yT + hR * 0.75} h-60`, stroke: TEAL, 'stroke-width': 1.4, 'marker-end': 'url(#fl)', fill: 'none' }, g);
     el('path', { d: `M${xr + wr / 2 + 12},${yT + hR * 0.75} h60`, stroke: TEAL, 'stroke-width': 1.4, 'marker-end': 'url(#fl)', fill: 'none' }, g);
   }
@@ -425,7 +429,10 @@ function parametres(o) {
   }
   if (fam === 'rideau') {
     const fin = String(op.normFinition || ''), rf = fin.match(/^rf(\d+)/);
-    return { fam, p: { info, larg, haut, ouverture: /^paire/.test(op.normDivision || '') ? 'Paire' : 'Simple', confection: rf ? `Ripple Fold ${rf[1]} %` : (lisible(fin) || 'Confection'),
+    const _ret = parseFloat(op.normRetour) || 0, _tot = larg + 2 * _ret;
+    const panneaux = op.normDivision === 'multi' ? (op.normPanneaux || []).map(v => parseFloat(v) || 0).filter(v => v > 0)
+      : op.normDivision === 'paire-dc' && +op.normPanneauGauche > 0 ? [+op.normPanneauGauche, _tot - op.normPanneauGauche] : null;
+    return { fam, p: { info, larg, haut, panneaux, multi: op.normDivision === 'multi', ouverture: op.normDivision === 'multi' ? (op.normPanneaux || []).length + ' panneaux' : /^paire/.test(op.normDivision || '') ? 'Paire' : 'Simple', confection: rf ? `Ripple Fold ${rf[1]} %` : (lisible(fin) || 'Confection'),
       tissu: [modele, st.normCollection].filter(Boolean).join(' · ') || produit || '—', rail: lisible(op.normRailSys) || '—', fixation: op.normMoto && op.normMoto.montage === 'mur' ? 'au mur' : 'au plafond',
       sol: 0.5, retour: parseFloat(op.normRetour) || 0, stackPct: 20, ...courbesDe(op, o) } };
   }
