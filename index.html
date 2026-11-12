@@ -4051,6 +4051,7 @@ function buildOptions() {
       if (key === 'mecanisme') buildOptions();
       if (key === 'entete') buildOptions();
       if (key === 'base') buildOptions();
+      if (key === 'multiple') buildOptions();
       if (key === 'enroulement' && sel.value === 'ordinaire') {
         document.getElementById('alert-dim').classList.remove('show');
       }
@@ -4059,7 +4060,13 @@ function buildOptions() {
 
     const piCarresMesure = state.largTip && state.hautTip ? (state.largTip * state.hautTip / 144) : 0;
 
-    optsData[key].forEach(opt => {
+    let _items = optsData[key];
+    if (key === 'cote') {
+      // Plusieurs toiles sur un même top : choix « contrôles aux extrémités »
+      _items = vpCoteItems(optsData.cote);
+      if (state.options.cote && !_items.some(o => o.val === state.options.cote)) state.options.cote = /^ext/.test(state.options.cote) && _items.some(o => o.val === 'ext') ? 'ext' : 'droit';
+    }
+    _items.forEach(opt => {
       const option = document.createElement('option');
       option.value = opt.val;
 
@@ -4971,6 +4978,20 @@ function updatePEPanneaux() {
 const PD_PCT_SANS_ESC_CUEILLETTE = 35;
 // Nid d'abeille Top-Down : commercial seulement, largeur minimum 20" (liste PD 2026 p.22)
 const NDA_TD_LARG_MIN = 20;
+
+// Côté contrôle VP : avec 2 ou 3 toiles sur un même top, permettre les contrôles aux extrémités
+// (toile de gauche contrôlée à gauche, toile de droite à droite). Valeurs : ext (2 toiles : G·D ;
+// 3 toiles : G·D·D) et ext-cg (3 toiles : G·G·D).
+function vpCoteItems(base) {
+  const n = state.options.multiple === '2x1' ? 2 : state.options.multiple === '3x1' ? 3 : 1;
+  const items = (base || []).slice();
+  if (n === 2) items.push({ val: 'ext', label: 'Aux extrémités — toile 1 à gauche · toile 2 à droite', extra: 0 });
+  if (n === 3) {
+    items.push({ val: 'ext',    label: 'Aux extrémités — toile 1 à gauche · toiles 2 et 3 à droite', extra: 0 });
+    items.push({ val: 'ext-cg', label: 'Aux extrémités — toiles 1 et 2 à gauche · toile 3 à droite', extra: 0 });
+  }
+  return items;
+}
 
 // Bloc « dimensions de chaque toile/store » (sections 2 et 3 sous les dimensions principales).
 // n = nombre de toiles/stores ; nom = 'Toile' | 'Store' ; top = 'même cassette' | 'même cantonnière'.

@@ -449,7 +449,7 @@ function parametres(o) {
     const nb = o.parts && o.parts.length ? o.parts.length : Math.max(1, mult ? +mult[1] : 1);   // fenêtre divisée : une toile par partie
     const cote = /gauche/i.test(op.cote || op.solrCote || '') ? 'G' : 'D';
     return { fam, p: { info, nb, largs: o.parts && o.parts.length ? o.parts.slice() : Array(nb).fill(larg / nb), haut, top: choix(o, /^Ent[êe]te\s*:/i) || lisible(op.entete || op.solrEntete || (st.type === 'norm-romain' ? 'tête romaine' : 'entête')),
-      tissu: produit || '—', meca: lisible(op.mecanisme || op.solrMec || op.romainMeca) || '—', cotes: Array(nb).fill(cote), base: baseDe(o, op) } };
+      tissu: produit || '—', meca: lisible(op.mecanisme || op.solrMec || op.romainMeca) || '—', cotes: /^ext/.test(op.cote || '') && nb > 1 ? (nb === 2 ? ['G', 'D'] : op.cote === 'ext-cg' ? ['G', 'G', 'D'] : ['G', 'D', 'D']) : Array(nb).fill(cote), base: baseDe(o, op) } };
   }
   return { fam, p: { info, produit, larg, haut, compte: fam === 'compte', notes: o.notes } };
 }
